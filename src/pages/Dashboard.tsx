@@ -1,11 +1,10 @@
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   CheckCircle2,
   Clock,
-  AlertTriangle,
   Users,
+  Activity,
+  Zap,
 } from "lucide-react";
 import { projects, tasks, resources, costFormatter } from "@/lib/mock-data";
 import { KpiCard } from "@/components/KpiCard";
@@ -28,11 +27,20 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-base font-semibold text-foreground">Dashboard</h1>
-        <p className="text-[13px] text-muted-foreground">
-          Vista general del portafolio de proyectos
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            Centro de Control
+          </h1>
+          <p className="text-[13px] text-muted-foreground mt-0.5">
+            Vista general del portafolio de proyectos
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-[12px]">
+          <Activity className="w-3.5 h-3.5 text-cost-positive" />
+          <span className="text-cost-positive font-medium">Sistema Operativo</span>
+        </div>
       </div>
 
       {/* KPI Row */}

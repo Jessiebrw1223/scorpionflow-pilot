@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,16 +18,15 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   path: string;
-  module: string;
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/", module: "general" },
-  { label: "Tareas", icon: ListChecks, path: "/tasks", module: "tareas" },
-  { label: "Recursos", icon: Users, path: "/resources", module: "recursos" },
-  { label: "Proyectos", icon: FolderKanban, path: "/projects", module: "proyectos" },
-  { label: "Costos", icon: DollarSign, path: "/costs", module: "costos" },
-  { label: "Informes", icon: BarChart3, path: "/reports", module: "informes" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { label: "Tareas", icon: ListChecks, path: "/tasks" },
+  { label: "Recursos", icon: Users, path: "/resources" },
+  { label: "Proyectos", icon: FolderKanban, path: "/projects" },
+  { label: "Costos", icon: DollarSign, path: "/costs" },
+  { label: "Informes", icon: BarChart3, path: "/reports" },
 ];
 
 export function AppSidebar() {
@@ -36,19 +36,24 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "fixed top-0 left-0 h-screen bg-sidebar flex flex-col z-50 transition-sf",
+        "fixed top-0 left-0 h-screen bg-sidebar flex flex-col z-50 transition-sf border-r border-sidebar-border",
         collapsed ? "w-16" : "w-60"
       )}
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded bg-accent flex items-center justify-center shrink-0">
-          <span className="text-accent-foreground font-bold text-sm">SF</span>
+        <div className="w-8 h-8 rounded-lg scorpion-gradient flex items-center justify-center shrink-0 shadow-lg">
+          <Flame className="w-4 h-4 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-sidebar-foreground font-semibold text-sm tracking-wide truncate">
-            ScorpionFlow
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sidebar-foreground font-bold text-sm tracking-wide truncate">
+              ScorpionFlow
+            </span>
+            <span className="text-[10px] text-sidebar-muted tracking-widest uppercase">
+              Project Control
+            </span>
+          </div>
         )}
       </div>
 
@@ -65,13 +70,16 @@ export function AppSidebar() {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded text-[13px] transition-sf group",
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf group relative",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent text-primary font-medium"
                   : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
               )}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />
+              )}
+              <item.icon className={cn("w-4 h-4 shrink-0", isActive && "text-primary")} />
               {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           );
@@ -83,9 +91,9 @@ export function AppSidebar() {
         <NavLink
           to="/settings"
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded text-[13px] transition-sf",
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf",
             location.pathname === "/settings"
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              ? "bg-sidebar-accent text-primary"
               : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
           )}
         >
@@ -94,7 +102,7 @@ export function AppSidebar() {
         </NavLink>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-3 px-3 py-2 rounded text-[13px] text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-sf w-full"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-sf w-full"
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4 shrink-0" />
