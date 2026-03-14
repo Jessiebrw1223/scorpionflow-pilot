@@ -6,10 +6,10 @@ interface TaskCardProps {
 }
 
 const priorityColors: Record<string, string> = {
-  low: "bg-muted text-muted-foreground",
-  medium: "bg-status-progress/10 text-status-progress",
-  high: "bg-cost-warning/10 text-cost-warning",
-  critical: "bg-status-blocked/10 text-status-blocked",
+  low: "bg-secondary text-secondary-foreground",
+  medium: "bg-status-progress/15 text-status-progress",
+  high: "bg-cost-warning/15 text-cost-warning",
+  critical: "bg-cost-negative/15 text-cost-negative",
 };
 
 export function TaskCard({ task }: TaskCardProps) {
@@ -28,8 +28,8 @@ export function TaskCard({ task }: TaskCardProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className="font-mono-data text-[11px] text-muted-foreground">{task.id}</span>
-        <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", priorityColors[task.priority])}>
+        <span className="font-mono-data text-[11px] text-primary/70">{task.id}</span>
+        <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded", priorityColors[task.priority])}>
           {priorityLabels[task.priority]}
         </span>
       </div>
@@ -56,8 +56,8 @@ export function TaskCard({ task }: TaskCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-[9px] font-medium text-primary-foreground">{initial}</span>
+          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+            <span className="text-[9px] font-semibold text-primary">{initial}</span>
           </div>
           <span className="text-[11px] text-muted-foreground truncate max-w-[100px]">
             {task.assignee.split(" ")[0]}
@@ -65,7 +65,7 @@ export function TaskCard({ task }: TaskCardProps) {
         </div>
         <span
           className={cn(
-            "font-mono-data text-[11px] font-medium",
+            "font-mono-data text-[11px] font-semibold",
             isOverBudget ? "text-cost-negative" : "text-foreground"
           )}
         >
