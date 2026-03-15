@@ -49,11 +49,7 @@ export default function TasksPage() {
       {/* Content */}
       {view === "kanban" && <KanbanBoard />}
       {view === "list" && <TaskListView />}
-      {view === "calendar" && (
-        <div className="surface-card p-12 text-center text-muted-foreground text-[13px]">
-          Calendario de tareas — Próximamente
-        </div>
-      )}
+      {view === "calendar" && <TaskCalendarView />}
     </div>
   );
 }
