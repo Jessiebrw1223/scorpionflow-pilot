@@ -43,6 +43,44 @@ export interface Resource {
   assignedProjects: string[];
 }
 
+export interface PersonnelResource {
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  salary: number;
+  projectRole: string;
+  utilization: number;
+  assignedProjects: string[];
+  status: "active" | "on_leave" | "inactive";
+}
+
+export interface TechResource {
+  id: string;
+  name: string;
+  type: string;
+  technology: string;
+  provider: string;
+  status: "active" | "inactive" | "maintenance";
+  projectId: string;
+  responsible: string;
+  implementationDate: string;
+  utilization: number;
+}
+
+export interface MachineryResource {
+  id: string;
+  name: string;
+  category: string;
+  area: string;
+  operationalStatus: "active" | "maintenance" | "available" | "inactive";
+  location: string;
+  responsible: string;
+  capacity: number;
+  projectId: string;
+  utilization: number;
+}
+
 const avatarInitials = (name: string) => name.split(" ").map(n => n[0]).join("");
 
 export const projects: Project[] = [
@@ -97,6 +135,55 @@ export const resources: Resource[] = [
   { id: "res-004", name: "Luis Ramírez", role: "Project Manager", avatar: "", utilization: 88, hourlyRate: 95, assignedProjects: ["proj-001", "proj-002", "proj-003"] },
   { id: "res-005", name: "Elena Martín", role: "QA Engineer", avatar: "", utilization: 45, hourlyRate: 65, assignedProjects: ["proj-002"] },
   { id: "res-006", name: "Diego Fernández", role: "DevOps Engineer", avatar: "", utilization: 95, hourlyRate: 90, assignedProjects: ["proj-001", "proj-003"] },
+];
+
+export const personnelResources: PersonnelResource[] = [
+  { id: "per-001", firstName: "Ana", lastName: "García", position: "Ingeniera de Software", salary: 4500, projectRole: "Desarrolladora Backend", utilization: 92, assignedProjects: ["proj-001", "proj-003"], status: "active" },
+  { id: "per-002", firstName: "Carlos", lastName: "López", position: "Ingeniero de Datos", salary: 4200, projectRole: "Desarrollador Backend", utilization: 78, assignedProjects: ["proj-001"], status: "active" },
+  { id: "per-003", firstName: "María", lastName: "Torres", position: "Diseñadora UX/UI", salary: 3800, projectRole: "Diseñadora UX", utilization: 65, assignedProjects: ["proj-002"], status: "active" },
+  { id: "per-004", firstName: "Luis", lastName: "Ramírez", position: "Gerente de Proyectos", salary: 5500, projectRole: "Gerente de Proyecto", utilization: 88, assignedProjects: ["proj-001", "proj-002", "proj-003"], status: "active" },
+  { id: "per-005", firstName: "Elena", lastName: "Martín", position: "Ingeniera QA", salary: 3500, projectRole: "Analista QA", utilization: 45, assignedProjects: ["proj-002"], status: "active" },
+  { id: "per-006", firstName: "Diego", lastName: "Fernández", position: "Ingeniero DevOps", salary: 4800, projectRole: "Ingeniero DevOps", utilization: 95, assignedProjects: ["proj-001", "proj-003"], status: "active" },
+  { id: "per-007", firstName: "Roberto", lastName: "Sánchez", position: "Operador de Maquinaria", salary: 2800, projectRole: "Operador CNC", utilization: 70, assignedProjects: ["proj-003"], status: "active" },
+  { id: "per-008", firstName: "Patricia", lastName: "Vega", position: "Técnica de Mantenimiento", salary: 3000, projectRole: "Técnica de Mantenimiento", utilization: 55, assignedProjects: ["proj-003"], status: "on_leave" },
+];
+
+export const techResources: TechResource[] = [
+  { id: "tech-001", name: "Base de Datos Principal", type: "Base de datos relacional", technology: "PostgreSQL", provider: "AWS RDS", status: "active", projectId: "proj-001", responsible: "Carlos López", implementationDate: "2026-01-20", utilization: 85 },
+  { id: "tech-002", name: "Servidor de Aplicaciones", type: "Máquina virtual", technology: "EC2 Instance", provider: "AWS", status: "active", projectId: "proj-001", responsible: "Diego Fernández", implementationDate: "2026-01-15", utilization: 72 },
+  { id: "tech-003", name: "Motor de IA Predictiva", type: "Inteligencia artificial", technology: "TensorFlow", provider: "Google Cloud", status: "active", projectId: "proj-002", responsible: "Ana García", implementationDate: "2026-02-10", utilization: 60 },
+  { id: "tech-004", name: "Pipeline CI/CD", type: "Herramienta de desarrollo", technology: "GitHub Actions", provider: "GitHub", status: "active", projectId: "proj-001", responsible: "Diego Fernández", implementationDate: "2026-01-18", utilization: 90 },
+  { id: "tech-005", name: "API Gateway", type: "API externa", technology: "Kong Gateway", provider: "Kong Inc.", status: "active", projectId: "proj-001", responsible: "Carlos López", implementationDate: "2026-02-05", utilization: 68 },
+  { id: "tech-006", name: "Plataforma de Monitoreo", type: "Servicio cloud", technology: "Datadog", provider: "Datadog Inc.", status: "maintenance", projectId: "proj-003", responsible: "Diego Fernández", implementationDate: "2025-11-01", utilization: 40 },
+  { id: "tech-007", name: "Cluster Kubernetes", type: "Máquina virtual", technology: "EKS", provider: "AWS", status: "active", projectId: "proj-003", responsible: "Diego Fernández", implementationDate: "2025-10-15", utilization: 82 },
+  { id: "tech-008", name: "Sistema de Automatización", type: "Plataforma de automatización", technology: "Apache Airflow", provider: "On-premise", status: "inactive", projectId: "proj-002", responsible: "Carlos López", implementationDate: "2026-03-01", utilization: 0 },
+];
+
+export const machineryResources: MachineryResource[] = [
+  { id: "maq-001", name: "Máquina CNC XR-500", category: "Maquinaria de producción", area: "Producción", operationalStatus: "active", location: "Planta A - Sector 3", responsible: "Roberto Sánchez", capacity: 92, projectId: "proj-003", utilization: 88 },
+  { id: "maq-002", name: "Robot de Ensamblaje XR-21", category: "Robot industrial", area: "Producción", operationalStatus: "active", location: "Planta A - Línea 2", responsible: "Roberto Sánchez", capacity: 100, projectId: "proj-003", utilization: 75 },
+  { id: "maq-003", name: "Sistema de Transporte Automatizado", category: "Sistema de transporte logístico", area: "Logística", operationalStatus: "available", location: "Planta A - Almacén", responsible: "Patricia Vega", capacity: 80, projectId: "proj-003", utilization: 30 },
+  { id: "maq-004", name: "Cortadora Láser Industrial", category: "Maquinaria de corte industrial", area: "Producción", operationalStatus: "maintenance", location: "Planta B - Sector 1", responsible: "Patricia Vega", capacity: 95, projectId: "proj-003", utilization: 0 },
+  { id: "maq-005", name: "Prensa Hidráulica PH-200", category: "Maquinaria pesada", area: "Producción", operationalStatus: "active", location: "Planta B - Sector 2", responsible: "Roberto Sánchez", capacity: 85, projectId: "proj-003", utilization: 65 },
+  { id: "maq-006", name: "Sistema de Control de Calidad Óptico", category: "Maquinaria de control de calidad", area: "Control de Calidad", operationalStatus: "active", location: "Planta A - Laboratorio", responsible: "Elena Martín", capacity: 70, projectId: "proj-003", utilization: 55 },
+];
+
+export const projectRoles = [
+  "Desarrollador", "Analista de Sistemas", "Ingeniero de Datos", "Diseñador UX/UI",
+  "Gerente de Proyecto", "Analista Financiero", "Ingeniero Industrial",
+  "Operador de Maquinaria", "Técnico de Mantenimiento",
+];
+
+export const techTypes = [
+  "Base de datos relacional", "Base de datos NoSQL", "Inteligencia artificial",
+  "Máquina virtual", "Servidor", "Servicio cloud", "Herramienta de desarrollo",
+  "API externa", "Plataforma de automatización", "Computadora personal",
+];
+
+export const machineryCategories = [
+  "Maquinaria de producción", "Maquinaria de ensamblaje", "Maquinaria de corte industrial",
+  "Sistema automatizado", "Robot industrial", "Sistema de transporte logístico",
+  "Maquinaria de almacenamiento", "Maquinaria de control de calidad", "Maquinaria pesada",
 ];
 
 export const tasks: Task[] = [
