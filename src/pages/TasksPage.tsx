@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { TaskListView } from "@/components/TaskListView";
+import { TaskCalendarView } from "@/components/TaskCalendarView";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, List, Calendar } from "lucide-react";
 
@@ -48,11 +49,7 @@ export default function TasksPage() {
       {/* Content */}
       {view === "kanban" && <KanbanBoard />}
       {view === "list" && <TaskListView />}
-      {view === "calendar" && (
-        <div className="surface-card p-12 text-center text-muted-foreground text-[13px]">
-          Calendario de tareas — Próximamente
-        </div>
-      )}
+      {view === "calendar" && <TaskCalendarView />}
     </div>
   );
 }
