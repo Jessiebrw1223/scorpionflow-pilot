@@ -1,9 +1,14 @@
+using ScorpionFlow.API.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 🔥 AGREGAR ESTA LÍNEA (MUY IMPORTANTE)
+builder.Services.AddSingleton<ProjectService>();
 
 var app = builder.Build();
 
@@ -15,6 +20,7 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
+// (Opcional: puedes dejar o borrar esto)
 app.MapGet("/weatherforecast", () =>
 {
     var summaries = new[]

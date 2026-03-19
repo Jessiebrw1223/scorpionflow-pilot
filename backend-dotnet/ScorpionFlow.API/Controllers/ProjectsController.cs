@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using ScorpionFlow.API.Models;
+using ScorpionFlow.API.Services;
 
 namespace ScorpionFlow.API.Controllers
 {
@@ -6,17 +8,25 @@ namespace ScorpionFlow.API.Controllers
     [Route("api/[controller]")]
     public class ProjectsController : ControllerBase
     {
-        [HttpGet]
-        public IActionResult GetProjects()
-        {
-            var projects = new[]
-            {
-                new { Id = 1, Name = "Project Alpha", Budget = 150000 },
-                new { Id = 2, Name = "Project Beta", Budget = 85000 },
-                new { Id = 3, Name = "Project Gamma", Budget = 200000 }
-            };
+        private readonly ProjectService _projectService;
 
+        public ProjectsController(ProjectService projectService)
+        {
+            _projectService = projectService;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<Project>>> Get()
+        {
+            var projects = await _projectService.GetAllAsync();
             return Ok(projects);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> Create(Project project)
+        {
+            await _projectService.CreateAsync(project);
+            return Ok(project);
         }
     }
 }

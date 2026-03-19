@@ -35,3 +35,9 @@ C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\obj\Debug\net1
 C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
 C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\DnsClient.dll
+C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\MongoDB.Bson.dll
+C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\MongoDB.Driver.dll
+C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\SharpCompress.dll
+C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\Snappier.dll
+C:\Users\lmore\scorpionflow-pilot\backend-dotnet\ScorpionFlow.API\bin\Debug\net10.0\ZstdSharp.dll
