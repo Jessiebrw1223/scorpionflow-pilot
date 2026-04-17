@@ -196,6 +196,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          planning_mode: Database["public"]["Enums"]["planning_mode"]
           progress: number
           quotation_id: string | null
           start_date: string | null
@@ -213,6 +214,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          planning_mode?: Database["public"]["Enums"]["planning_mode"]
           progress?: number
           quotation_id?: string | null
           start_date?: string | null
@@ -230,6 +232,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          planning_mode?: Database["public"]["Enums"]["planning_mode"]
           progress?: number
           quotation_id?: string | null
           start_date?: string | null
@@ -370,10 +373,13 @@ export type Database = {
           due_date: string | null
           id: string
           impact: Database["public"]["Enums"]["task_impact"]
+          node_type: Database["public"]["Enums"]["task_node_type"]
           owner_id: string
+          parent_id: string | null
           position: number
           priority: Database["public"]["Enums"]["task_priority"]
           project_id: string
+          start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
@@ -388,10 +394,13 @@ export type Database = {
           due_date?: string | null
           id?: string
           impact?: Database["public"]["Enums"]["task_impact"]
+          node_type?: Database["public"]["Enums"]["task_node_type"]
           owner_id: string
+          parent_id?: string | null
           position?: number
           priority?: Database["public"]["Enums"]["task_priority"]
           project_id: string
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
@@ -406,15 +415,25 @@ export type Database = {
           due_date?: string | null
           id?: string
           impact?: Database["public"]["Enums"]["task_impact"]
+          node_type?: Database["public"]["Enums"]["task_node_type"]
           owner_id?: string
+          parent_id?: string | null
           position?: number
           priority?: Database["public"]["Enums"]["task_priority"]
           project_id?: string
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]
@@ -492,6 +511,7 @@ export type Database = {
         | "whatsapp"
         | "note"
         | "proposal_sent"
+      planning_mode: "agile" | "traditional"
       project_status:
         | "on_track"
         | "at_risk"
@@ -500,6 +520,13 @@ export type Database = {
         | "cancelled"
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
       task_impact: "time" | "cost" | "delivery"
+      task_node_type:
+        | "epic"
+        | "story"
+        | "task"
+        | "phase"
+        | "subphase"
+        | "activity"
       task_priority: "low" | "medium" | "high" | "critical"
       task_status: "todo" | "in_progress" | "in_review" | "done" | "blocked"
     }
@@ -665,6 +692,7 @@ export const Constants = {
         "note",
         "proposal_sent",
       ],
+      planning_mode: ["agile", "traditional"],
       project_status: [
         "on_track",
         "at_risk",
@@ -674,6 +702,14 @@ export const Constants = {
       ],
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
       task_impact: ["time", "cost", "delivery"],
+      task_node_type: [
+        "epic",
+        "story",
+        "task",
+        "phase",
+        "subphase",
+        "activity",
+      ],
       task_priority: ["low", "medium", "high", "critical"],
       task_status: ["todo", "in_progress", "in_review", "done", "blocked"],
     },
