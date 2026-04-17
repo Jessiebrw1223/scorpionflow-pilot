@@ -724,42 +724,106 @@ export default function CotizacionesPage() {
                             </span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1 pt-1 border-t border-border">
-                          {stage !== "won" && stage !== "lost" && (
-                            <Select
-                              value={q.status}
-                              onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
-                            >
-                              <SelectTrigger className="h-7 text-[11px] flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STAGE_ORDER.map((s) => (
-                                  <SelectItem key={s} value={s}>
-                                    {STATUS_META[s].label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                          {stage === "quoted" && !q.converted_to_project && (
-                            <Button
-                              size="sm"
-                              onClick={() => convertToProject.mutate(q.id)}
-                              className="h-7 px-2 fire-button text-[11px]"
-                              title="Convertir a proyecto"
-                            >
-                              <ArrowRight className="w-3 h-3" />
-                            </Button>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => remove.mutate(q.id)}
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                        <div className="space-y-1 pt-1 border-t border-border">
+                          {/* Acciones rápidas: contactar / duplicar / eliminar */}
+                          <TooltipProvider delayDuration={200}>
+                            <div className="flex items-center gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); contactClient(q, "whatsapp"); }}
+                                    className="h-7 w-7 text-status-progress hover:bg-status-progress/10"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Contactar por WhatsApp</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); contactClient(q, "email"); }}
+                                    className="h-7 w-7 text-status-review hover:bg-status-review/10"
+                                  >
+                                    <Mail className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Enviar email</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); duplicate.mutate(q); }}
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Duplicar cotización</TooltipContent>
+                              </Tooltip>
+                              <div className="flex-1" />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); remove.mutate(q.id); }}
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Eliminar</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
+
+                          {/* Cambio de estado + conversión a proyecto */}
+                          <div className="flex items-center gap-1">
+                            {stage !== "won" && stage !== "lost" && (
+                              <Select
+                                value={q.status}
+                                onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
+                              >
+                                <SelectTrigger className="h-7 text-[11px] flex-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {STAGE_ORDER.map((s) => (
+                                    <SelectItem key={s} value={s}>
+                                      {STATUS_META[s].label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {stage === "won" && !q.converted_to_project && (
+                              <Button
+                                size="sm"
+                                onClick={() => convertToProject.mutate(q.id)}
+                                className="h-7 fire-button text-[11px] flex-1"
+                              >
+                                <ArrowRight className="w-3 h-3" /> Convertir en Proyecto
+                              </Button>
+                            )}
+                            {stage === "quoted" && !q.converted_to_project && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => move.mutate({ id: q.id, status: "won" })}
+                                className="h-7 px-2 text-[11px]"
+                                title="Marcar como Ganado"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                       );
