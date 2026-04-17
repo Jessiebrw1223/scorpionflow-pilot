@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Trash2, AlertTriangle, Calendar, User, Save } from "lucide-react";
+import { Loader2, Trash2, AlertTriangle, Calendar, User, Save, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
 
@@ -28,6 +29,8 @@ interface Task {
   assignee_name: string | null;
   due_date: string | null;
   blocks_project: boolean;
+  estimated_cost?: number;
+  actual_cost?: number;
 }
 
 interface Props {
@@ -58,6 +61,8 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
           assignee_name: values.assignee_name,
           due_date: values.due_date,
           blocks_project: values.blocks_project,
+          estimated_cost: Number(values.estimated_cost) || 0,
+          actual_cost: Number(values.actual_cost) || 0,
         })
         .eq("id", values.id);
       if (error) throw error;
@@ -67,6 +72,9 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
       qc.invalidateQueries({ queryKey: ["project-tasks-summary", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-calendar", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-report", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-hierarchy", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-cost", projectId] });
+      qc.invalidateQueries({ queryKey: ["project", projectId] });
       toast.success("Tarea actualizada");
       onOpenChange(false);
     },
@@ -82,6 +90,8 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-summary", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-calendar", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-hierarchy", projectId] });
+      qc.invalidateQueries({ queryKey: ["project", projectId] });
       toast.success("Tarea eliminada");
       onOpenChange(false);
     },
@@ -237,6 +247,39 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
                 </span>
               </Label>
             </div>
+          </div>
+
+          {/* SECCIÓN: Costos de la tarea */}
+          <div className="surface-card p-3 space-y-3 border-l-2 border-cost-warning bg-cost-warning/5">
+            <div>
+              <h3 className="text-[12px] font-bold uppercase tracking-wider text-cost-warning inline-flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5" /> Costo de esta tarea
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Cuánto piensas que costará y cuánto ha costado realmente.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] text-muted-foreground">Costo estimado</Label>
+                <CurrencyInput
+                  value={Number(form.estimated_cost) || 0}
+                  onValueChange={(v) => setForm({ ...form, estimated_cost: v })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] text-muted-foreground">Costo real</Label>
+                <CurrencyInput
+                  value={Number(form.actual_cost) || 0}
+                  onValueChange={(v) => setForm({ ...form, actual_cost: v })}
+                />
+              </div>
+            </div>
+            {Number(form.actual_cost) > Number(form.estimated_cost) && Number(form.estimated_cost) > 0 && (
+              <p className="text-[11px] text-cost-negative font-medium inline-flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Costo real supera lo estimado
+              </p>
+            )}
           </div>
         </div>
 
