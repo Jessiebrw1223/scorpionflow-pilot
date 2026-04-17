@@ -29,8 +29,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-bold flex items-center gap-2 fire-text">
+            <Zap className="w-5 h-5 text-primary fire-icon" />
             Centro de Control
           </h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
