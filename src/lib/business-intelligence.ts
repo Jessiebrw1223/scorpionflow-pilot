@@ -1,4 +1,4 @@
-import { projects, tasks, resources, personnelResources } from "@/lib/mock-data";
+// Business intelligence helpers — works with REAL data passed in (no more mocks).
 
 export interface BusinessSnapshot {
   projectsAtRisk: number;
@@ -8,33 +8,47 @@ export interface BusinessSnapshot {
   overdueTasks: number;
   overloadedResources: number;
   totalResources: number;
+  estimatedProfit: number;
   healthScore: number; // 0-100
   healthLevel: "control" | "risk" | "critical";
   healthReason: string;
 }
 
-export function getBusinessSnapshot(opts?: {
+export interface SnapshotInput {
+  projects: { id: string; name: string; status: string; budget: number; actual_cost: number }[];
+  tasks: { id: string; status: string; due_date: string | null; blocks_project?: boolean }[];
+  overloadedResources?: number;
+  totalResources?: number;
   clientsNoFollowup?: number;
   staleQuotations?: number;
-}): BusinessSnapshot {
+}
+
+export function getBusinessSnapshot(input: SnapshotInput): BusinessSnapshot {
+  const { projects, tasks } = input;
   const projectsAtRisk = projects.filter((p) => p.status === "at_risk").length;
   const projectsOnTime = projects.filter((p) => p.status === "on_track").length;
   const projectsOverBudget = projects.filter((p) => p.status === "over_budget").length;
   const blockedTasks = tasks.filter((t) => t.status === "blocked").length;
   const today = new Date();
   const overdueTasks = tasks.filter(
-    (t) => t.status !== "done" && new Date(t.dueDate) < today
+    (t) => t.status !== "done" && t.due_date && new Date(t.due_date) < today
   ).length;
-  const overloadedResources = personnelResources.filter((r) => r.utilization > 90).length;
 
-  // health score
+  const estimatedProfit = projects.reduce(
+    (sum, p) => sum + (Number(p.budget) - Number(p.actual_cost)),
+    0
+  );
+
+  const overloadedResources = input.overloadedResources ?? 0;
+  const totalResources = input.totalResources ?? 0;
+
   let score = 100;
   score -= projectsOverBudget * 18;
   score -= projectsAtRisk * 10;
   score -= blockedTasks * 4;
   score -= overloadedResources * 6;
-  score -= (opts?.clientsNoFollowup ?? 0) * 3;
-  score -= (opts?.staleQuotations ?? 0) * 2;
+  score -= (input.clientsNoFollowup ?? 0) * 3;
+  score -= (input.staleQuotations ?? 0) * 2;
   score = Math.max(0, Math.min(100, score));
 
   const healthLevel: BusinessSnapshot["healthLevel"] =
@@ -54,7 +68,8 @@ export function getBusinessSnapshot(opts?: {
     blockedTasks,
     overdueTasks,
     overloadedResources,
-    totalResources: personnelResources.length,
+    totalResources,
+    estimatedProfit,
     healthScore: score,
     healthLevel,
     healthReason,
@@ -71,54 +86,42 @@ export interface RecommendedAction {
   link: string;
 }
 
-export function getRecommendedActions(opts: {
+export interface ActionsInput {
+  projects: { id: string; name: string; status: string; budget: number; actual_cost: number }[];
+  tasks: { id: string; title: string; status: string; blocks_project?: boolean }[];
   clientsNoFollowup: { id: string; name: string; days: number }[];
   staleQuotations: { id: string; title: string; days: number }[];
-}): RecommendedAction[] {
+}
+
+export function getRecommendedActions(opts: ActionsInput): RecommendedAction[] {
   const list: RecommendedAction[] = [];
 
-  // Critical: cost overrun projects
-  projects
-    .filter((p) => p.status === "over_budget")
-    .forEach((p) =>
+  // Critical: cost overrun projects (real data)
+  opts.projects
+    .filter((p) => p.status === "over_budget" || Number(p.actual_cost) > Number(p.budget))
+    .forEach((p) => {
+      const pct =
+        p.budget > 0 ? ((Number(p.actual_cost) / Number(p.budget)) * 100).toFixed(0) : "100";
       list.push({
         id: `overrun-${p.id}`,
         icon: "money",
         priority: "critical",
-        title: `Proyecto ${p.name} en sobrecosto`,
-        description: `Gastado ${(p.spent / p.budget * 100).toFixed(0)}% del presupuesto. Revisa recursos asignados.`,
+        title: `${p.name} en sobrecosto`,
+        description: `Has gastado ${pct}% del presupuesto. Revisa qué partidas puedes ajustar.`,
         actionLabel: "Revisar costos",
         link: "/costs",
-      })
-    );
+      });
+    });
 
-  // Critical: overloaded people
-  personnelResources
-    .filter((r) => r.utilization >= 90)
-    .forEach((r) =>
-      list.push({
-        id: `overload-${r.id}`,
-        icon: "users",
-        priority: "high",
-        title: `${r.firstName} ${r.lastName} al ${r.utilization}%`,
-        description: "Recurso saturado. Redistribuye carga para evitar burnout y retrasos.",
-        actionLabel: "Reasignar",
-        link: "/resources",
-      })
-    );
-
-  // High: blocked tasks
-  const blocked = tasks.filter((t) => t.status === "blocked");
+  // High: blocked tasks (real data)
+  const blocked = opts.tasks.filter((t) => t.status === "blocked");
   if (blocked.length > 0) {
     list.push({
       id: `blocked-tasks`,
       icon: "task",
       priority: "high",
       title: `${blocked.length} tarea(s) bloqueada(s)`,
-      description: blocked
-        .slice(0, 2)
-        .map((t) => t.title)
-        .join(" · "),
+      description: blocked.slice(0, 2).map((t) => t.title).join(" · "),
       actionLabel: "Desbloquear",
       link: "/tasks",
     });
@@ -131,7 +134,7 @@ export function getRecommendedActions(opts: {
       icon: "phone",
       priority: c.days > 14 ? "high" : "medium",
       title: `Contacta a ${c.name}`,
-      description: `${c.days} día(s) sin seguimiento comercial. No dejes enfriar la oportunidad.`,
+      description: `${c.days} día(s) sin contacto. No dejes enfriar la oportunidad.`,
       actionLabel: "Contactar ahora",
       link: "/clientes",
     })
@@ -143,7 +146,7 @@ export function getRecommendedActions(opts: {
       id: `stale-quotes`,
       icon: "spark",
       priority: "medium",
-      title: `Tienes ${opts.staleQuotations.length} cotización(es) sin cerrar`,
+      title: `${opts.staleQuotations.length} cotización(es) sin cerrar`,
       description: opts.staleQuotations
         .slice(0, 2)
         .map((q) => `${q.title} (${q.days}d)`)
@@ -153,7 +156,6 @@ export function getRecommendedActions(opts: {
     });
   }
 
-  // Sort by priority
   const order = { critical: 0, high: 1, medium: 2, low: 3 };
   return list.sort((a, b) => order[a.priority] - order[b.priority]);
 }
@@ -193,10 +195,81 @@ export function inferCommercialBadge(client: {
 }): { label: string; color: string; dot: string } {
   const days = daysSince(client.last_contact_at);
   if (client.commercial_status === "no_followup" || days > 14) {
-    return { label: "Sin seguimiento", color: "text-cost-negative bg-cost-negative/10 border-cost-negative/30", dot: "bg-cost-negative" };
+    return {
+      label: "Sin seguimiento",
+      color: "text-cost-negative bg-cost-negative/10 border-cost-negative/30",
+      dot: "bg-cost-negative",
+    };
   }
   if (client.commercial_status === "active" || days <= 7) {
-    return { label: "Activo", color: "text-cost-positive bg-cost-positive/10 border-cost-positive/30", dot: "bg-cost-positive" };
+    return {
+      label: "Activo",
+      color: "text-cost-positive bg-cost-positive/10 border-cost-positive/30",
+      dot: "bg-cost-positive",
+    };
   }
-  return { label: "Pendiente", color: "text-cost-warning bg-cost-warning/10 border-cost-warning/30", dot: "bg-cost-warning" };
+  return {
+    label: "Pendiente",
+    color: "text-cost-warning bg-cost-warning/10 border-cost-warning/30",
+    dot: "bg-cost-warning",
+  };
 }
+
+export const PROJECT_STATUS_META: Record<
+  string,
+  { label: string; color: string; bg: string; border: string; dot: string }
+> = {
+  on_track: {
+    label: "En tiempo",
+    color: "text-cost-positive",
+    bg: "bg-cost-positive/10",
+    border: "border-cost-positive/40",
+    dot: "bg-cost-positive",
+  },
+  at_risk: {
+    label: "En riesgo",
+    color: "text-cost-warning",
+    bg: "bg-cost-warning/10",
+    border: "border-cost-warning/40",
+    dot: "bg-cost-warning",
+  },
+  over_budget: {
+    label: "Sobre presupuesto",
+    color: "text-cost-negative",
+    bg: "bg-cost-negative/10",
+    border: "border-cost-negative/40",
+    dot: "bg-cost-negative",
+  },
+  completed: {
+    label: "Completado",
+    color: "text-status-progress",
+    bg: "bg-status-progress/10",
+    border: "border-status-progress/40",
+    dot: "bg-status-progress",
+  },
+  cancelled: {
+    label: "Cancelado",
+    color: "text-muted-foreground",
+    bg: "bg-muted/20",
+    border: "border-muted/40",
+    dot: "bg-muted-foreground",
+  },
+};
+
+export const TASK_PRIORITY_META: Record<
+  string,
+  { label: string; color: string; bg: string; emoji: string }
+> = {
+  low: { label: "Baja", color: "text-muted-foreground", bg: "bg-muted/20", emoji: "⚪" },
+  medium: { label: "Media", color: "text-status-progress", bg: "bg-status-progress/10", emoji: "🔵" },
+  high: { label: "Alta", color: "text-cost-warning", bg: "bg-cost-warning/10", emoji: "🟠" },
+  critical: { label: "Crítica", color: "text-destructive", bg: "bg-destructive/10", emoji: "🔴" },
+};
+
+export const TASK_STATUS_META: Record<string, { label: string; color: string }> = {
+  todo: { label: "Por hacer", color: "bg-status-todo" },
+  in_progress: { label: "En progreso", color: "bg-status-progress" },
+  in_review: { label: "En revisión", color: "bg-status-review" },
+  done: { label: "Completada", color: "bg-status-done" },
+  blocked: { label: "Bloqueada", color: "bg-status-blocked" },
+};
