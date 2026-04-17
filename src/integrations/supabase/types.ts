@@ -17,12 +17,17 @@ export type Database = {
       clients: {
         Row: {
           client_type: Database["public"]["Enums"]["client_type"]
+          commercial_status: Database["public"]["Enums"]["commercial_status"]
           company: string | null
+          country: string | null
           created_at: string
           email: string | null
           id: string
+          industry: string | null
           is_active: boolean
+          last_contact_at: string | null
           name: string
+          next_action: string | null
           notes: string | null
           owner_id: string
           phone: string | null
@@ -31,12 +36,17 @@ export type Database = {
         }
         Insert: {
           client_type?: Database["public"]["Enums"]["client_type"]
+          commercial_status?: Database["public"]["Enums"]["commercial_status"]
           company?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          industry?: string | null
           is_active?: boolean
+          last_contact_at?: string | null
           name: string
+          next_action?: string | null
           notes?: string | null
           owner_id: string
           phone?: string | null
@@ -45,17 +55,64 @@ export type Database = {
         }
         Update: {
           client_type?: Database["public"]["Enums"]["client_type"]
+          commercial_status?: Database["public"]["Enums"]["commercial_status"]
           company?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          industry?: string | null
           is_active?: boolean
+          last_contact_at?: string | null
           name?: string
+          next_action?: string | null
           notes?: string | null
           owner_id?: string
           phone?: string | null
           ruc?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          alert_type: Database["public"]["Enums"]["alert_type"]
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string | null
+          read_at: string | null
+          related_id: string | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_type?: Database["public"]["Enums"]["alert_type"]
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: Database["public"]["Enums"]["alert_type"]
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -133,6 +190,7 @@ export type Database = {
       quotations: {
         Row: {
           client_id: string
+          close_probability: number
           converted_to_project: boolean
           created_at: string
           currency: string
@@ -140,6 +198,7 @@ export type Database = {
           id: string
           owner_id: string
           status: Database["public"]["Enums"]["quotation_status"]
+          status_changed_at: string
           subtotal: number
           tax_rate: number
           title: string
@@ -149,6 +208,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          close_probability?: number
           converted_to_project?: boolean
           created_at?: string
           currency?: string
@@ -156,6 +216,7 @@ export type Database = {
           id?: string
           owner_id: string
           status?: Database["public"]["Enums"]["quotation_status"]
+          status_changed_at?: string
           subtotal?: number
           tax_rate?: number
           title: string
@@ -165,6 +226,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          close_probability?: number
           converted_to_project?: boolean
           created_at?: string
           currency?: string
@@ -172,6 +234,7 @@ export type Database = {
           id?: string
           owner_id?: string
           status?: Database["public"]["Enums"]["quotation_status"]
+          status_changed_at?: string
           subtotal?: number
           tax_rate?: number
           title?: string
@@ -224,8 +287,32 @@ export type Database = {
       }
     }
     Enums: {
+      alert_severity: "info" | "warning" | "critical"
+      alert_type:
+        | "task_blocked"
+        | "project_risk"
+        | "client_no_followup"
+        | "cost_overrun"
+        | "resource_overload"
+        | "quotation_stale"
+        | "general"
       app_role: "admin" | "manager" | "user"
-      client_type: "hotel" | "spa" | "business" | "other"
+      client_type:
+        | "hotel"
+        | "spa"
+        | "business"
+        | "other"
+        | "industrial"
+        | "tech"
+        | "retail"
+        | "healthcare"
+        | "education"
+        | "government"
+        | "manufacturing"
+        | "logistics"
+        | "finance"
+        | "international"
+      commercial_status: "active" | "pending" | "no_followup"
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
     }
     CompositeTypes: {
@@ -354,8 +441,34 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity: ["info", "warning", "critical"],
+      alert_type: [
+        "task_blocked",
+        "project_risk",
+        "client_no_followup",
+        "cost_overrun",
+        "resource_overload",
+        "quotation_stale",
+        "general",
+      ],
       app_role: ["admin", "manager", "user"],
-      client_type: ["hotel", "spa", "business", "other"],
+      client_type: [
+        "hotel",
+        "spa",
+        "business",
+        "other",
+        "industrial",
+        "tech",
+        "retail",
+        "healthcare",
+        "education",
+        "government",
+        "manufacturing",
+        "logistics",
+        "finance",
+        "international",
+      ],
+      commercial_status: ["active", "pending", "no_followup"],
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
     },
   },

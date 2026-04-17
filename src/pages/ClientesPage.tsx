@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -12,10 +12,10 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Hotel,
-  Sparkles,
-  Briefcase,
-  CircleDot,
+  PhoneCall,
+  Globe,
+  CalendarClock,
+  Target,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { CLIENT_TYPE_META, CLIENT_TYPES, daysSince, inferCommercialBadge } from "@/lib/business-intelligence";
 
-type ClientType = "hotel" | "spa" | "business" | "other";
+type ClientType = string;
+type CommercialStatus = "active" | "pending" | "no_followup";
 
 interface Client {
   id: string;
@@ -63,23 +65,25 @@ interface Client {
   notes: string | null;
   is_active: boolean;
   created_at: string;
+  country: string | null;
+  industry: string | null;
+  last_contact_at: string | null;
+  next_action: string | null;
+  commercial_status: CommercialStatus;
 }
-
-const TYPE_META: Record<ClientType, { label: string; icon: typeof Hotel; color: string }> = {
-  hotel: { label: "Hotel", icon: Hotel, color: "text-status-progress" },
-  spa: { label: "Spa", icon: Sparkles, color: "text-accent" },
-  business: { label: "Negocio", icon: Briefcase, color: "text-primary" },
-  other: { label: "Otro", icon: CircleDot, color: "text-muted-foreground" },
-};
 
 const schema = z.object({
   name: z.string().trim().min(2, "Mínimo 2 caracteres").max(120),
   company: z.string().trim().max(120).optional().or(z.literal("")),
-  client_type: z.enum(["hotel", "spa", "business", "other"]),
+  client_type: z.string(),
   email: z.string().trim().email("Correo inválido").max(255).optional().or(z.literal("")),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   ruc: z.string().trim().max(20).optional().or(z.literal("")),
   notes: z.string().max(500).optional().or(z.literal("")),
+  country: z.string().trim().max(60).optional().or(z.literal("")),
+  industry: z.string().trim().max(80).optional().or(z.literal("")),
+  next_action: z.string().trim().max(200).optional().or(z.literal("")),
+  commercial_status: z.enum(["active", "pending", "no_followup"]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -92,12 +96,17 @@ const emptyForm: FormValues = {
   phone: "",
   ruc: "",
   notes: "",
+  country: "",
+  industry: "",
+  next_action: "",
+  commercial_status: "pending",
 };
 
 export default function ClientesPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<ClientType | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | CommercialStatus>("all");
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState<Client | null>(null);
@@ -119,17 +128,29 @@ export default function ClientesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return clients.filter((c) => {
-      const matchType = typeFilter === "all" || c.client_type === typeFilter;
-      if (!matchType) return false;
+      if (typeFilter !== "all" && c.client_type !== typeFilter) return false;
+      if (statusFilter !== "all" && c.commercial_status !== statusFilter) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
         (c.company || "").toLowerCase().includes(q) ||
         (c.email || "").toLowerCase().includes(q) ||
+        (c.country || "").toLowerCase().includes(q) ||
+        (c.industry || "").toLowerCase().includes(q) ||
         (c.ruc || "").toLowerCase().includes(q)
       );
     });
-  }, [clients, search, typeFilter]);
+  }, [clients, search, typeFilter, statusFilter]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const active = clients.filter((c) => c.commercial_status === "active").length;
+    const pending = clients.filter((c) => c.commercial_status === "pending").length;
+    const noFw = clients.filter(
+      (c) => c.commercial_status === "no_followup" || daysSince(c.last_contact_at) > 14
+    ).length;
+    return { active, pending, noFw };
+  }, [clients]);
 
   const upsert = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -140,11 +161,15 @@ export default function ClientesPage() {
         owner_id: userData.user.id,
         name: values.name,
         company: values.company || null,
-        client_type: values.client_type,
+        client_type: values.client_type as any,
         email: values.email || null,
         phone: values.phone || null,
         ruc: values.ruc || null,
         notes: values.notes || null,
+        country: values.country || null,
+        industry: values.industry || null,
+        next_action: values.next_action || null,
+        commercial_status: values.commercial_status,
       };
 
       if (editing) {
@@ -157,9 +182,7 @@ export default function ClientesPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
-      toast.success(editing ? "Cliente actualizado" : "Cliente creado", {
-        description: form.name,
-      });
+      toast.success(editing ? "Cliente actualizado" : "Cliente creado", { description: form.name });
       setOpenForm(false);
       setEditing(null);
       setForm(emptyForm);
@@ -180,6 +203,26 @@ export default function ClientesPage() {
     onError: (e: Error) => toast.error("No se pudo eliminar", { description: e.message }),
   });
 
+  const contactNow = useMutation({
+    mutationFn: async (c: Client) => {
+      const { error } = await supabase
+        .from("clients")
+        .update({
+          last_contact_at: new Date().toISOString(),
+          commercial_status: "active",
+        })
+        .eq("id", c.id);
+      if (error) throw error;
+      return c;
+    },
+    onSuccess: (c) => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast.success(`Contacto registrado con ${c.name}`, {
+        description: "Estado actualizado a 'Activo'.",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = schema.safeParse(form);
@@ -192,6 +235,9 @@ export default function ClientesPage() {
         phone: fld.phone?.[0],
         ruc: fld.ruc?.[0],
         notes: fld.notes?.[0],
+        country: fld.country?.[0],
+        industry: fld.industry?.[0],
+        next_action: fld.next_action?.[0],
       });
       return;
     }
@@ -209,6 +255,10 @@ export default function ClientesPage() {
       phone: c.phone || "",
       ruc: c.ruc || "",
       notes: c.notes || "",
+      country: c.country || "",
+      industry: c.industry || "",
+      next_action: c.next_action || "",
+      commercial_status: c.commercial_status,
     });
     setOpenForm(true);
   };
@@ -228,7 +278,7 @@ export default function ClientesPage() {
             Clientes
           </h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
-            Gestiona tu cartera de relaciones comerciales
+            CRM internacional · industrial · tecnológico · comercial
           </p>
         </div>
 
@@ -239,7 +289,7 @@ export default function ClientesPage() {
               Nuevo cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="fire-text">
                 {editing ? "Editar cliente" : "Nuevo cliente"}
@@ -265,22 +315,41 @@ export default function ClientesPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Tipo *</Label>
+                  <Label>Tipo / Sector *</Label>
                   <Select
                     value={form.client_type}
-                    onValueChange={(v: ClientType) => setForm({ ...form, client_type: v })}
+                    onValueChange={(v: string) => setForm({ ...form, client_type: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(TYPE_META) as ClientType[]).map((t) => (
+                    <SelectContent className="max-h-[280px]">
+                      {CLIENT_TYPES.map((t) => (
                         <SelectItem key={t} value={t}>
-                          {TYPE_META[t].label}
+                          <span className="inline-flex items-center gap-2">
+                            <span>{CLIENT_TYPE_META[t].emoji}</span>
+                            {CLIENT_TYPE_META[t].label}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>País</Label>
+                  <Input
+                    value={form.country}
+                    onChange={(e) => setForm({ ...form, country: e.target.value })}
+                    placeholder="Perú, México, USA…"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Industria específica</Label>
+                  <Input
+                    value={form.industry}
+                    onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                    placeholder="Minería, Fintech, Logística…"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Correo</Label>
@@ -298,9 +367,35 @@ export default function ClientesPage() {
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1.5 col-span-2">
-                  <Label>RUC / Documento</Label>
+                <div className="space-y-1.5">
+                  <Label>RUC / Tax ID</Label>
                   <Input value={form.ruc} onChange={(e) => setForm({ ...form, ruc: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Estado comercial</Label>
+                  <Select
+                    value={form.commercial_status}
+                    onValueChange={(v: CommercialStatus) =>
+                      setForm({ ...form, commercial_status: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">🟢 Activo</SelectItem>
+                      <SelectItem value="pending">🟡 Pendiente</SelectItem>
+                      <SelectItem value="no_followup">🔴 Sin seguimiento</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <Label>Próxima acción</Label>
+                  <Input
+                    value={form.next_action}
+                    onChange={(e) => setForm({ ...form, next_action: e.target.value })}
+                    placeholder="Enviar propuesta · Llamar el viernes…"
+                  />
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <Label>Notas</Label>
@@ -325,30 +420,63 @@ export default function ClientesPage() {
         </Dialog>
       </div>
 
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="surface-card p-3 border-l-4 border-cost-positive">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🟢 Activos</div>
+          <div className="text-xl font-bold font-mono-data text-cost-positive">{stats.active}</div>
+        </div>
+        <div className="surface-card p-3 border-l-4 border-cost-warning">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🟡 Pendientes</div>
+          <div className="text-xl font-bold font-mono-data text-cost-warning">{stats.pending}</div>
+        </div>
+        <div className="surface-card p-3 border-l-4 border-cost-negative">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🔴 Sin seguimiento</div>
+          <div className="text-xl font-bold font-mono-data text-cost-negative">{stats.noFw}</div>
+        </div>
+        <div className="surface-card p-3 border-l-4 border-primary">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
+          <div className="text-xl font-bold font-mono-data fire-text">{clients.length}</div>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, empresa, email o RUC…"
+            placeholder="Buscar nombre, empresa, país, industria…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-secondary/50"
           />
         </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px] bg-secondary/50">
+            <SelectValue placeholder="Sector" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[280px]">
+            <SelectItem value="all">Todos los sectores</SelectItem>
+            {CLIENT_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>
+                {CLIENT_TYPE_META[t].emoji} {CLIENT_TYPE_META[t].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg">
-          {(["all", "hotel", "spa", "business", "other"] as const).map((t) => (
+          {(["all", "active", "pending", "no_followup"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTypeFilter(t)}
+              onClick={() => setStatusFilter(t)}
               className={cn(
                 "px-3 py-1.5 text-[12px] rounded-md transition-sf font-medium",
-                typeFilter === t
+                statusFilter === t
                   ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(15_90%_55%/0.5)]"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {t === "all" ? "Todos" : TYPE_META[t].label}
+              {t === "all" ? "Todos" : t === "active" ? "🟢 Activos" : t === "pending" ? "🟡 Pendientes" : "🔴 Sin seg."}
             </button>
           ))}
         </div>
@@ -385,103 +513,141 @@ export default function ClientesPage() {
             )}
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">
-                  Cliente
-                </th>
-                <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">
-                  Tipo
-                </th>
-                <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">
-                  Contacto
-                </th>
-                <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">
-                  RUC
-                </th>
-                <th className="text-right text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c) => {
-                const TypeIcon = TYPE_META[c.client_type].icon;
-                return (
-                  <tr
-                    key={c.id}
-                    className="border-b border-border last:border-0 hover:bg-secondary/30 transition-sf group"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg scorpion-gradient flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 group-hover:fire-glow transition-all">
-                          {c.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground truncate">{c.name}</div>
-                          {c.company && (
-                            <div className="text-[12px] text-muted-foreground flex items-center gap-1 truncate">
-                              <Building2 className="w-3 h-3 shrink-0" />
-                              {c.company}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-secondary/30">
+                  <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">Cliente</th>
+                  <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">Sector</th>
+                  <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">Estado</th>
+                  <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">Último contacto</th>
+                  <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">Próxima acción</th>
+                  <th className="text-right text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-4 py-3">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => {
+                  const meta = CLIENT_TYPE_META[c.client_type] || CLIENT_TYPE_META.other;
+                  const badge = inferCommercialBadge(c);
+                  const days = daysSince(c.last_contact_at);
+                  const lastContactLabel = c.last_contact_at
+                    ? days === 0
+                      ? "Hoy"
+                      : days === 1
+                      ? "Ayer"
+                      : `Hace ${days}d`
+                    : "Nunca";
+                  return (
+                    <tr
+                      key={c.id}
+                      className="border-b border-border last:border-0 hover:bg-secondary/30 transition-sf group"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg scorpion-gradient flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 group-hover:fire-glow transition-all">
+                            {c.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-foreground truncate">{c.name}</div>
+                            <div className="text-[12px] text-muted-foreground flex items-center gap-2 truncate">
+                              {c.company && (
+                                <span className="flex items-center gap-1">
+                                  <Building2 className="w-3 h-3 shrink-0" />
+                                  {c.company}
+                                </span>
+                              )}
+                              {c.country && (
+                                <span className="flex items-center gap-1">
+                                  <Globe className="w-3 h-3" />
+                                  {c.country}
+                                </span>
+                              )}
                             </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary text-[12px] font-medium",
+                            meta.color
                           )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary text-[12px] font-medium",
-                          TYPE_META[c.client_type].color
+                        >
+                          <span>{meta.emoji}</span>
+                          {meta.label}
+                        </span>
+                        {c.industry && (
+                          <div className="text-[10px] text-muted-foreground mt-1">{c.industry}</div>
                         )}
-                      >
-                        <TypeIcon className="w-3 h-3" />
-                        {TYPE_META[c.client_type].label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[13px]">
-                      {c.email && (
-                        <div className="flex items-center gap-1.5 text-foreground">
-                          <Mail className="w-3 h-3 text-muted-foreground" />
-                          {c.email}
-                        </div>
-                      )}
-                      {c.phone && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground text-[12px]">
-                          <Phone className="w-3 h-3" />
-                          {c.phone}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-[13px] font-mono-data text-muted-foreground">
-                      {c.ruc || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(c)}
-                          className="h-8 w-8 hover:text-primary"
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-[11px] font-semibold",
+                            badge.color
+                          )}
                         >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setDeleting(c)}
-                          className="h-8 w-8 hover:text-destructive"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", badge.dot)} />
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[12px]">
+                        <div className={cn("flex items-center gap-1.5 font-mono-data", days > 14 ? "text-cost-negative" : days > 7 ? "text-cost-warning" : "text-foreground")}>
+                          <CalendarClock className="w-3 h-3" />
+                          {lastContactLabel}
+                        </div>
+                        {(c.email || c.phone) && (
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {c.email || c.phone}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-[12px] max-w-[200px]">
+                        {c.next_action ? (
+                          <div className="flex items-start gap-1.5">
+                            <Target className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                            <span className="text-foreground line-clamp-2">{c.next_action}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => contactNow.mutate(c)}
+                            disabled={contactNow.isPending}
+                            className="fire-button h-8 text-[11px] px-2"
+                            title="Registrar contacto ahora"
+                          >
+                            <PhoneCall className="w-3 h-3" />
+                            Contactar
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => openEdit(c)}
+                            className="h-8 w-8 hover:text-primary"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setDeleting(c)}
+                            className="h-8 w-8 hover:text-destructive"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

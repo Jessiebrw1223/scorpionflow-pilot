@@ -56,6 +56,8 @@ interface Quotation {
   total: number;
   converted_to_project: boolean;
   created_at: string;
+  status_changed_at: string;
+  close_probability: number;
   client?: { id: string; name: string; company: string | null };
 }
 
@@ -539,10 +541,16 @@ export default function CotizacionesPage() {
                       Sin cotizaciones
                     </div>
                   ) : (
-                    items.map((q) => (
+                    items.map((q) => {
+                      const days = Math.floor((Date.now() - new Date(q.status_changed_at).getTime()) / 86400000);
+                      const stale = days > 7 && stage !== "won" && stage !== "lost";
+                      return (
                       <div
                         key={q.id}
-                        className="surface-card surface-card-hover fire-glow-hover p-2.5 space-y-2 cursor-pointer"
+                        className={cn(
+                          "surface-card surface-card-hover fire-glow-hover p-2.5 space-y-2 cursor-pointer",
+                          stale && "border-l-2 border-cost-warning"
+                        )}
                       >
                         <div className="space-y-0.5">
                           <div className="font-medium text-[13px] text-foreground line-clamp-1">
@@ -563,6 +571,18 @@ export default function CotizacionesPage() {
                             </span>
                           )}
                         </div>
+                        {stage !== "won" && stage !== "lost" && (
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className={cn("flex items-center gap-1 font-mono-data", stale ? "text-cost-warning font-semibold" : "text-muted-foreground")}>
+                              <Clock className="w-3 h-3" />
+                              {days === 0 ? "hoy" : `${days}d en estado`}
+                              {stale && " · seguir"}
+                            </span>
+                            <span className="text-muted-foreground font-mono-data">
+                              {q.close_probability ?? 50}% cierre
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1 pt-1 border-t border-border">
                           {stage !== "won" && stage !== "lost" && (
                             <Select
@@ -601,7 +621,8 @@ export default function CotizacionesPage() {
                           </Button>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
