@@ -248,6 +248,39 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
               </Label>
             </div>
           </div>
+
+          {/* SECCIÓN: Costos de la tarea */}
+          <div className="surface-card p-3 space-y-3 border-l-2 border-cost-warning bg-cost-warning/5">
+            <div>
+              <h3 className="text-[12px] font-bold uppercase tracking-wider text-cost-warning inline-flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5" /> Costo de esta tarea
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Cuánto piensas que costará y cuánto ha costado realmente.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] text-muted-foreground">Costo estimado</Label>
+                <CurrencyInput
+                  value={Number(form.estimated_cost) || 0}
+                  onValueChange={(v) => setForm({ ...form, estimated_cost: v })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] text-muted-foreground">Costo real</Label>
+                <CurrencyInput
+                  value={Number(form.actual_cost) || 0}
+                  onValueChange={(v) => setForm({ ...form, actual_cost: v })}
+                />
+              </div>
+            </div>
+            {Number(form.actual_cost) > Number(form.estimated_cost) && Number(form.estimated_cost) > 0 && (
+              <p className="text-[11px] text-cost-negative font-medium inline-flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Costo real supera lo estimado
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Footer acciones */}
