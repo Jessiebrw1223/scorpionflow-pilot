@@ -130,6 +130,9 @@ const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" 
 
 export default function CotizacionesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
 
   const { data: clients = [] } = useQuery({
@@ -137,7 +140,7 @@ export default function CotizacionesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, name, company")
+        .select("id, name, company, phone, email")
         .order("name");
       if (error) throw error;
       return data;
@@ -149,7 +152,7 @@ export default function CotizacionesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quotations")
-        .select("*, client:clients(id, name, company)")
+        .select("*, client:clients(id, name, company, phone, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Quotation[];
