@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_interactions: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          occurred_at: string
+          owner_id: string
+          summary: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          interaction_type?: Database["public"]["Enums"]["interaction_type"]
+          occurred_at?: string
+          owner_id: string
+          summary: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          interaction_type?: Database["public"]["Enums"]["interaction_type"]
+          occurred_at?: string
+          owner_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           client_type: Database["public"]["Enums"]["client_type"]
@@ -146,6 +184,75 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          actual_cost: number
+          budget: number
+          client_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          owner_id: string
+          progress: number
+          quotation_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number
+          budget?: number
+          client_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          progress?: number
+          quotation_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number
+          budget?: number
+          client_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          progress?: number
+          quotation_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotation_items: {
         Row: {
           created_at: string
@@ -252,6 +359,68 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          assignee_name: string | null
+          blocked_since: string | null
+          blocks_project: boolean
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          owner_id: string
+          position: number
+          priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          blocked_since?: string | null
+          blocks_project?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owner_id: string
+          position?: number
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id: string
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          blocked_since?: string | null
+          blocks_project?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owner_id?: string
+          position?: number
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -313,7 +482,22 @@ export type Database = {
         | "finance"
         | "international"
       commercial_status: "active" | "pending" | "no_followup"
+      interaction_type:
+        | "call"
+        | "meeting"
+        | "email"
+        | "whatsapp"
+        | "note"
+        | "proposal_sent"
+      project_status:
+        | "on_track"
+        | "at_risk"
+        | "over_budget"
+        | "completed"
+        | "cancelled"
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
+      task_priority: "low" | "medium" | "high" | "critical"
+      task_status: "todo" | "in_progress" | "in_review" | "done" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -469,7 +653,24 @@ export const Constants = {
         "international",
       ],
       commercial_status: ["active", "pending", "no_followup"],
+      interaction_type: [
+        "call",
+        "meeting",
+        "email",
+        "whatsapp",
+        "note",
+        "proposal_sent",
+      ],
+      project_status: [
+        "on_track",
+        "at_risk",
+        "over_budget",
+        "completed",
+        "cancelled",
+      ],
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
+      task_priority: ["low", "medium", "high", "critical"],
+      task_status: ["todo", "in_progress", "in_review", "done", "blocked"],
     },
   },
 } as const
