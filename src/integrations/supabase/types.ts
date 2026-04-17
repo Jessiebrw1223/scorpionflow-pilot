@@ -184,6 +184,65 @@ export type Database = {
         }
         Relationships: []
       }
+      project_resources: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["resource_kind"]
+          name: string
+          notes: string | null
+          owner_id: string
+          project_id: string
+          quantity: number
+          role_or_type: string | null
+          status: string
+          total_cost: number
+          unit: Database["public"]["Enums"]["resource_unit"]
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["resource_kind"]
+          name: string
+          notes?: string | null
+          owner_id: string
+          project_id: string
+          quantity?: number
+          role_or_type?: string | null
+          status?: string
+          total_cost?: number
+          unit?: Database["public"]["Enums"]["resource_unit"]
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["resource_kind"]
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          project_id?: string
+          quantity?: number
+          role_or_type?: string | null
+          status?: string
+          total_cost?: number
+          unit?: Database["public"]["Enums"]["resource_unit"]
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_resources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           actual_cost: number
@@ -482,6 +541,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      recalc_project_actual_cost: {
+        Args: { _project_id: string }
+        Returns: undefined
+      }
       recalc_project_progress: {
         Args: { _project_id: string }
         Returns: undefined
@@ -529,6 +592,8 @@ export type Database = {
         | "completed"
         | "cancelled"
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
+      resource_kind: "human" | "tech" | "asset"
+      resource_unit: "hour" | "month" | "use" | "fixed"
       task_impact: "time" | "cost" | "delivery"
       task_node_type:
         | "epic"
@@ -711,6 +776,8 @@ export const Constants = {
         "cancelled",
       ],
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
+      resource_kind: ["human", "tech", "asset"],
+      resource_unit: ["hour", "month", "use", "fixed"],
       task_impact: ["time", "cost", "delivery"],
       task_node_type: [
         "epic",
