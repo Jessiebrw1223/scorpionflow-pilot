@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ListChecks, Plus, Loader2, Trash2, AlertTriangle, User, Calendar, LayoutGrid, List as ListIcon } from "lucide-react";
+import { ListChecks, Plus, Loader2, AlertTriangle, User, Calendar, LayoutGrid, List as ListIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
+import TaskDetailPanel from "./TaskDetailPanel";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
 type TaskPriority = "low" | "medium" | "high" | "critical";
@@ -70,13 +71,19 @@ interface Props {
   defaultView?: "kanban" | "list";
 }
 
+function getInitials(name: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
+}
+
 export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: Props) {
   const qc = useQueryClient();
   const [view, setView] = useState<"kanban" | "list">(defaultView);
   const [openForm, setOpenForm] = useState(false);
-  const [editing, setEditing] = useState<Task | null>(null);
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
+  const [panelTask, setPanelTask] = useState<Task | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["project-tasks", projectId],
@@ -92,7 +99,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
     },
   });
 
-  const upsert = useMutation({
+  const create = useMutation({
     mutationFn: async (values: FormValues) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
@@ -108,22 +115,17 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
         due_date: values.due_date || null,
         blocks_project: values.blocks_project,
       };
-      if (editing) {
-        const { error } = await supabase.from("tasks").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("tasks").insert(payload);
-        if (error) throw error;
-      }
+      const { error } = await supabase.from("tasks").insert(payload);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-summary", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-calendar", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-report", projectId] });
       qc.invalidateQueries({ queryKey: ["tasks-dash"] });
-      toast.success(editing ? "Tarea actualizada" : "Tarea creada");
+      toast.success("Tarea creada");
       setOpenForm(false);
-      setEditing(null);
       setForm(emptyForm);
     },
     onError: (e: Error) => toast.error("Error", { description: e.message }),
@@ -137,31 +139,9 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
   });
 
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
-      toast.success("Tarea eliminada");
-    },
-  });
-
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setOpenForm(true); };
-  const openEdit = (t: Task) => {
-    setEditing(t);
-    setForm({
-      title: t.title,
-      description: t.description || "",
-      status: t.status,
-      priority: t.priority,
-      impact: t.impact || "delivery",
-      assignee_name: t.assignee_name || "",
-      due_date: t.due_date || "",
-      blocks_project: t.blocks_project,
-    });
-    setOpenForm(true);
+  const openTaskPanel = (t: Task) => {
+    setPanelTask(t);
+    setPanelOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -173,7 +153,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
       return;
     }
     setErrors({});
-    upsert.mutate(parsed.data);
+    create.mutate(parsed.data);
   };
 
   const grouped = useMemo(() => {
@@ -212,13 +192,13 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
           </div>
           <Dialog open={openForm} onOpenChange={setOpenForm}>
             <DialogTrigger asChild>
-              <Button onClick={openCreate} className="fire-button font-semibold">
+              <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} className="fire-button font-semibold">
                 <Plus className="w-4 h-4" /> Nueva tarea
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="fire-text">{editing ? "Editar tarea" : "Nueva tarea"}</DialogTitle>
+                <DialogTitle className="fire-text">Nueva tarea</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -284,9 +264,9 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
-                  <Button type="submit" disabled={upsert.isPending} className="fire-button">
-                    {upsert.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {editing ? "Guardar" : "Crear tarea"}
+                  <Button type="submit" disabled={create.isPending} className="fire-button">
+                    {create.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Crear tarea
                   </Button>
                 </DialogFooter>
               </form>
@@ -308,7 +288,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
               Empieza desglosando lo que vendiste en pequeños bloques de trabajo.
             </p>
           </div>
-          <Button onClick={openCreate} className="fire-button">
+          <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} className="fire-button">
             <Plus className="w-4 h-4" /> Crear primera tarea
           </Button>
         </div>
@@ -328,7 +308,12 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
                   </div>
                 ) : (
                   grouped[status].map((t) => (
-                    <TaskCard key={t.id} task={t} onEdit={openEdit} onDelete={remove.mutate} onMove={(s) => move.mutate({ id: t.id, status: s })} />
+                    <TaskCard
+                      key={t.id}
+                      task={t}
+                      onOpen={openTaskPanel}
+                      onMove={(s) => move.mutate({ id: t.id, status: s })}
+                    />
                   ))
                 )}
               </div>
@@ -336,33 +321,38 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
-          {tasks.map((t) => (<TaskRow key={t.id} task={t} onEdit={openEdit} onDelete={remove.mutate} />))}
-        </div>
+        <ListBacklog tasks={tasks} onOpen={openTaskPanel} />
       )}
+
+      <TaskDetailPanel
+        task={panelTask}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        projectId={projectId}
+      />
     </div>
   );
 }
 
-function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: Task) => void; onDelete: (id: string) => void; onMove: (s: TaskStatus) => void; }) {
+function TaskCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task) => void; onMove: (s: TaskStatus) => void; }) {
   const pr = TASK_PRIORITY_META[task.priority];
   const im = TASK_IMPACT_META[task.impact || "delivery"];
   const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
   return (
     <div
       className={cn(
-        "surface-card surface-card-hover p-2.5 space-y-2 cursor-pointer",
+        "surface-card surface-card-hover p-2.5 space-y-2 cursor-pointer group",
         task.blocks_project && "border-l-2 border-cost-warning",
         task.status === "blocked" && "border-l-2 border-destructive"
       )}
-      onClick={() => onEdit(task)}
+      onClick={() => onOpen(task)}
     >
       <div className="flex items-start gap-1.5 flex-wrap">
         <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0", pr.bg, pr.color)}>
           {pr.emoji} {pr.label}
         </span>
-        <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0", im.bg, im.color)} title={im.description}>
-          {im.emoji} {im.short}
+        <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0 inline-flex items-center gap-1", im.bg, im.color)} title={im.description}>
+          <span>{im.emoji}</span> {im.short}
         </span>
         {task.blocks_project && (
           <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-cost-warning/10 text-cost-warning shrink-0 inline-flex items-center gap-1">
@@ -370,11 +360,16 @@ function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: 
           </span>
         )}
       </div>
-      <div className="font-medium text-[13px] text-foreground line-clamp-2">{task.title}</div>
+      <div className="font-medium text-[13px] text-foreground line-clamp-2 group-hover:text-primary transition-sf">{task.title}</div>
       <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-        {task.assignee_name && (
-          <span className="inline-flex items-center gap-1"><User className="w-3 h-3" /> {task.assignee_name}</span>
-        )}
+        {task.assignee_name ? (
+          <span className="inline-flex items-center gap-1.5" title={task.assignee_name}>
+            <span className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[9px] font-bold text-primary-foreground">
+              {getInitials(task.assignee_name)}
+            </span>
+            <span className="truncate max-w-[80px]">{task.assignee_name.split(" ")[0]}</span>
+          </span>
+        ) : <span />}
         {task.due_date && (
           <span className={cn("inline-flex items-center gap-1 font-mono-data", overdue && "text-destructive font-semibold")}>
             <Calendar className="w-3 h-3" /> {new Date(task.due_date).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
@@ -388,43 +383,91 @@ function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: 
             {Object.entries(TASK_STATUS_META).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label}</SelectItem>))}
           </SelectContent>
         </Select>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(task.id)} className="h-7 w-7 text-muted-foreground hover:text-destructive">
-          <Trash2 className="w-3 h-3" />
-        </Button>
       </div>
     </div>
   );
 }
 
-function TaskRow({ task, onEdit, onDelete }: { task: Task; onEdit: (t: Task) => void; onDelete: (id: string) => void; }) {
+function ListBacklog({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
+  return (
+    <div className="surface-card overflow-hidden">
+      {/* Header tabla */}
+      <div className="hidden md:grid grid-cols-[1fr_auto_140px_110px_110px_120px] gap-3 px-4 py-2.5 border-b border-border bg-muted/20 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+        <div>Tarea</div>
+        <div>Resp.</div>
+        <div>Estado</div>
+        <div>Prioridad</div>
+        <div>Impacto</div>
+        <div>Fecha</div>
+      </div>
+      <div className="divide-y divide-border">
+        {tasks.map((t) => (<TaskRow key={t.id} task={t} onOpen={onOpen} />))}
+      </div>
+    </div>
+  );
+}
+
+function TaskRow({ task, onOpen }: { task: Task; onOpen: (t: Task) => void }) {
   const pr = TASK_PRIORITY_META[task.priority];
   const st = TASK_STATUS_META[task.status];
   const im = TASK_IMPACT_META[task.impact || "delivery"];
   const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
   return (
-    <div className="surface-card surface-card-hover p-3 flex items-center gap-3 cursor-pointer" onClick={() => onEdit(task)}>
-      <div className={cn("w-2 h-2 rounded-full shrink-0", st.color)} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-[13px] text-foreground">{task.title}</span>
-          <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", pr.bg, pr.color)}>{pr.emoji} {pr.label}</span>
-          <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", im.bg, im.color)} title={im.description}>{im.emoji} {im.short}</span>
-          {task.blocks_project && (
-            <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-cost-warning/10 text-cost-warning inline-flex items-center gap-1">
-              <AlertTriangle className="w-2.5 h-2.5" /> Bloquea proyecto
-            </span>
-          )}
-        </div>
-        <div className="text-[11px] text-muted-foreground">
-          {task.assignee_name && <>👤 {task.assignee_name}</>}
-          {task.due_date && (
-            <> · <span className={cn("font-mono-data", overdue && "text-destructive")}>📅 {new Date(task.due_date).toLocaleDateString("es-PE")}</span></>
+    <div
+      className="grid md:grid-cols-[1fr_auto_140px_110px_110px_120px] grid-cols-1 gap-3 px-4 py-2.5 items-center cursor-pointer hover:bg-muted/20 transition-sf group"
+      onClick={() => onOpen(task)}
+    >
+      <div className="min-w-0 flex items-center gap-2">
+        {task.blocks_project && (
+          <AlertTriangle className="w-3.5 h-3.5 text-cost-warning shrink-0" />
+        )}
+        <div className="min-w-0">
+          <div className="font-medium text-[13px] text-foreground truncate group-hover:text-primary transition-sf">
+            {task.title}
+          </div>
+          {task.description && (
+            <div className="text-[11px] text-muted-foreground truncate hidden md:block">
+              {task.description}
+            </div>
           )}
         </div>
       </div>
-      <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-        <Trash2 className="w-3.5 h-3.5" />
-      </Button>
+      <div className="flex items-center" title={task.assignee_name || "Sin asignar"}>
+        {task.assignee_name ? (
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] font-bold text-primary-foreground">
+            {getInitials(task.assignee_name)}
+          </div>
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-muted border border-dashed border-border flex items-center justify-center">
+            <User className="w-3 h-3 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <div>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium">
+          <span className={cn("w-1.5 h-1.5 rounded-full", st.color)} />
+          {st.label}
+        </span>
+      </div>
+      <div>
+        <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded", pr.bg, pr.color)}>
+          {pr.emoji} {pr.label}
+        </span>
+      </div>
+      <div>
+        <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-1", im.bg, im.color)} title={im.description}>
+          {im.emoji} {im.short}
+        </span>
+      </div>
+      <div className={cn("text-[12px] font-mono-data", overdue ? "text-destructive font-semibold" : "text-muted-foreground")}>
+        {task.due_date ? (
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {new Date(task.due_date).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+            {overdue && " ⚠"}
+          </span>
+        ) : "—"}
+      </div>
     </div>
   );
 }
