@@ -447,7 +447,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 </Label>
                 <CurrencyInput
                   value={form.unit_cost}
-                  onChange={(v) => setForm(f => ({ ...f, unit_cost: v }))}
+                  onValueChange={(v) => setForm(f => ({ ...f, unit_cost: v }))}
                   className="h-9"
                 />
               </div>
