@@ -11,7 +11,7 @@ import ProjectSummaryTab from "@/components/projects/workspace/ProjectSummaryTab
 import ProjectPlanningTab from "@/components/projects/workspace/ProjectPlanningTab";
 import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
 import ProjectReportTab from "@/components/projects/workspace/ProjectReportTab";
-import ResourcesSummary from "@/components/resources/ResourcesSummary";
+import ProjectResourcesTab from "@/components/projects/workspace/ProjectResourcesTab";
 
 export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -128,14 +128,7 @@ export default function ProjectWorkspacePage() {
           <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} />
         </TabsContent>
         <TabsContent value="resources">
-          <div className="space-y-3">
-            <div className="surface-card p-3 bg-muted/20 border border-border">
-              <p className="text-[12px] text-muted-foreground">
-                Vista general de equipo, tecnología y maquinaria. Los recursos se asignan a tareas dentro del proyecto.
-              </p>
-            </div>
-            <ResourcesSummary projectId={project.id} />
-          </div>
+          <ProjectResourcesTab project={project} />
         </TabsContent>
         <TabsContent value="costs">
           <ProjectCostsTab project={project} />
