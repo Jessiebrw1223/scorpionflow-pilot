@@ -445,7 +445,7 @@ export default function CotizacionesPage() {
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="Implementación de sistema"
+                    placeholder="Ej: Implementación de sistema web"
                   />
                   {errors.title && <p className="text-[12px] text-destructive">{errors.title}</p>}
                 </div>
@@ -455,6 +455,7 @@ export default function CotizacionesPage() {
                     rows={2}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Describe el alcance del servicio o proyecto"
                   />
                 </div>
                 <div className="space-y-1.5">
