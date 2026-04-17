@@ -100,13 +100,16 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
       {/* === Avance + Presupuesto en bloque secundario === */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="surface-card p-4">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Avance del proyecto</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
+            Avance del proyecto
+            <span className="text-[9px] normal-case tracking-normal text-primary font-semibold">· auto</span>
+          </div>
           <div className="flex items-center gap-3 mt-2">
             <div className="text-2xl font-bold font-mono-data fire-text">{project.progress}%</div>
             <Progress value={project.progress} className="h-2 flex-1" />
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
-            {doneTasks} de {totalTasks} tareas completadas ({taskCompletion}%)
+            {doneTasks} de {totalTasks} tareas completadas — se actualiza solo
           </div>
         </div>
         <div className="surface-card p-4">
