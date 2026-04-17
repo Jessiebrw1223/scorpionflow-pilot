@@ -16,7 +16,7 @@ import ResourcesSummary from "@/components/resources/ResourcesSummary";
 export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("summary");
+  const [tab, setTab] = useState("planning");
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", id],
@@ -107,9 +107,6 @@ export default function ProjectWorkspacePage() {
           <TabsTrigger value="summary" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
             <LayoutDashboard className="w-3.5 h-3.5" /> Resumen
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <ListChecks className="w-3.5 h-3.5" /> Tareas
-          </TabsTrigger>
           <TabsTrigger value="planning" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
             <CalendarRange className="w-3.5 h-3.5" /> Planificación
           </TabsTrigger>
@@ -127,11 +124,8 @@ export default function ProjectWorkspacePage() {
         <TabsContent value="summary">
           <ProjectSummaryTab project={project} tasks={tasks} onTabChange={setTab} />
         </TabsContent>
-        <TabsContent value="tasks">
-          <ProjectTasksTab projectId={project.id} />
-        </TabsContent>
         <TabsContent value="planning">
-          <ProjectPlanningTab projectId={project.id} />
+          <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} />
         </TabsContent>
         <TabsContent value="resources">
           <div className="space-y-3">
