@@ -648,7 +648,7 @@ export default function CotizacionesPage() {
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Cargando pipeline…
         </div>
-      ) : (
+      ) : quotes.length === 0 ? null : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           {STAGE_ORDER.map((stage) => {
             const meta = STATUS_META[stage];
