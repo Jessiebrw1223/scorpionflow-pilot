@@ -78,6 +78,8 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
   const [editing, setEditing] = useState<Task | null>(null);
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
+  const [panelTask, setPanelTask] = useState<Task | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["project-tasks", projectId],
