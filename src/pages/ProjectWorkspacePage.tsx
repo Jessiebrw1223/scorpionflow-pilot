@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FolderKanban, LayoutDashboard, ListChecks, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange } from "lucide-react";
+import { ArrowLeft, FolderKanban, LayoutDashboard, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PROJECT_STATUS_META } from "@/lib/business-intelligence";
 import ProjectSummaryTab from "@/components/projects/workspace/ProjectSummaryTab";
-import ProjectTasksTab from "@/components/projects/workspace/ProjectTasksTab";
 import ProjectPlanningTab from "@/components/projects/workspace/ProjectPlanningTab";
 import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
 import ProjectReportTab from "@/components/projects/workspace/ProjectReportTab";
