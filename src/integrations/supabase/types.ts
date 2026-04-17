@@ -369,6 +369,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          impact: Database["public"]["Enums"]["task_impact"]
           owner_id: string
           position: number
           priority: Database["public"]["Enums"]["task_priority"]
@@ -386,6 +387,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          impact?: Database["public"]["Enums"]["task_impact"]
           owner_id: string
           position?: number
           priority?: Database["public"]["Enums"]["task_priority"]
@@ -403,6 +405,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          impact?: Database["public"]["Enums"]["task_impact"]
           owner_id?: string
           position?: number
           priority?: Database["public"]["Enums"]["task_priority"]
@@ -496,6 +499,7 @@ export type Database = {
         | "completed"
         | "cancelled"
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
+      task_impact: "time" | "cost" | "delivery"
       task_priority: "low" | "medium" | "high" | "critical"
       task_status: "todo" | "in_progress" | "in_review" | "done" | "blocked"
     }
@@ -669,6 +673,7 @@ export const Constants = {
         "cancelled",
       ],
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
+      task_impact: ["time", "cost", "delivery"],
       task_priority: ["low", "medium", "high", "critical"],
       task_status: ["todo", "in_progress", "in_review", "done", "blocked"],
     },
