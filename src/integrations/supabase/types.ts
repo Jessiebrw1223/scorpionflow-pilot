@@ -14,16 +14,219 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          client_type: Database["public"]["Enums"]["client_type"]
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          owner_id: string
+          phone: string | null
+          ruc: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_type?: Database["public"]["Enums"]["client_type"]
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+          ruc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_type?: Database["public"]["Enums"]["client_type"]
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+          ruc?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quotation_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          line_total: number
+          position: number
+          quantity: number
+          quotation_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          line_total?: number
+          position?: number
+          quantity?: number
+          quotation_id: string
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          line_total?: number
+          position?: number
+          quantity?: number
+          quotation_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotations: {
+        Row: {
+          client_id: string
+          converted_to_project: boolean
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          owner_id: string
+          status: Database["public"]["Enums"]["quotation_status"]
+          subtotal: number
+          tax_rate: number
+          title: string
+          total: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          client_id: string
+          converted_to_project?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          owner_id: string
+          status?: Database["public"]["Enums"]["quotation_status"]
+          subtotal?: number
+          tax_rate?: number
+          title: string
+          total?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          client_id?: string
+          converted_to_project?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          owner_id?: string
+          status?: Database["public"]["Enums"]["quotation_status"]
+          subtotal?: number
+          tax_rate?: number
+          title?: string
+          total?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "user"
+      client_type: "hotel" | "spa" | "business" | "other"
+      quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +353,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "user"],
+      client_type: ["hotel", "spa", "business", "other"],
+      quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
+    },
   },
 } as const
