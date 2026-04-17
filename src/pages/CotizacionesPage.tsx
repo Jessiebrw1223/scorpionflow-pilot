@@ -43,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
 
 type QuoteStatus = "pending" | "in_contact" | "quoted" | "won" | "lost";
@@ -576,11 +577,11 @@ export default function CotizacionesPage() {
                             </Tooltip>
                           </div>
                           <div className="col-span-2">
-                            <Input
-                              type="number"
-                              placeholder="Precio unit."
-                              value={it.unit_price}
-                              onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })}
+                            <CurrencyInput
+                              value={Number(it.unit_price) || 0}
+                              onValueChange={(v) => updateItem(idx, { unit_price: v })}
+                              currency={form.currency}
+                              showSymbol={false}
                             />
                           </div>
                           <div className="col-span-2 flex items-center justify-end h-9 px-2 text-[12px] font-mono-data text-foreground bg-background/40 rounded border border-border/50">
@@ -609,19 +610,22 @@ export default function CotizacionesPage() {
                 {errors.items && <p className="text-[12px] text-destructive">{errors.items}</p>}
               </div>
 
-              <div className="surface-card p-3 space-y-1 fire-glow">
+              <div className="surface-card p-4 space-y-2 fire-glow border-l-4 border-primary">
                 <div className="flex justify-between text-[13px] text-muted-foreground">
                   <span>Subtotal</span>
                   <span className="font-mono-data">{PEN.format(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-[13px] text-muted-foreground">
-                  <span>IGV ({form.tax_rate}%)</span>
+                  <span>IGV ({form.tax_rate}%) <span className="text-[10px]">automático</span></span>
                   <span className="font-mono-data">{PEN.format(tax)}</span>
                 </div>
-                <div className="flex justify-between text-base font-bold pt-1 border-t border-border">
-                  <span>Total</span>
-                  <span className="font-mono-data fire-text">{PEN.format(total)}</span>
+                <div className="flex justify-between items-baseline pt-2 border-t border-border">
+                  <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Total a cobrar</span>
+                  <span className="font-mono-data fire-text text-2xl font-bold">{PEN.format(total)}</span>
                 </div>
+                <p className="text-[11px] text-muted-foreground text-right">
+                  Esto es lo que el cliente paga. {form.items.length} concepto(s) incluidos.
+                </p>
               </div>
             </div>
             <DialogFooter>
