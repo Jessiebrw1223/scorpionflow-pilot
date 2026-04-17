@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ListChecks, Plus, Loader2, Trash2, AlertTriangle, User, Calendar, LayoutGrid, List as ListIcon } from "lucide-react";
+import { ListChecks, Plus, Loader2, AlertTriangle, User, Calendar, LayoutGrid, List as ListIcon, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
+import TaskDetailPanel from "./TaskDetailPanel";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
 type TaskPriority = "low" | "medium" | "high" | "critical";
