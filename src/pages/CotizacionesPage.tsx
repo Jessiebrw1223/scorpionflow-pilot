@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -14,7 +15,14 @@ import {
   PhoneCall,
   Clock,
   Sparkles,
+  AlertTriangle,
+  MessageCircle,
+  Mail,
+  Copy,
+  UserPlus,
+  Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +66,7 @@ interface Quotation {
   created_at: string;
   status_changed_at: string;
   close_probability: number;
-  client?: { id: string; name: string; company: string | null };
+  client?: { id: string; name: string; company: string | null; phone?: string | null; email?: string | null };
 }
 
 const STATUS_META: Record<
@@ -122,6 +130,9 @@ const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" 
 
 export default function CotizacionesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
 
   const { data: clients = [] } = useQuery({
@@ -129,7 +140,7 @@ export default function CotizacionesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, name, company")
+        .select("id, name, company, phone, email")
         .order("name");
       if (error) throw error;
       return data;
@@ -141,7 +152,7 @@ export default function CotizacionesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quotations")
-        .select("*, client:clients(id, name, company)")
+        .select("*, client:clients(id, name, company, phone, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Quotation[];
@@ -149,7 +160,7 @@ export default function CotizacionesPage() {
   });
 
   const [form, setForm] = useState({
-    client_id: "",
+    client_id: preselectedClientId,
     title: "",
     description: "",
     currency: "PEN",
@@ -157,6 +168,17 @@ export default function CotizacionesPage() {
     items: [{ description: "", quantity: 1, unit_price: 0 }] as QuoteItem[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Preseleccionar cliente y abrir form si viene desde Clientes (?clientId=...)
+  useEffect(() => {
+    if (preselectedClientId && clients.length > 0) {
+      const exists = clients.find((c) => c.id === preselectedClientId);
+      if (exists) {
+        setForm((f) => ({ ...f, client_id: preselectedClientId }));
+        setOpenForm(true);
+      }
+    }
+  }, [preselectedClientId, clients]);
 
   const subtotal = useMemo(
     () => form.items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.unit_price) || 0), 0),
@@ -229,6 +251,11 @@ export default function CotizacionesPage() {
         tax_rate: 18,
         items: [{ description: "", quantity: 1, unit_price: 0 }],
       });
+      // Limpiar query param de cliente preseleccionado
+      if (preselectedClientId) {
+        searchParams.delete("clientId");
+        setSearchParams(searchParams, { replace: true });
+      }
     },
     onError: (e: Error) => {
       if (e.message !== "Datos inválidos") toast.error("Error", { description: e.message });
@@ -272,6 +299,68 @@ export default function CotizacionesPage() {
       toast.success("Cotización eliminada");
     },
   });
+
+  const duplicate = useMutation({
+    mutationFn: async (q: Quotation) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("No autenticado");
+
+      // Traer items originales
+      const { data: origItems, error: itemsErr } = await supabase
+        .from("quotation_items")
+        .select("description, quantity, unit_price, line_total, position")
+        .eq("quotation_id", q.id);
+      if (itemsErr) throw itemsErr;
+
+      const { data: newQ, error } = await supabase
+        .from("quotations")
+        .insert({
+          owner_id: userData.user.id,
+          client_id: q.client_id,
+          title: `${q.title} (copia)`,
+          description: q.description,
+          currency: q.currency,
+          tax_rate: q.tax_rate,
+          subtotal: q.subtotal,
+          total: q.total,
+          status: "pending",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      if (origItems && origItems.length > 0) {
+        const copyItems = origItems.map((it) => ({ ...it, quotation_id: newQ.id }));
+        const { error: insErr } = await supabase.from("quotation_items").insert(copyItems);
+        if (insErr) throw insErr;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quotations"] });
+      toast.success("Cotización duplicada");
+    },
+    onError: (e: Error) => toast.error("Error al duplicar", { description: e.message }),
+  });
+
+  const contactClient = (q: Quotation, channel: "whatsapp" | "email") => {
+    if (channel === "whatsapp") {
+      const phone = q.client?.phone?.replace(/\D/g, "");
+      if (!phone) {
+        toast.warning("Este cliente no tiene teléfono registrado");
+        return;
+      }
+      const msg = encodeURIComponent(`Hola ${q.client?.name}, te escribo sobre la cotización "${q.title}".`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    } else {
+      const email = q.client?.email;
+      if (!email) {
+        toast.warning("Este cliente no tiene email registrado");
+        return;
+      }
+      const subject = encodeURIComponent(`Cotización: ${q.title}`);
+      window.open(`mailto:${email}?subject=${subject}`, "_blank");
+    }
+  };
 
   const grouped = useMemo(() => {
     const m: Record<QuoteStatus, Quotation[]> = {
@@ -324,6 +413,9 @@ export default function CotizacionesPage() {
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="fire-text">Nueva cotización</DialogTitle>
+              <p className="text-[12px] text-muted-foreground mt-1">
+                <span className="text-primary font-semibold">Paso 2:</span> Crea una cotización para tu cliente. Define los conceptos y el sistema calcula el total.
+              </p>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -353,7 +445,7 @@ export default function CotizacionesPage() {
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="Implementación de sistema"
+                    placeholder="Ej: Implementación de sistema web"
                   />
                   {errors.title && <p className="text-[12px] text-destructive">{errors.title}</p>}
                 </div>
@@ -363,6 +455,7 @@ export default function CotizacionesPage() {
                     rows={2}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Describe el alcance del servicio o proyecto"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -393,7 +486,12 @@ export default function CotizacionesPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Productos / Servicios *</Label>
+                  <div>
+                    <Label>Conceptos de la cotización *</Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Cada fila = algo que el cliente paga (servicio, hito, soporte…)
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     size="sm"
@@ -405,56 +503,75 @@ export default function CotizacionesPage() {
                       })
                     }
                   >
-                    <Plus className="w-3 h-3" /> Ítem
+                    <Plus className="w-3 h-3" /> Agregar concepto
                   </Button>
                 </div>
-                <div className="space-y-2">
-                  {form.items.map((it, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-12 gap-2 items-start p-2 bg-secondary/30 rounded-md"
-                    >
-                      <div className="col-span-6">
-                        <Input
-                          placeholder="Descripción"
-                          value={it.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          placeholder="Cant."
-                          value={it.quantity}
-                          onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Input
-                          type="number"
-                          placeholder="Precio unit."
-                          value={it.unit_price}
-                          onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        {form.items.length > 1 && (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              setForm({ ...form, items: form.items.filter((_, i) => i !== idx) })
-                            }
-                            className="h-9 w-9 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <TooltipProvider delayDuration={200}>
+                  <div className="space-y-2">
+                    {form.items.map((it, idx) => {
+                      const lineTotal = (Number(it.quantity) || 0) * (Number(it.unit_price) || 0);
+                      const placeholders = [
+                        "Ej: Desarrollo del sistema",
+                        "Ej: Instalación",
+                        "Ej: Soporte mensual",
+                        "Ej: Capacitación al equipo",
+                      ];
+                      return (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-12 gap-2 items-start p-2 bg-secondary/30 rounded-md"
+                        >
+                          <div className="col-span-5">
+                            <Input
+                              placeholder={placeholders[idx % placeholders.length]}
+                              value={it.description}
+                              onChange={(e) => updateItem(idx, { description: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Input
+                                  type="number"
+                                  placeholder="Cant."
+                                  value={it.quantity}
+                                  onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Horas, unidades o meses</TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              placeholder="Precio unit."
+                              value={it.unit_price}
+                              onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })}
+                            />
+                          </div>
+                          <div className="col-span-2 flex items-center justify-end h-9 px-2 text-[12px] font-mono-data text-foreground bg-background/40 rounded border border-border/50">
+                            {PEN.format(lineTotal)}
+                          </div>
+                          <div className="col-span-1 flex justify-end">
+                            {form.items.length > 1 && (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  setForm({ ...form, items: form.items.filter((_, i) => i !== idx) })
+                                }
+                                className="h-9 w-9 text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </TooltipProvider>
                 {errors.items && <p className="text-[12px] text-destructive">{errors.items}</p>}
               </div>
 
@@ -491,14 +608,38 @@ export default function CotizacionesPage() {
       </div>
 
       {clients.length === 0 && (
-        <div className="surface-card fire-border p-4 flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-primary fire-icon shrink-0 mt-0.5" />
+        <div className="surface-card border border-cost-warning/40 bg-cost-warning/5 p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-cost-warning shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="font-medium text-foreground text-sm">Sugerencia inteligente</p>
-            <p className="text-[13px] text-muted-foreground">
-              Crea tu primer cliente desde el módulo de Clientes para empezar a generar cotizaciones.
+            <p className="font-semibold text-foreground text-sm">
+              ⚠️ Primero debes crear un cliente antes de cotizar
+            </p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              El flujo de ScorpionFlow es: <span className="text-primary font-medium">Cliente → Cotización → Proyecto → Tareas</span>.
             </p>
           </div>
+          <Button asChild size="sm" className="fire-button shrink-0">
+            <Link to="/clientes">
+              <UserPlus className="w-4 h-4" /> Ir a Clientes
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {clients.length > 0 && quotes.length === 0 && !isLoading && (
+        <div className="surface-card fire-border p-8 text-center space-y-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center fire-glow">
+            <DollarSign className="w-6 h-6 text-primary fire-icon" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Empieza creando una cotización para tus clientes</p>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Todo tu flujo comercial comienza aquí. Define qué vendes, cuánto cobras y haz seguimiento hasta cerrar.
+            </p>
+          </div>
+          <Button onClick={() => setOpenForm(true)} className="fire-button">
+            <Plus className="w-4 h-4" /> Crear primera cotización
+          </Button>
         </div>
       )}
 
@@ -507,7 +648,7 @@ export default function CotizacionesPage() {
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Cargando pipeline…
         </div>
-      ) : (
+      ) : quotes.length === 0 ? null : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           {STAGE_ORDER.map((stage) => {
             const meta = STATUS_META[stage];
@@ -583,42 +724,106 @@ export default function CotizacionesPage() {
                             </span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1 pt-1 border-t border-border">
-                          {stage !== "won" && stage !== "lost" && (
-                            <Select
-                              value={q.status}
-                              onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
-                            >
-                              <SelectTrigger className="h-7 text-[11px] flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STAGE_ORDER.map((s) => (
-                                  <SelectItem key={s} value={s}>
-                                    {STATUS_META[s].label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                          {stage === "quoted" && !q.converted_to_project && (
-                            <Button
-                              size="sm"
-                              onClick={() => convertToProject.mutate(q.id)}
-                              className="h-7 px-2 fire-button text-[11px]"
-                              title="Convertir a proyecto"
-                            >
-                              <ArrowRight className="w-3 h-3" />
-                            </Button>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => remove.mutate(q.id)}
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                        <div className="space-y-1 pt-1 border-t border-border">
+                          {/* Acciones rápidas: contactar / duplicar / eliminar */}
+                          <TooltipProvider delayDuration={200}>
+                            <div className="flex items-center gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); contactClient(q, "whatsapp"); }}
+                                    className="h-7 w-7 text-status-progress hover:bg-status-progress/10"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Contactar por WhatsApp</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); contactClient(q, "email"); }}
+                                    className="h-7 w-7 text-status-review hover:bg-status-review/10"
+                                  >
+                                    <Mail className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Enviar email</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); duplicate.mutate(q); }}
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Duplicar cotización</TooltipContent>
+                              </Tooltip>
+                              <div className="flex-1" />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={(e) => { e.stopPropagation(); remove.mutate(q.id); }}
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Eliminar</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
+
+                          {/* Cambio de estado + conversión a proyecto */}
+                          <div className="flex items-center gap-1">
+                            {stage !== "won" && stage !== "lost" && (
+                              <Select
+                                value={q.status}
+                                onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
+                              >
+                                <SelectTrigger className="h-7 text-[11px] flex-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {STAGE_ORDER.map((s) => (
+                                    <SelectItem key={s} value={s}>
+                                      {STATUS_META[s].label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {stage === "won" && !q.converted_to_project && (
+                              <Button
+                                size="sm"
+                                onClick={() => convertToProject.mutate(q.id)}
+                                className="h-7 fire-button text-[11px] flex-1"
+                              >
+                                <ArrowRight className="w-3 h-3" /> Convertir en Proyecto
+                              </Button>
+                            )}
+                            {stage === "quoted" && !q.converted_to_project && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => move.mutate({ id: q.id, status: "won" })}
+                                className="h-7 px-2 text-[11px]"
+                                title="Marcar como Ganado"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                       );
