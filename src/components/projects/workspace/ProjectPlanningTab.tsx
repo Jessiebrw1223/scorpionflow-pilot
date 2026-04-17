@@ -72,6 +72,196 @@ function PlanningCalendar({ projectId }: { projectId: string }) {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [panelTask, setPanelTask] = useState<any>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ["project-tasks-calendar", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("project_id", projectId)
+        .not("due_date", "is", null);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const monthLabel = cursor.toLocaleDateString("es-PE", { month: "long", year: "numeric" });
+  const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+  const firstDayWeek = (new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay() + 6) % 7;
+
+  const tasksByDay = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    tasks.forEach((t) => {
+      if (!t.due_date) return;
+      const d = new Date(t.due_date);
+      if (d.getFullYear() === cursor.getFullYear() && d.getMonth() === cursor.getMonth()) {
+        const key = String(d.getDate());
+        if (!map[key]) map[key] = [];
+        map[key].push(t);
+      }
+    });
+    return map;
+  }, [tasks, cursor]);
+
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDayWeek; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const goPrev = () => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1));
+  const goNext = () => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1));
+  const goToday = () => {
+    const d = new Date();
+    setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
+  };
+
+  const openTask = (t: any) => {
+    setPanelTask(t);
+    setPanelOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-muted-foreground">
+        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" /> Cargando calendario…
+      </div>
+    );
+  }
+
+  const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const overdueCount = tasks.filter((t: any) => t.status !== "done" && new Date(t.due_date) < today).length;
+
+  return (
+    <>
+      <div className="surface-card p-4 space-y-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button onClick={goPrev} className="surface-card p-1.5 hover:bg-muted/40 transition-sf">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button onClick={goToday} className="text-[12px] font-medium px-3 py-1.5 surface-card hover:bg-muted/40 transition-sf">
+              Hoy
+            </button>
+            <button onClick={goNext} className="surface-card p-1.5 hover:bg-muted/40 transition-sf">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <h3 className="text-base font-semibold capitalize ml-2">{monthLabel}</h3>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span>{tasks.length} tarea(s) con fecha</span>
+            {overdueCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-destructive font-semibold">
+                <AlertTriangle className="w-3 h-3" /> {overdueCount} atrasada(s)
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide text-center">
+          {weekDays.map((d) => (
+            <div key={d} className="py-1">{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, i) => {
+            if (day === null) {
+              return <div key={`empty-${i}`} className="min-h-[100px]" />;
+            }
+            const dayTasks = tasksByDay[String(day)] || [];
+            const isToday = isCurrentMonth && day === today.getDate();
+            const cellDate = new Date(cursor.getFullYear(), cursor.getMonth(), day);
+            cellDate.setHours(23, 59, 59, 999);
+            return (
+              <div
+                key={day}
+                className={cn(
+                  "surface-card p-1.5 min-h-[100px] flex flex-col gap-1",
+                  isToday && "border-primary bg-primary/5"
+                )}
+              >
+                <div className={cn(
+                  "text-[11px] font-mono-data font-semibold",
+                  isToday ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {day}
+                </div>
+                <div className="space-y-1 flex-1 overflow-hidden">
+                  {dayTasks.slice(0, 3).map((t) => {
+                    const im = TASK_IMPACT_META[t.impact || "delivery"];
+                    const st = TASK_STATUS_META[t.status];
+                    const overdue = t.status !== "done" && cellDate < today;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => openTask(t)}
+                        className={cn(
+                          "w-full text-left text-[10px] px-1.5 py-1 rounded truncate flex items-center gap-1 transition-sf hover:scale-[1.02]",
+                          im.bg,
+                          im.color,
+                          t.blocks_project && "ring-1 ring-cost-warning",
+                          overdue && "ring-1 ring-destructive"
+                        )}
+                        title={`${t.title} — ${st.label}${overdue ? " (Atrasada)" : ""}`}
+                      >
+                        {overdue ? (
+                          <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-destructive" />
+                        ) : t.blocks_project ? (
+                          <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                        ) : (
+                          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", st.color)} />
+                        )}
+                        <span className="truncate">{t.title}</span>
+                      </button>
+                    );
+                  })}
+                  {dayTasks.length > 3 && (
+                    <div className="text-[10px] text-muted-foreground font-mono-data px-1">
+                      +{dayTasks.length - 3} más
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Leyenda */}
+        <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground pt-2 border-t border-border">
+          <span className="font-medium">Impacto:</span>
+          {Object.entries(TASK_IMPACT_META).map(([k, v]) => (
+            <span key={k} className="inline-flex items-center gap-1.5">
+              <span className={cn("w-2.5 h-2.5 rounded", v.bg)} />
+              <span>{v.emoji} {v.short}</span>
+            </span>
+          ))}
+          <span className="inline-flex items-center gap-1.5">
+            <AlertTriangle className="w-3 h-3 text-destructive" /> Atrasada
+          </span>
+          <span className="inline-flex items-center gap-1.5 ml-auto">
+            <AlertTriangle className="w-3 h-3 text-cost-warning" /> Bloquea entrega
+          </span>
+        </div>
+      </div>
+
+      <TaskDetailPanel
+        task={panelTask}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        projectId={projectId}
+      />
+    </>
+  );
+}
+  const [cursor, setCursor] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["project-tasks-calendar", projectId],
