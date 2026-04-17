@@ -251,6 +251,11 @@ export default function CotizacionesPage() {
         tax_rate: 18,
         items: [{ description: "", quantity: 1, unit_price: 0 }],
       });
+      // Limpiar query param de cliente preseleccionado
+      if (preselectedClientId) {
+        searchParams.delete("clientId");
+        setSearchParams(searchParams, { replace: true });
+      }
     },
     onError: (e: Error) => {
       if (e.message !== "Datos inválidos") toast.error("Error", { description: e.message });
