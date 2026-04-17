@@ -8,11 +8,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "./pages/Dashboard";
-import TasksPage from "./pages/TasksPage";
-import ResourcesPage from "./pages/ResourcesPage";
 import ProjectsPage from "./pages/ProjectsPage";
-import CostsPage from "./pages/CostsPage";
-import ReportsPage from "./pages/ReportsPage";
+import ProjectWorkspacePage from "./pages/ProjectWorkspacePage";
 import SettingsPage from "./pages/SettingsPage";
 import ClientesPage from "./pages/ClientesPage";
 import CotizacionesPage from "./pages/CotizacionesPage";
@@ -51,11 +48,13 @@ function AppShell() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/clientes" element={<ClientesPage />} />
                   <Route path="/cotizaciones" element={<CotizacionesPage />} />
-                  <Route path="/tasks" element={<TasksPage />} />
-                  <Route path="/resources" element={<ResourcesPage />} />
                   <Route path="/projects" element={<ProjectsPage />} />
-                  <Route path="/costs" element={<CostsPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/projects/:id" element={<ProjectWorkspacePage />} />
+                  {/* Rutas legacy redirigidas al nuevo flujo por proyecto */}
+                  <Route path="/tasks" element={<Navigate to="/projects" replace />} />
+                  <Route path="/costs" element={<Navigate to="/projects" replace />} />
+                  <Route path="/reports" element={<Navigate to="/projects" replace />} />
+                  <Route path="/resources" element={<Navigate to="/projects" replace />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

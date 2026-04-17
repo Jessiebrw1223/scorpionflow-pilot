@@ -2,16 +2,11 @@ import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  ListChecks,
-  Users,
   FolderKanban,
-  DollarSign,
-  BarChart3,
   ChevronLeft,
   ChevronRight,
   Settings,
   Flame,
-  UserCircle2,
   LogOut,
   Receipt,
   Contact2,
@@ -32,10 +27,6 @@ const navItems: NavItem[] = [
   { label: "Clientes", icon: Contact2, path: "/clientes", group: "Comercial" },
   { label: "Cotizaciones", icon: Receipt, path: "/cotizaciones", group: "Comercial" },
   { label: "Proyectos", icon: FolderKanban, path: "/projects", group: "Ejecución" },
-  { label: "Tareas", icon: ListChecks, path: "/tasks", group: "Ejecución" },
-  { label: "Recursos", icon: Users, path: "/resources", group: "Ejecución" },
-  { label: "Costos", icon: DollarSign, path: "/costs", group: "Análisis" },
-  { label: "Informes", icon: BarChart3, path: "/reports", group: "Análisis" },
 ];
 
 export function AppSidebar() {
