@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const schema = z
   .object({
@@ -75,13 +76,21 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(pendingRedirect ?? "/", { replace: true });
+    }
+  }, [authLoading, user, pendingRedirect, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +108,7 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -117,8 +126,15 @@ export default function RegisterPage() {
       }
       return;
     }
+
     toast.success("¡Cuenta creada!", { description: "Ya puedes acceder al sistema." });
-    navigate("/", { replace: true });
+
+    if (data.session) {
+      setPendingRedirect("/");
+      return;
+    }
+
+    navigate("/auth/login", { replace: true });
   };
 
   const handleGoogle = async () => {
