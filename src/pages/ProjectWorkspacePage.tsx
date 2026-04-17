@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FolderKanban, LayoutDashboard, ListChecks, DollarSign, FileBarChart2, Receipt, Loader2, Users } from "lucide-react";
+import { ArrowLeft, FolderKanban, LayoutDashboard, ListChecks, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { PROJECT_STATUS_META } from "@/lib/business-intelligence";
 import ProjectSummaryTab from "@/components/projects/workspace/ProjectSummaryTab";
 import ProjectTasksTab from "@/components/projects/workspace/ProjectTasksTab";
+import ProjectPlanningTab from "@/components/projects/workspace/ProjectPlanningTab";
 import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
 import ProjectReportTab from "@/components/projects/workspace/ProjectReportTab";
 import ResourcesSummary from "@/components/resources/ResourcesSummary";
@@ -110,6 +111,9 @@ export default function ProjectWorkspacePage() {
           <TabsTrigger value="tasks" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
             <ListChecks className="w-3.5 h-3.5" /> Tareas
           </TabsTrigger>
+          <TabsTrigger value="planning" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
+            <CalendarRange className="w-3.5 h-3.5" /> Planificación
+          </TabsTrigger>
           <TabsTrigger value="resources" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
             <Users className="w-3.5 h-3.5" /> Recursos
           </TabsTrigger>
@@ -127,6 +131,9 @@ export default function ProjectWorkspacePage() {
         <TabsContent value="tasks">
           <ProjectTasksTab projectId={project.id} />
         </TabsContent>
+        <TabsContent value="planning">
+          <ProjectPlanningTab projectId={project.id} />
+        </TabsContent>
         <TabsContent value="resources">
           <div className="space-y-3">
             <div className="surface-card p-3 bg-muted/20 border border-border">
@@ -134,7 +141,7 @@ export default function ProjectWorkspacePage() {
                 Vista general de equipo, tecnología y maquinaria. Los recursos se asignan a tareas dentro del proyecto.
               </p>
             </div>
-            <ResourcesSummary />
+            <ResourcesSummary projectId={project.id} />
           </div>
         </TabsContent>
         <TabsContent value="costs">

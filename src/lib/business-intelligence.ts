@@ -273,3 +273,34 @@ export const TASK_STATUS_META: Record<string, { label: string; color: string }> 
   done: { label: "Completada", color: "bg-status-done" },
   blocked: { label: "Bloqueada", color: "bg-status-blocked" },
 };
+
+// Impacto de la tarea en el negocio: conecta ejecución con resultado
+export const TASK_IMPACT_META: Record<
+  string,
+  { label: string; short: string; color: string; bg: string; emoji: string; description: string }
+> = {
+  time: {
+    label: "Impacta tiempo",
+    short: "Tiempo",
+    color: "text-status-progress",
+    bg: "bg-status-progress/10",
+    emoji: "⏱️",
+    description: "Si se atrasa, retrasa el cronograma del proyecto.",
+  },
+  cost: {
+    label: "Impacta costo",
+    short: "Costo",
+    color: "text-cost-warning",
+    bg: "bg-cost-warning/10",
+    emoji: "💰",
+    description: "Si se desvía, impacta directamente el presupuesto y la rentabilidad.",
+  },
+  delivery: {
+    label: "Impacta entrega",
+    short: "Entrega",
+    color: "text-primary",
+    bg: "bg-primary/10",
+    emoji: "🎯",
+    description: "Si falla, afecta la entrega o calidad final al cliente.",
+  },
+};

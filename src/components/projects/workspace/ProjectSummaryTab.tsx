@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Calendar, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, ListChecks, ArrowRight } from "lucide-react";
+import { Calendar, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, ListChecks, ArrowRight, Building2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,79 +31,103 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
   ).length;
   const taskCompletion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
+  // Nivel de riesgo derivado para mostrar en banner ejecutivo
+  const riskLevel = losing
+    ? { label: "Alto", color: "text-cost-negative", bg: "bg-cost-negative/10", reason: "Estás gastando más de lo cobrado" }
+    : blockingProject > 0 || overdueTasks > 0
+    ? { label: "Medio", color: "text-cost-warning", bg: "bg-cost-warning/10", reason: `${blockingProject + overdueTasks} situación(es) frenando avance` }
+    : { label: "Bajo", color: "text-cost-positive", bg: "bg-cost-positive/10", reason: "Sin alertas críticas" };
+
   return (
     <div className="space-y-4">
-      {/* Estado del proyecto — banner principal */}
+      {/* === BANNER EJECUTIVO: cliente + estado + ganancia, lo más importante arriba === */}
       <div className={cn("surface-card p-5 border-l-4", meta.border)}>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Cliente y estado */}
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Cliente</div>
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-foreground truncate">{project.clients?.name || "—"}</span>
+            </div>
+            {project.clients?.company && (
+              <div className="text-[12px] text-muted-foreground mt-0.5 ml-6 truncate">{project.clients.company}</div>
+            )}
+            <div className="mt-3">
               <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded", meta.bg, meta.color)}>
                 {meta.label}
               </span>
-              {project.quotations && (
-                <Link
-                  to="/cotizaciones"
-                  className="text-[11px] text-muted-foreground hover:text-primary inline-flex items-center gap-1"
-                >
-                  <Receipt className="w-3 h-3" />
-                  Viene de la cotización · {project.quotations.title}
-                </Link>
-              )}
             </div>
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground mt-3">
-              Avance del proyecto
-            </div>
-            <div className="flex items-center gap-3 mt-1">
-              <div className="text-3xl font-bold font-mono-data fire-text">{project.progress}%</div>
-              <Progress value={project.progress} className="h-2 flex-1 max-w-md" />
-            </div>
-            {project.description && (
-              <p className="text-[13px] text-muted-foreground mt-3 max-w-2xl">{project.description}</p>
-            )}
           </div>
-          <div className="text-right">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Ganancia estimada</div>
-            <div className={cn("text-2xl font-bold font-mono-data", losing ? "text-cost-negative" : "text-cost-positive")}>
+
+          {/* Ganancia / pérdida (núcleo de decisión) */}
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+              {losing ? "Pérdida actual" : "Ganancia estimada"}
+            </div>
+            <div className={cn("text-3xl font-bold font-mono-data", losing ? "text-cost-negative" : "text-cost-positive")}>
               {profit >= 0 ? "+" : ""}{PEN.format(profit)}
             </div>
-            <div className={cn("text-[12px] font-mono-data font-semibold", losing ? "text-cost-negative" : marginPct >= 20 ? "text-cost-positive" : "text-cost-warning")}>
+            <div className={cn("text-[12px] font-mono-data font-semibold mt-0.5", losing ? "text-cost-negative" : marginPct >= 20 ? "text-cost-positive" : "text-cost-warning")}>
               Margen {marginPct.toFixed(1)}%
             </div>
           </div>
+
+          {/* Riesgo */}
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Nivel de riesgo</div>
+            <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded font-semibold text-sm", riskLevel.bg, riskLevel.color)}>
+              <AlertTriangle className="w-3.5 h-3.5" /> {riskLevel.label}
+            </div>
+            <div className="text-[12px] text-muted-foreground mt-2">{riskLevel.reason}</div>
+          </div>
+        </div>
+
+        {/* Origen del proyecto (cotización) */}
+        {project.quotations && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <Link
+              to="/cotizaciones"
+              className="text-[12px] text-muted-foreground hover:text-primary inline-flex items-center gap-1.5"
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              Este proyecto proviene de la cotización · <span className="text-primary font-medium">{project.quotations.title}</span>
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* === Avance + Presupuesto en bloque secundario === */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="surface-card p-4">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Avance del proyecto</div>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="text-2xl font-bold font-mono-data fire-text">{project.progress}%</div>
+            <Progress value={project.progress} className="h-2 flex-1" />
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
+            {doneTasks} de {totalTasks} tareas completadas ({taskCompletion}%)
+          </div>
+        </div>
+        <div className="surface-card p-4">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto vs gasto</div>
+          <div className="flex items-center gap-3 mt-2">
+            <div className={cn("text-2xl font-bold font-mono-data", losing && "text-cost-negative")}>{usedPct.toFixed(0)}%</div>
+            <Progress value={usedPct} className={cn("h-2 flex-1", losing && "[&>div]:bg-cost-negative")} />
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
+            {PEN.format(Number(project.actual_cost))} / {PEN.format(Number(project.budget))}
+          </div>
         </div>
       </div>
 
-      {/* KPIs operativos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="surface-card p-3">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto</div>
-          <div className="text-lg font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
+      {project.description && (
+        <div className="surface-card p-3 bg-muted/20">
+          <p className="text-[12px] text-muted-foreground">{project.description}</p>
         </div>
-        <div className="surface-card p-3">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Gastado</div>
-          <div className={cn("text-lg font-bold font-mono-data", losing && "text-cost-negative")}>
-            {PEN.format(Number(project.actual_cost))}
-          </div>
-          <div className="text-[10px] text-muted-foreground font-mono-data mt-0.5">{usedPct.toFixed(0)}% usado</div>
-        </div>
-        <div className="surface-card p-3">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Tareas</div>
-          <div className="text-lg font-bold font-mono-data">{doneTasks} / {totalTasks}</div>
-          <div className="text-[10px] text-muted-foreground font-mono-data mt-0.5">{taskCompletion}% completadas</div>
-        </div>
-        <div className="surface-card p-3">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Bloqueos</div>
-          <div className={cn("text-lg font-bold font-mono-data", (blockedTasks > 0 || blockingProject > 0) && "text-cost-warning")}>
-            {blockedTasks + blockingProject}
-          </div>
-          <div className="text-[10px] text-muted-foreground font-mono-data mt-0.5">
-            {blockingProject > 0 ? `${blockingProject} retrasan entrega` : "Sin bloqueos críticos"}
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* Alertas */}
+      {/* === Alertas accionables === */}
       {losing && (
         <div className="surface-card border border-cost-negative/40 bg-cost-negative/5 p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-cost-negative shrink-0 mt-0.5" />
@@ -174,9 +198,9 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button onClick={() => onTabChange("tasks")} className="surface-card surface-card-hover p-4 text-left group">
+        <button onClick={() => onTabChange("planning")} className="surface-card surface-card-hover p-4 text-left group">
           <ListChecks className="w-5 h-5 text-primary fire-icon mb-2" />
-          <div className="font-semibold text-sm">Gestionar tareas</div>
+          <div className="font-semibold text-sm">Planificar trabajo</div>
           <div className="text-[12px] text-muted-foreground mt-0.5">
             {totalTasks} tareas · {overdueTasks} vencidas
           </div>
@@ -202,7 +226,7 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
           <CheckCircle2 className="w-5 h-5 text-status-progress mb-2" />
           <div className="font-semibold text-sm">Informe ejecutivo</div>
           <div className="text-[12px] text-muted-foreground mt-0.5">
-            Estado, progreso, presupuesto y entregables
+            ¿Estoy ganando? ¿Voy atrasado? ¿Qué me bloquea?
           </div>
           <div className="text-[11px] text-primary mt-2 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             Abrir <ArrowRight className="w-3 h-3" />
