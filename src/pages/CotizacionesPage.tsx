@@ -608,14 +608,38 @@ export default function CotizacionesPage() {
       </div>
 
       {clients.length === 0 && (
-        <div className="surface-card fire-border p-4 flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-primary fire-icon shrink-0 mt-0.5" />
+        <div className="surface-card border border-cost-warning/40 bg-cost-warning/5 p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-cost-warning shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="font-medium text-foreground text-sm">Sugerencia inteligente</p>
-            <p className="text-[13px] text-muted-foreground">
-              Crea tu primer cliente desde el módulo de Clientes para empezar a generar cotizaciones.
+            <p className="font-semibold text-foreground text-sm">
+              ⚠️ Primero debes crear un cliente antes de cotizar
+            </p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              El flujo de ScorpionFlow es: <span className="text-primary font-medium">Cliente → Cotización → Proyecto → Tareas</span>.
             </p>
           </div>
+          <Button asChild size="sm" className="fire-button shrink-0">
+            <Link to="/clientes">
+              <UserPlus className="w-4 h-4" /> Ir a Clientes
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {clients.length > 0 && quotes.length === 0 && !isLoading && (
+        <div className="surface-card fire-border p-8 text-center space-y-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center fire-glow">
+            <DollarSign className="w-6 h-6 text-primary fire-icon" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Empieza creando una cotización para tus clientes</p>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Todo tu flujo comercial comienza aquí. Define qué vendes, cuánto cobras y haz seguimiento hasta cerrar.
+            </p>
+          </div>
+          <Button onClick={() => setOpenForm(true)} className="fire-button">
+            <Plus className="w-4 h-4" /> Crear primera cotización
+          </Button>
         </div>
       )}
 
