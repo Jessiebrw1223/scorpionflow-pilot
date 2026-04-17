@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { LayoutGrid, List as ListIcon, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { TASK_PRIORITY_META, TASK_IMPACT_META, TASK_STATUS_META } from "@/lib/business-intelligence";
+import { TASK_IMPACT_META, TASK_STATUS_META } from "@/lib/business-intelligence";
 import ProjectTasksTab from "./ProjectTasksTab";
+import TaskDetailPanel from "./TaskDetailPanel";
 
 interface Props {
   projectId: string;
@@ -12,36 +13,48 @@ interface Props {
 
 type Mode = "list" | "kanban" | "calendar";
 
+const MODE_META: Record<Mode, { label: string; helper: string; icon: typeof ListIcon }> = {
+  list: { label: "Lista", helper: "Backlog completo en tabla", icon: ListIcon },
+  kanban: { label: "Tablero", helper: "Flujo visual por estado", icon: LayoutGrid },
+  calendar: { label: "Calendario", helper: "Tareas distribuidas por fecha", icon: CalendarIcon },
+};
+
 export default function ProjectPlanningTab({ projectId }: Props) {
   const [mode, setMode] = useState<Mode>("kanban");
+  const current = MODE_META[mode];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-base font-semibold">Planificación</h2>
-          <p className="text-[12px] text-muted-foreground">
-            La misma información, vista como prefieras: backlog, tablero o calendario.
+      {/* Selector de vista — destacado con highlight naranja */}
+      <div className="surface-card p-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <current.icon className="w-4 h-4 text-primary fire-icon" />
+            Planificación · {current.label}
+          </h2>
+          <p className="text-[12px] text-muted-foreground mt-0.5">
+            {current.helper} — la misma data, vista a tu manera.
           </p>
         </div>
-        <div className="flex items-center surface-card p-0.5 gap-0.5">
-          {[
-            { key: "list" as const, icon: ListIcon, label: "Lista" },
-            { key: "kanban" as const, icon: LayoutGrid, label: "Tablero" },
-            { key: "calendar" as const, icon: CalendarIcon, label: "Calendario" },
-          ].map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setMode(key)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-sf",
-                mode === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center bg-secondary/60 border border-border rounded-md p-1 gap-0.5">
+          {(Object.keys(MODE_META) as Mode[]).map((key) => {
+            const Icon = MODE_META[key].icon;
+            return (
+              <button
+                key={key}
+                onClick={() => setMode(key)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-sf",
+                  mode === key
+                    ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {MODE_META[key].label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
