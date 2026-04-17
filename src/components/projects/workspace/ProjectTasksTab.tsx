@@ -2,38 +2,15 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import {
-  ListChecks,
-  Plus,
-  Loader2,
-  Trash2,
-  AlertTriangle,
-  User,
-  Calendar,
-  LayoutGrid,
-  List as ListIcon,
-} from "lucide-react";
+import { ListChecks, Plus, Loader2, Trash2, AlertTriangle, User, Calendar, LayoutGrid, List as ListIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META } from "@/lib/business-intelligence";
 
@@ -53,7 +30,6 @@ interface Task {
   blocked_since: string | null;
   position: number;
   created_at: string;
-  projects?: { id: string; name: string };
 }
 
 const STATUS_COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
@@ -65,7 +41,6 @@ const STATUS_COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
 ];
 
 const schema = z.object({
-  project_id: z.string().uuid("Selecciona un proyecto"),
   title: z.string().trim().min(2, "Mínimo 2 caracteres").max(160),
   description: z.string().max(500).optional().or(z.literal("")),
   status: z.enum(["todo", "in_progress", "in_review", "done", "blocked"]),
@@ -74,11 +49,9 @@ const schema = z.object({
   due_date: z.string().optional().or(z.literal("")),
   blocks_project: z.boolean(),
 });
-
 type FormValues = z.infer<typeof schema>;
 
 const emptyForm: FormValues = {
-  project_id: "",
   title: "",
   description: "",
   status: "todo",
@@ -88,50 +61,39 @@ const emptyForm: FormValues = {
   blocks_project: false,
 };
 
-export default function TasksPage() {
+interface Props {
+  projectId: string;
+}
+
+export default function ProjectTasksTab({ projectId }: Props) {
   const qc = useQueryClient();
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
-  const [projectFilter, setProjectFilter] = useState<string>("all");
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks"],
+    queryKey: ["project-tasks", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("*, projects(id, name)")
+        .select("*")
+        .eq("project_id", projectId)
         .order("position", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as Task[];
+      return data as Task[];
     },
   });
-
-  const { data: projectsList = [] } = useQuery({
-    queryKey: ["projects-min-tasks"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("id, name").order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const filtered = useMemo(() => {
-    if (projectFilter === "all") return tasks;
-    return tasks.filter((t) => t.project_id === projectFilter);
-  }, [tasks, projectFilter]);
 
   const upsert = useMutation({
     mutationFn: async (values: FormValues) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
-
       const payload = {
         owner_id: userData.user.id,
-        project_id: values.project_id,
+        project_id: projectId,
         title: values.title,
         description: values.description || null,
         status: values.status,
@@ -140,7 +102,6 @@ export default function TasksPage() {
         due_date: values.due_date || null,
         blocks_project: values.blocks_project,
       };
-
       if (editing) {
         const { error } = await supabase.from("tasks").update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -150,7 +111,7 @@ export default function TasksPage() {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["tasks-dash"] });
       toast.success(editing ? "Tarea actualizada" : "Tarea creada");
       setOpenForm(false);
@@ -165,7 +126,7 @@ export default function TasksPage() {
       const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
   });
 
   const remove = useMutation({
@@ -174,21 +135,15 @@ export default function TasksPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       toast.success("Tarea eliminada");
     },
   });
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm({ ...emptyForm, project_id: projectFilter !== "all" ? projectFilter : "" });
-    setOpenForm(true);
-  };
-
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setOpenForm(true); };
   const openEdit = (t: Task) => {
     setEditing(t);
     setForm({
-      project_id: t.project_id,
       title: t.title,
       description: t.description || "",
       status: t.status,
@@ -213,26 +168,20 @@ export default function TasksPage() {
   };
 
   const grouped = useMemo(() => {
-    const m: Record<TaskStatus, Task[]> = {
-      todo: [], in_progress: [], in_review: [], done: [], blocked: [],
-    };
-    filtered.forEach((t) => m[t.status].push(t));
+    const m: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], in_review: [], done: [], blocked: [] };
+    tasks.forEach((t) => m[t.status].push(t));
     return m;
-  }, [filtered]);
+  }, [tasks]);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-lg font-bold flex items-center gap-2 fire-text">
-            <ListChecks className="w-5 h-5 text-primary fire-icon" />
-            Tareas
-          </h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">
-            Operación diaria · {tasks.length} tareas · {tasks.filter(t => t.blocks_project).length} bloqueando proyectos
+          <h2 className="text-base font-semibold">Tareas del proyecto</h2>
+          <p className="text-[12px] text-muted-foreground">
+            {tasks.length} tareas · {tasks.filter(t => t.blocks_project).length} bloqueando entrega
           </p>
         </div>
-
         <div className="flex items-center gap-2">
           <div className="flex items-center surface-card p-0.5 gap-0.5">
             {[
@@ -244,9 +193,7 @@ export default function TasksPage() {
                 onClick={() => setView(key)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-sf",
-                  view === key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                  view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -254,10 +201,9 @@ export default function TasksPage() {
               </button>
             ))}
           </div>
-
           <Dialog open={openForm} onOpenChange={setOpenForm}>
             <DialogTrigger asChild>
-              <Button onClick={openCreate} className="fire-button font-semibold" disabled={projectsList.length === 0}>
+              <Button onClick={openCreate} className="fire-button font-semibold">
                 <Plus className="w-4 h-4" /> Nueva tarea
               </Button>
             </DialogTrigger>
@@ -268,24 +214,8 @@ export default function TasksPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5 col-span-2">
-                    <Label>Proyecto *</Label>
-                    <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecciona un proyecto" /></SelectTrigger>
-                      <SelectContent>
-                        {projectsList.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.project_id && <p className="text-[12px] text-destructive">{errors.project_id}</p>}
-                  </div>
-                  <div className="space-y-1.5 col-span-2">
                     <Label>Título *</Label>
-                    <Input
-                      value={form.title}
-                      onChange={(e) => setForm({ ...form, title: e.target.value })}
-                      placeholder="Ej: Configurar pasarela de pago"
-                    />
+                    <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ej: Configurar pasarela de pago" />
                     {errors.title && <p className="text-[12px] text-destructive">{errors.title}</p>}
                   </div>
                   <div className="space-y-1.5 col-span-2">
@@ -297,9 +227,7 @@ export default function TasksPage() {
                     <Select value={form.status} onValueChange={(v: TaskStatus) => setForm({ ...form, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {STATUS_COLUMNS.map((s) => (
-                          <SelectItem key={s.status} value={s.status}>{s.label}</SelectItem>
-                        ))}
+                        {STATUS_COLUMNS.map((s) => (<SelectItem key={s.status} value={s.status}>{s.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -317,22 +245,14 @@ export default function TasksPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Responsable</Label>
-                    <Input
-                      value={form.assignee_name}
-                      onChange={(e) => setForm({ ...form, assignee_name: e.target.value })}
-                      placeholder="Nombre o equipo"
-                    />
+                    <Input value={form.assignee_name} onChange={(e) => setForm({ ...form, assignee_name: e.target.value })} placeholder="Nombre o equipo" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Fecha límite</Label>
                     <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
                   </div>
                   <div className="col-span-2 flex items-center gap-2 surface-card p-3 bg-cost-warning/5 border-cost-warning/30">
-                    <Checkbox
-                      id="blocks"
-                      checked={form.blocks_project}
-                      onCheckedChange={(v) => setForm({ ...form, blocks_project: !!v })}
-                    />
+                    <Checkbox id="blocks" checked={form.blocks_project} onCheckedChange={(v) => setForm({ ...form, blocks_project: !!v })} />
                     <Label htmlFor="blocks" className="cursor-pointer flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-cost-warning" />
                       Esta tarea impacta en el retraso del proyecto
@@ -352,35 +272,22 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Filter by project */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger className="w-[280px] bg-secondary/50">
-            <SelectValue placeholder="Filtrar por proyecto" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los proyectos</SelectItem>
-            {projectsList.map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {isLoading ? (
         <div className="p-12 text-center text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-          Cargando tareas…
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" /> Cargando tareas…
         </div>
       ) : tasks.length === 0 ? (
         <div className="surface-card fire-border p-8 text-center space-y-3">
           <ListChecks className="w-10 h-10 text-primary fire-icon mx-auto" />
           <div>
-            <p className="font-semibold text-foreground">Sin tareas todavía</p>
+            <p className="font-semibold text-foreground">Aún no hay tareas en este proyecto</p>
             <p className="text-[13px] text-muted-foreground mt-1">
-              Crea proyectos primero y luego desglosa el trabajo en tareas.
+              Empieza desglosando lo que vendiste en pequeños bloques de trabajo.
             </p>
           </div>
+          <Button onClick={openCreate} className="fire-button">
+            <Plus className="w-4 h-4" /> Crear primera tarea
+          </Button>
         </div>
       ) : view === "kanban" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
@@ -397,7 +304,9 @@ export default function TasksPage() {
                     Sin tareas
                   </div>
                 ) : (
-                  grouped[status].map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} onDelete={remove.mutate} onMove={(s) => move.mutate({ id: t.id, status: s })} />)
+                  grouped[status].map((t) => (
+                    <TaskCard key={t.id} task={t} onEdit={openEdit} onDelete={remove.mutate} onMove={(s) => move.mutate({ id: t.id, status: s })} />
+                  ))
                 )}
               </div>
             </div>
@@ -405,9 +314,7 @@ export default function TasksPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((t) => (
-            <TaskRow key={t.id} task={t} onEdit={openEdit} onDelete={remove.mutate} />
-          ))}
+          {tasks.map((t) => (<TaskRow key={t.id} task={t} onEdit={openEdit} onDelete={remove.mutate} />))}
         </div>
       )}
     </div>
@@ -437,9 +344,6 @@ function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: 
         )}
       </div>
       <div className="font-medium text-[13px] text-foreground line-clamp-2">{task.title}</div>
-      {task.projects && (
-        <div className="text-[11px] text-muted-foreground line-clamp-1">📁 {task.projects.name}</div>
-      )}
       <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
         {task.assignee_name && (
           <span className="inline-flex items-center gap-1"><User className="w-3 h-3" /> {task.assignee_name}</span>
@@ -454,9 +358,7 @@ function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: 
         <Select value={task.status} onValueChange={(v: TaskStatus) => onMove(v)}>
           <SelectTrigger className="h-7 text-[11px] flex-1"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {Object.entries(TASK_STATUS_META).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
+            {Object.entries(TASK_STATUS_META).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label}</SelectItem>))}
           </SelectContent>
         </Select>
         <Button size="icon" variant="ghost" onClick={() => onDelete(task.id)} className="h-7 w-7 text-muted-foreground hover:text-destructive">
@@ -485,8 +387,7 @@ function TaskRow({ task, onEdit, onDelete }: { task: Task; onEdit: (t: Task) => 
           )}
         </div>
         <div className="text-[11px] text-muted-foreground">
-          📁 {task.projects?.name || "Sin proyecto"}
-          {task.assignee_name && <> · 👤 {task.assignee_name}</>}
+          {task.assignee_name && <>👤 {task.assignee_name}</>}
           {task.due_date && (
             <> · <span className={cn("font-mono-data", overdue && "text-destructive")}>📅 {new Date(task.due_date).toLocaleDateString("es-PE")}</span></>
           )}

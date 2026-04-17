@@ -274,19 +274,53 @@ export default function CotizacionesPage() {
   });
 
   const convertToProject = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
+    mutationFn: async (q: Quotation) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("No autenticado");
+
+      // 1. Crear proyecto real heredando datos de la cotización
+      const { data: newProject, error: projErr } = await supabase
+        .from("projects")
+        .insert({
+          owner_id: userData.user.id,
+          client_id: q.client_id,
+          quotation_id: q.id,
+          name: q.title,
+          description: q.description,
+          budget: q.total,
+          actual_cost: 0,
+          progress: 0,
+          status: "on_track",
+          currency: q.currency,
+        })
+        .select("id")
+        .single();
+      if (projErr) throw projErr;
+
+      // 2. Marcar la cotización como convertida + ganada
+      const { error: updErr } = await supabase
         .from("quotations")
         .update({ converted_to_project: true, status: "won" })
-        .eq("id", id);
-      if (error) throw error;
+        .eq("id", q.id);
+      if (updErr) throw updErr;
+
+      return newProject.id;
     },
-    onSuccess: () => {
+    onSuccess: (projectId) => {
       qc.invalidateQueries({ queryKey: ["quotations"] });
-      toast.success("Convertida en proyecto", {
-        description: "Ya puedes gestionarla desde el módulo Proyectos.",
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["projects-dash"] });
+      toast.success("Proyecto creado desde la cotización", {
+        description: "Abriendo workspace del proyecto…",
+        action: {
+          label: "Abrir",
+          onClick: () => navigate(`/projects/${projectId}`),
+        },
       });
+      // Auto-navegar al workspace recién creado
+      setTimeout(() => navigate(`/projects/${projectId}`), 600);
     },
+    onError: (e: Error) => toast.error("Error al convertir", { description: e.message }),
   });
 
   const remove = useMutation({
@@ -806,10 +840,16 @@ export default function CotizacionesPage() {
                             {stage === "won" && !q.converted_to_project && (
                               <Button
                                 size="sm"
-                                onClick={() => convertToProject.mutate(q.id)}
+                                onClick={() => convertToProject.mutate(q)}
+                                disabled={convertToProject.isPending}
                                 className="h-7 fire-button text-[11px] flex-1"
                               >
-                                <ArrowRight className="w-3 h-3" /> Convertir en Proyecto
+                                {convertToProject.isPending ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <ArrowRight className="w-3 h-3" />
+                                )}{" "}
+                                Convertir en Proyecto
                               </Button>
                             )}
                             {stage === "quoted" && !q.converted_to_project && (
