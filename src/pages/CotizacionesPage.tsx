@@ -486,7 +486,12 @@ export default function CotizacionesPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Productos / Servicios *</Label>
+                  <div>
+                    <Label>Conceptos de la cotización *</Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Cada fila = algo que el cliente paga (servicio, hito, soporte…)
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     size="sm"
@@ -498,56 +503,75 @@ export default function CotizacionesPage() {
                       })
                     }
                   >
-                    <Plus className="w-3 h-3" /> Ítem
+                    <Plus className="w-3 h-3" /> Agregar concepto
                   </Button>
                 </div>
-                <div className="space-y-2">
-                  {form.items.map((it, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-12 gap-2 items-start p-2 bg-secondary/30 rounded-md"
-                    >
-                      <div className="col-span-6">
-                        <Input
-                          placeholder="Descripción"
-                          value={it.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          placeholder="Cant."
-                          value={it.quantity}
-                          onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Input
-                          type="number"
-                          placeholder="Precio unit."
-                          value={it.unit_price}
-                          onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        {form.items.length > 1 && (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              setForm({ ...form, items: form.items.filter((_, i) => i !== idx) })
-                            }
-                            className="h-9 w-9 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <TooltipProvider delayDuration={200}>
+                  <div className="space-y-2">
+                    {form.items.map((it, idx) => {
+                      const lineTotal = (Number(it.quantity) || 0) * (Number(it.unit_price) || 0);
+                      const placeholders = [
+                        "Ej: Desarrollo del sistema",
+                        "Ej: Instalación",
+                        "Ej: Soporte mensual",
+                        "Ej: Capacitación al equipo",
+                      ];
+                      return (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-12 gap-2 items-start p-2 bg-secondary/30 rounded-md"
+                        >
+                          <div className="col-span-5">
+                            <Input
+                              placeholder={placeholders[idx % placeholders.length]}
+                              value={it.description}
+                              onChange={(e) => updateItem(idx, { description: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Input
+                                  type="number"
+                                  placeholder="Cant."
+                                  value={it.quantity}
+                                  onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Horas, unidades o meses</TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              placeholder="Precio unit."
+                              value={it.unit_price}
+                              onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })}
+                            />
+                          </div>
+                          <div className="col-span-2 flex items-center justify-end h-9 px-2 text-[12px] font-mono-data text-foreground bg-background/40 rounded border border-border/50">
+                            {PEN.format(lineTotal)}
+                          </div>
+                          <div className="col-span-1 flex justify-end">
+                            {form.items.length > 1 && (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  setForm({ ...form, items: form.items.filter((_, i) => i !== idx) })
+                                }
+                                className="h-9 w-9 text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </TooltipProvider>
                 {errors.items && <p className="text-[12px] text-destructive">{errors.items}</p>}
               </div>
 
