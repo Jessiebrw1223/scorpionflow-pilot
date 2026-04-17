@@ -12,10 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { TASK_PRIORITY_META, TASK_STATUS_META } from "@/lib/business-intelligence";
+import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
 type TaskPriority = "low" | "medium" | "high" | "critical";
+type TaskImpact = "time" | "cost" | "delivery";
 
 interface Task {
   id: string;
@@ -24,6 +25,7 @@ interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  impact: TaskImpact;
   assignee_name: string | null;
   due_date: string | null;
   blocks_project: boolean;
@@ -45,6 +47,7 @@ const schema = z.object({
   description: z.string().max(500).optional().or(z.literal("")),
   status: z.enum(["todo", "in_progress", "in_review", "done", "blocked"]),
   priority: z.enum(["low", "medium", "high", "critical"]),
+  impact: z.enum(["time", "cost", "delivery"]),
   assignee_name: z.string().max(80).optional().or(z.literal("")),
   due_date: z.string().optional().or(z.literal("")),
   blocks_project: z.boolean(),
@@ -56,6 +59,7 @@ const emptyForm: FormValues = {
   description: "",
   status: "todo",
   priority: "medium",
+  impact: "delivery",
   assignee_name: "",
   due_date: "",
   blocks_project: false,
@@ -63,11 +67,12 @@ const emptyForm: FormValues = {
 
 interface Props {
   projectId: string;
+  defaultView?: "kanban" | "list";
 }
 
-export default function ProjectTasksTab({ projectId }: Props) {
+export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: Props) {
   const qc = useQueryClient();
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [view, setView] = useState<"kanban" | "list">(defaultView);
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [form, setForm] = useState<FormValues>(emptyForm);
@@ -98,6 +103,7 @@ export default function ProjectTasksTab({ projectId }: Props) {
         description: values.description || null,
         status: values.status,
         priority: values.priority,
+        impact: values.impact,
         assignee_name: values.assignee_name || null,
         due_date: values.due_date || null,
         blocks_project: values.blocks_project,
@@ -112,6 +118,8 @@ export default function ProjectTasksTab({ projectId }: Props) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-summary", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-report", projectId] });
       qc.invalidateQueries({ queryKey: ["tasks-dash"] });
       toast.success(editing ? "Tarea actualizada" : "Tarea creada");
       setOpenForm(false);
@@ -148,6 +156,7 @@ export default function ProjectTasksTab({ projectId }: Props) {
       description: t.description || "",
       status: t.status,
       priority: t.priority,
+      impact: t.impact || "delivery",
       assignee_name: t.assignee_name || "",
       due_date: t.due_date || "",
       blocks_project: t.blocks_project,
@@ -243,6 +252,20 @@ export default function ProjectTasksTab({ projectId }: Props) {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label>Impacto en el negocio *</Label>
+                    <Select value={form.impact} onValueChange={(v: TaskImpact) => setForm({ ...form, impact: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(TASK_IMPACT_META).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>{v.emoji} {v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      {TASK_IMPACT_META[form.impact]?.description}
+                    </p>
+                  </div>
                   <div className="space-y-1.5">
                     <Label>Responsable</Label>
                     <Input value={form.assignee_name} onChange={(e) => setForm({ ...form, assignee_name: e.target.value })} placeholder="Nombre o equipo" />
@@ -323,6 +346,7 @@ export default function ProjectTasksTab({ projectId }: Props) {
 
 function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: Task) => void; onDelete: (id: string) => void; onMove: (s: TaskStatus) => void; }) {
   const pr = TASK_PRIORITY_META[task.priority];
+  const im = TASK_IMPACT_META[task.impact || "delivery"];
   const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
   return (
     <div
@@ -333,9 +357,12 @@ function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: 
       )}
       onClick={() => onEdit(task)}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1.5 flex-wrap">
         <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0", pr.bg, pr.color)}>
           {pr.emoji} {pr.label}
+        </span>
+        <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0", im.bg, im.color)} title={im.description}>
+          {im.emoji} {im.short}
         </span>
         {task.blocks_project && (
           <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-cost-warning/10 text-cost-warning shrink-0 inline-flex items-center gap-1">
@@ -372,6 +399,7 @@ function TaskCard({ task, onEdit, onDelete, onMove }: { task: Task; onEdit: (t: 
 function TaskRow({ task, onEdit, onDelete }: { task: Task; onEdit: (t: Task) => void; onDelete: (id: string) => void; }) {
   const pr = TASK_PRIORITY_META[task.priority];
   const st = TASK_STATUS_META[task.status];
+  const im = TASK_IMPACT_META[task.impact || "delivery"];
   const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
   return (
     <div className="surface-card surface-card-hover p-3 flex items-center gap-3 cursor-pointer" onClick={() => onEdit(task)}>
@@ -380,6 +408,7 @@ function TaskRow({ task, onEdit, onDelete }: { task: Task; onEdit: (t: Task) => 
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-[13px] text-foreground">{task.title}</span>
           <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", pr.bg, pr.color)}>{pr.emoji} {pr.label}</span>
+          <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", im.bg, im.color)} title={im.description}>{im.emoji} {im.short}</span>
           {task.blocks_project && (
             <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-cost-warning/10 text-cost-warning inline-flex items-center gap-1">
               <AlertTriangle className="w-2.5 h-2.5" /> Bloquea proyecto
