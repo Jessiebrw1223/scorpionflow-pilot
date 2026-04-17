@@ -66,7 +66,7 @@ interface Quotation {
   created_at: string;
   status_changed_at: string;
   close_probability: number;
-  client?: { id: string; name: string; company: string | null };
+  client?: { id: string; name: string; company: string | null; phone?: string | null; email?: string | null };
 }
 
 const STATUS_META: Record<
