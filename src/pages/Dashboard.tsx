@@ -1,28 +1,113 @@
-import {
-  DollarSign,
-  CheckCircle2,
-  Clock,
-  Users,
-  Activity,
-  Zap,
-} from "lucide-react";
-import { projects, tasks, resources, costFormatter } from "@/lib/mock-data";
-import { KpiCard } from "@/components/KpiCard";
+import { useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Activity, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { tasks, projects, costFormatter } from "@/lib/mock-data";
 import { ProjectStatusCard } from "@/components/ProjectStatusCard";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { BusinessStatusBlock } from "@/components/dashboard/BusinessStatusBlock";
+import { RecommendedActionsPanel } from "@/components/dashboard/RecommendedActionsPanel";
+import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
+import {
+  getBusinessSnapshot,
+  getRecommendedActions,
+  daysSince,
+} from "@/lib/business-intelligence";
+import { useAutoAlertEngine } from "@/hooks/useNotifications";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-min-dash"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name, last_contact_at, commercial_status");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: quotations = [] } = useQuery({
+    queryKey: ["quotations-min-dash"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quotations")
+        .select("id, title, status, status_changed_at, total");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // intelligence calculations
+  const noFollowupClients = useMemo(
+    () =>
+      clients
+        .filter((c) => {
+          const d = daysSince(c.last_contact_at);
+          return c.commercial_status === "no_followup" || d > 7;
+        })
+        .map((c) => ({ id: c.id, name: c.name, days: daysSince(c.last_contact_at) })),
+    [clients]
+  );
+
+  const staleQuotes = useMemo(
+    () =>
+      quotations
+        .filter((q) => q.status !== "won" && q.status !== "lost")
+        .map((q) => ({
+          id: q.id,
+          title: q.title,
+          days: daysSince(q.status_changed_at),
+          status: q.status,
+        }))
+        .filter((q) => q.days > 5),
+    [quotations]
+  );
+
+  const snapshot = useMemo(
+    () =>
+      getBusinessSnapshot({
+        clientsNoFollowup: noFollowupClients.length,
+        staleQuotations: staleQuotes.length,
+      }),
+    [noFollowupClients, staleQuotes]
+  );
+
+  const actions = useMemo(
+    () =>
+      getRecommendedActions({
+        clientsNoFollowup: noFollowupClients,
+        staleQuotations: staleQuotes,
+      }),
+    [noFollowupClients, staleQuotes]
+  );
+
+  // Auto-generate alerts in background
+  useAutoAlertEngine({
+    clients: clients.map((c) => ({
+      id: c.id,
+      name: c.name,
+      last_contact_at: c.last_contact_at,
+      commercial_status: c.commercial_status,
+    })),
+    quotations: quotations.map((q) => ({
+      id: q.id,
+      title: q.title,
+      status: q.status,
+      status_changed_at: q.status_changed_at,
+    })),
+  });
+
   const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
   const totalSpent = projects.reduce((s, p) => s + p.spent, 0);
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === "done").length;
-  const inProgressTasks = tasks.filter((t) => t.status === "in_progress").length;
-  const blockedTasks = tasks.filter((t) => t.status === "blocked").length;
-  const avgUtilization = Math.round(
-    resources.reduce((s, r) => s + r.utilization, 0) / resources.length
-  );
-  const burnRate = projects.reduce((s, p) => s + p.burnRate, 0);
-  const budgetVariance = ((totalSpent - totalBudget) / totalBudget) * 100;
+  const wonAmount = quotations
+    .filter((q) => q.status === "won")
+    .reduce((s, q) => s + Number(q.total), 0);
 
   return (
     <div className="space-y-6">
@@ -34,7 +119,7 @@ export default function Dashboard() {
             Centro de Control
           </h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
-            Vista general del portafolio de proyectos
+            Vista general · {clients.length} clientes · {quotations.length} cotizaciones · {costFormatter.format(wonAmount)} ganados
           </p>
         </div>
         <div className="flex items-center gap-2 text-[12px]">
@@ -43,41 +128,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          label="Presupuesto Total"
-          value={costFormatter.format(totalBudget)}
-          subValue={`Gastado: ${costFormatter.format(totalSpent)}`}
-          icon={DollarSign}
-          trend={budgetVariance}
-          trendLabel="variación"
-        />
-        <KpiCard
-          label="Tareas Completadas"
-          value={`${completedTasks}/${totalTasks}`}
-          subValue={`${inProgressTasks} en proceso`}
-          icon={CheckCircle2}
-          trend={(completedTasks / totalTasks) * 100}
-          trendLabel="progreso"
-        />
-        <KpiCard
-          label="Tasa de Quemado"
-          value={`${costFormatter.format(burnRate)}/día`}
-          subValue={`${blockedTasks} tareas bloqueadas`}
-          icon={Clock}
-          trend={blockedTasks > 0 ? -blockedTasks : 0}
-          trendLabel="bloqueadas"
-        />
-        <KpiCard
-          label="Utilización Promedio"
-          value={`${avgUtilization}%`}
-          subValue={`${resources.length} recursos activos`}
-          icon={Users}
-          trend={avgUtilization > 80 ? avgUtilization - 80 : 0}
-          trendLabel="sobre 80%"
-        />
-      </div>
+      {/* Critical Alerts Banner */}
+      <AlertsBanner />
+
+      {/* Business Status Block - lo primero que el usuario ve */}
+      <BusinessStatusBlock snapshot={snapshot} />
+
+      {/* Recommended Actions */}
+      <RecommendedActionsPanel actions={actions} />
 
       {/* Projects + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
