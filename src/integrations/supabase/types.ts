@@ -364,6 +364,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          actual_cost: number
           assignee_id: string | null
           assignee_name: string | null
           blocked_since: string | null
@@ -371,6 +372,7 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          estimated_cost: number
           id: string
           impact: Database["public"]["Enums"]["task_impact"]
           node_type: Database["public"]["Enums"]["task_node_type"]
@@ -385,6 +387,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_cost?: number
           assignee_id?: string | null
           assignee_name?: string | null
           blocked_since?: string | null
@@ -392,6 +395,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          estimated_cost?: number
           id?: string
           impact?: Database["public"]["Enums"]["task_impact"]
           node_type?: Database["public"]["Enums"]["task_node_type"]
@@ -406,6 +410,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_cost?: number
           assignee_id?: string | null
           assignee_name?: string | null
           blocked_since?: string | null
@@ -413,6 +418,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          estimated_cost?: number
           id?: string
           impact?: Database["public"]["Enums"]["task_impact"]
           node_type?: Database["public"]["Enums"]["task_node_type"]
@@ -475,6 +481,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recalc_project_progress: {
+        Args: { _project_id: string }
+        Returns: undefined
       }
     }
     Enums: {
