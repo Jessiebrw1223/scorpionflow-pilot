@@ -56,6 +56,8 @@ interface Quotation {
   total: number;
   converted_to_project: boolean;
   created_at: string;
+  status_changed_at: string;
+  close_probability: number;
   client?: { id: string; name: string; company: string | null };
 }
 
