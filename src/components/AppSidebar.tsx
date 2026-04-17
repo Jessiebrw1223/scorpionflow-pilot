@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   ListChecks,
@@ -11,27 +11,54 @@ import {
   ChevronRight,
   Settings,
   Flame,
+  UserCircle2,
+  LogOut,
+  Receipt,
+  Contact2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface NavItem {
   label: string;
   icon: React.ElementType;
   path: string;
+  group?: string;
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-  { label: "Tareas", icon: ListChecks, path: "/tasks" },
-  { label: "Recursos", icon: Users, path: "/resources" },
-  { label: "Proyectos", icon: FolderKanban, path: "/projects" },
-  { label: "Costos", icon: DollarSign, path: "/costs" },
-  { label: "Informes", icon: BarChart3, path: "/reports" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/", group: "Visión" },
+  { label: "Clientes", icon: Contact2, path: "/clientes", group: "Comercial" },
+  { label: "Cotizaciones", icon: Receipt, path: "/cotizaciones", group: "Comercial" },
+  { label: "Proyectos", icon: FolderKanban, path: "/projects", group: "Ejecución" },
+  { label: "Tareas", icon: ListChecks, path: "/tasks", group: "Ejecución" },
+  { label: "Recursos", icon: Users, path: "/resources", group: "Ejecución" },
+  { label: "Costos", icon: DollarSign, path: "/costs", group: "Análisis" },
+  { label: "Informes", icon: BarChart3, path: "/reports", group: "Análisis" },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Sesión cerrada");
+    navigate("/auth/login");
+  };
+
+  // Group items
+  const groups = navItems.reduce<Record<string, NavItem[]>>((acc, it) => {
+    const g = it.group || "General";
+    (acc[g] = acc[g] || []).push(it);
+    return acc;
+  }, {});
+
+  const userInitial = (user?.user_metadata?.full_name || user?.email || "?").charAt(0).toUpperCase();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuario";
 
   return (
     <aside
@@ -48,9 +75,7 @@ export function AppSidebar() {
         </div>
         {!collapsed && (
           <div className="flex flex-col relative z-10">
-            <span className="font-bold text-sm tracking-wide truncate fire-text">
-              ScorpionFlow
-            </span>
+            <span className="font-bold text-sm tracking-wide truncate fire-text">ScorpionFlow</span>
             <span className="text-[10px] text-sidebar-muted tracking-widest uppercase">
               Project Control
             </span>
@@ -59,46 +84,71 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive =
-            item.path === "/"
-              ? location.pathname === "/"
-              : location.pathname.startsWith(item.path);
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf group relative overflow-hidden",
-                isActive
-                  ? "bg-sidebar-accent text-primary font-medium fire-glow"
-                  : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-              )}
-            >
-              {isActive && (
-                <>
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary shadow-[0_0_8px_hsl(15_90%_55%)]" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
-                </>
-              )}
-              <item.icon
-                className={cn(
-                  "w-4 h-4 shrink-0 transition-all",
-                  isActive
-                    ? "text-primary fire-icon"
-                    : "group-hover:text-primary group-hover:drop-shadow-[0_0_6px_hsl(15_90%_55%)]"
-                )}
-              />
-              {!collapsed && <span className="truncate relative z-10">{item.label}</span>}
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 py-3 px-2 space-y-3 overflow-y-auto">
+        {Object.entries(groups).map(([group, items]) => (
+          <div key={group} className="space-y-0.5">
+            {!collapsed && (
+              <div className="px-3 pb-1 text-[9px] uppercase tracking-[0.2em] text-sidebar-muted/60 font-semibold">
+                {group}
+              </div>
+            )}
+            {items.map((item) => {
+              const isActive =
+                item.path === "/"
+                  ? location.pathname === "/"
+                  : location.pathname.startsWith(item.path);
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf group relative overflow-hidden",
+                    isActive
+                      ? "bg-sidebar-accent text-primary font-medium fire-glow"
+                      : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  )}
+                >
+                  {isActive && (
+                    <>
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary shadow-[0_0_8px_hsl(15_90%_55%)]" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
+                    </>
+                  )}
+                  <item.icon
+                    className={cn(
+                      "w-4 h-4 shrink-0 transition-all",
+                      isActive
+                        ? "text-primary fire-icon"
+                        : "group-hover:text-primary group-hover:drop-shadow-[0_0_6px_hsl(15_90%_55%)]"
+                    )}
+                  />
+                  {!collapsed && <span className="truncate relative z-10">{item.label}</span>}
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
+      {/* User card */}
+      {!collapsed && user && (
+        <div className="px-2 pb-2">
+          <div className="px-3 py-2 rounded-lg bg-sidebar-accent/40 flex items-center gap-2.5 border border-sidebar-border">
+            <div className="w-8 h-8 rounded-full scorpion-gradient flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 fire-glow">
+              {userInitial}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-medium text-sidebar-foreground truncate">
+                {displayName}
+              </div>
+              <div className="text-[10px] text-sidebar-muted truncate">{user.email}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
-      <div className="px-2 py-3 border-t border-sidebar-border space-y-0.5">
+      <div className="px-2 py-2 border-t border-sidebar-border space-y-0.5">
         <NavLink
           to="/settings"
           className={cn(
@@ -111,6 +161,13 @@ export function AppSidebar() {
           <Settings className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Configuración</span>}
         </NavLink>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-muted hover:text-destructive hover:bg-destructive/10 transition-sf w-full"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Cerrar sesión</span>}
+        </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-sf w-full"
