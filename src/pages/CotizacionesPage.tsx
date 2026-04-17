@@ -295,6 +295,68 @@ export default function CotizacionesPage() {
     },
   });
 
+  const duplicate = useMutation({
+    mutationFn: async (q: Quotation) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("No autenticado");
+
+      // Traer items originales
+      const { data: origItems, error: itemsErr } = await supabase
+        .from("quotation_items")
+        .select("description, quantity, unit_price, line_total, position")
+        .eq("quotation_id", q.id);
+      if (itemsErr) throw itemsErr;
+
+      const { data: newQ, error } = await supabase
+        .from("quotations")
+        .insert({
+          owner_id: userData.user.id,
+          client_id: q.client_id,
+          title: `${q.title} (copia)`,
+          description: q.description,
+          currency: q.currency,
+          tax_rate: q.tax_rate,
+          subtotal: q.subtotal,
+          total: q.total,
+          status: "pending",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      if (origItems && origItems.length > 0) {
+        const copyItems = origItems.map((it) => ({ ...it, quotation_id: newQ.id }));
+        const { error: insErr } = await supabase.from("quotation_items").insert(copyItems);
+        if (insErr) throw insErr;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quotations"] });
+      toast.success("Cotización duplicada");
+    },
+    onError: (e: Error) => toast.error("Error al duplicar", { description: e.message }),
+  });
+
+  const contactClient = (q: Quotation, channel: "whatsapp" | "email") => {
+    if (channel === "whatsapp") {
+      const phone = q.client?.phone?.replace(/\D/g, "");
+      if (!phone) {
+        toast.warning("Este cliente no tiene teléfono registrado");
+        return;
+      }
+      const msg = encodeURIComponent(`Hola ${q.client?.name}, te escribo sobre la cotización "${q.title}".`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    } else {
+      const email = q.client?.email;
+      if (!email) {
+        toast.warning("Este cliente no tiene email registrado");
+        return;
+      }
+      const subject = encodeURIComponent(`Cotización: ${q.title}`);
+      window.open(`mailto:${email}?subject=${subject}`, "_blank");
+    }
+  };
+
   const grouped = useMemo(() => {
     const m: Record<QuoteStatus, Quotation[]> = {
       pending: [],
