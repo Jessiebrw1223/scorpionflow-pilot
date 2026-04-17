@@ -274,6 +274,33 @@ export const TASK_STATUS_META: Record<string, { label: string; color: string }> 
   blocked: { label: "Bloqueada", color: "bg-status-blocked" },
 };
 
+// Tipo de nodo en la jerarquía de planificación
+export const NODE_TYPE_META: Record<
+  string,
+  { label: string; short: string; emoji: string; color: string; bg: string; level: number; mode: "agile" | "traditional" }
+> = {
+  epic:     { label: "Épica",              short: "Épica",      emoji: "🟣", color: "text-accent",          bg: "bg-accent/10",          level: 0, mode: "agile" },
+  story:    { label: "Historia de Usuario", short: "HU",        emoji: "🔵", color: "text-status-progress", bg: "bg-status-progress/10", level: 1, mode: "agile" },
+  task:     { label: "Tarea",              short: "Tarea",      emoji: "⚙️", color: "text-muted-foreground",bg: "bg-muted/30",           level: 2, mode: "agile" },
+  phase:    { label: "Fase",               short: "Fase",       emoji: "📍", color: "text-primary",         bg: "bg-primary/10",         level: 0, mode: "traditional" },
+  subphase: { label: "Subfase",            short: "Subfase",    emoji: "📌", color: "text-status-progress", bg: "bg-status-progress/10", level: 1, mode: "traditional" },
+  activity: { label: "Actividad",          short: "Actividad",  emoji: "▫️", color: "text-muted-foreground",bg: "bg-muted/30",           level: 2, mode: "traditional" },
+};
+
+// Devuelve los tipos de nodo disponibles según modo, ordenados por nivel jerárquico
+export function getNodeTypesForMode(mode: "agile" | "traditional"): string[] {
+  return mode === "agile" ? ["epic", "story", "task"] : ["phase", "subphase", "activity"];
+}
+
+// Modos de planificación
+export const PLANNING_MODE_META: Record<
+  string,
+  { label: string; description: string; emoji: string; color: string }
+> = {
+  agile:       { label: "Ágil",         description: "Épica → Historia → Tarea",      emoji: "🟢", color: "text-cost-positive" },
+  traditional: { label: "Tradicional",  description: "Fase → Subfase → Actividad (EDT)", emoji: "🟠", color: "text-primary" },
+};
+
 // Impacto de la tarea en el negocio: conecta ejecución con resultado
 export const TASK_IMPACT_META: Record<
   string,

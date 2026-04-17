@@ -1,261 +1,193 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { LayoutGrid, List as ListIcon, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertTriangle, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  LayoutGrid,
+  List as ListIcon,
+  Calendar as CalendarIcon,
+  Plus,
+  GitBranch,
+  Sparkles,
+  Building2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { TASK_IMPACT_META, TASK_STATUS_META } from "@/lib/business-intelligence";
+import { Button } from "@/components/ui/button";
+import { PLANNING_MODE_META, getNodeTypesForMode, NODE_TYPE_META } from "@/lib/business-intelligence";
 import ProjectTasksTab from "./ProjectTasksTab";
-import TaskDetailPanel from "./TaskDetailPanel";
+import PlanningHierarchyView from "./PlanningHierarchyView";
+import PlanningTimelineView from "./PlanningTimelineView";
+import QuickCreateNodeDialog from "./QuickCreateNodeDialog";
 
 interface Props {
   projectId: string;
+  planningMode: "agile" | "traditional";
 }
 
 type Mode = "list" | "kanban" | "calendar";
 
 const MODE_META: Record<Mode, { label: string; helper: string; icon: typeof ListIcon }> = {
-  list: { label: "Lista", helper: "Backlog completo en tabla", icon: ListIcon },
+  list: { label: "Backlog", helper: "Estructura jerárquica del proyecto", icon: ListIcon },
   kanban: { label: "Tablero", helper: "Flujo visual por estado", icon: LayoutGrid },
-  calendar: { label: "Calendario", helper: "Tareas distribuidas por fecha", icon: CalendarIcon },
+  calendar: { label: "Cronograma", helper: "Actividades distribuidas en el tiempo", icon: CalendarIcon },
 };
 
-export default function ProjectPlanningTab({ projectId }: Props) {
-  const [mode, setMode] = useState<Mode>("kanban");
+const VIEW_STORAGE_KEY = "scorpion.planning.lastView";
+
+export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
+  const qc = useQueryClient();
+
+  // Recordar última vista usada (preferencia del usuario)
+  const [mode, setMode] = useState<Mode>(() => {
+    if (typeof window === "undefined") return "list";
+    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    return (saved === "list" || saved === "kanban" || saved === "calendar") ? saved : "list";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, mode);
+    }
+  }, [mode]);
+
+  // Diálogo de creación
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createParent, setCreateParent] = useState<string | null>(null);
+  const [createType, setCreateType] = useState<string>("epic");
+
+  const openCreate = (parentId: string | null, nodeType: string) => {
+    setCreateParent(parentId);
+    setCreateType(nodeType);
+    setCreateOpen(true);
+  };
+
+  // Cambiar modo de planificación (Ágil ↔ Tradicional)
+  const switchMode = useMutation({
+    mutationFn: async (newMode: "agile" | "traditional") => {
+      const { error } = await supabase
+        .from("projects")
+        .update({ planning_mode: newMode as any })
+        .eq("id", projectId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, newMode) => {
+      qc.invalidateQueries({ queryKey: ["project", projectId] });
+      toast.success(`Modo cambiado a ${PLANNING_MODE_META[newMode].label}`, {
+        description: "La data se conserva — solo cambia la visualización.",
+      });
+    },
+    onError: (e: Error) => toast.error("No se pudo cambiar el modo", { description: e.message }),
+  });
+
   const current = MODE_META[mode];
+  const modeMeta = PLANNING_MODE_META[planningMode];
+  const rootType = getNodeTypesForMode(planningMode)[0];
 
   return (
-    <div className="space-y-4">
-      {/* Selector de vista — destacado con highlight naranja */}
-      <div className="surface-card p-3 flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            <current.icon className="w-4 h-4 text-primary fire-icon" />
-            Planificación · {current.label}
-          </h2>
-          <p className="text-[12px] text-muted-foreground mt-0.5">
-            {current.helper} — la misma data, vista a tu manera.
-          </p>
+    <div className="space-y-3">
+      {/* Header del centro operativo */}
+      <div className="surface-card p-3 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <current.icon className="w-4 h-4 text-primary fire-icon" />
+              Planificación · {current.label}
+            </h2>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              {current.helper} — toda la ejecución del proyecto en un solo lugar.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Toggle Ágil / Tradicional */}
+            <div className="flex items-center bg-secondary/60 border border-border rounded-md p-1 gap-0.5" title="Modelo de organización del proyecto">
+              {(["agile", "traditional"] as const).map((m) => {
+                const meta = PLANNING_MODE_META[m];
+                const active = planningMode === m;
+                const Icon = m === "agile" ? Sparkles : Building2;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => !active && switchMode.mutate(m)}
+                    disabled={switchMode.isPending}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-sf",
+                      active
+                        ? "bg-card border border-border text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    title={meta.description}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selector de vista */}
+            <div className="flex items-center bg-secondary/60 border border-border rounded-md p-1 gap-0.5">
+              {(Object.keys(MODE_META) as Mode[]).map((key) => {
+                const Icon = MODE_META[key].icon;
+                const active = mode === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setMode(key)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-sf",
+                      active
+                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {MODE_META[key].label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Crear elemento raíz */}
+            <Button
+              onClick={() => openCreate(null, rootType)}
+              size="sm"
+              className="fire-button"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nueva {NODE_TYPE_META[rootType].label}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center bg-secondary/60 border border-border rounded-md p-1 gap-0.5">
-          {(Object.keys(MODE_META) as Mode[]).map((key) => {
-            const Icon = MODE_META[key].icon;
-            return (
-              <button
-                key={key}
-                onClick={() => setMode(key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-sf",
-                  mode === key
-                    ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {MODE_META[key].label}
-              </button>
-            );
-          })}
+
+        {/* Indicador del modelo activo */}
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground border-t border-border pt-2">
+          <GitBranch className="w-3 h-3" />
+          <span>Modelo:</span>
+          <span className={cn("font-semibold", modeMeta.color)}>{modeMeta.emoji} {modeMeta.label}</span>
+          <span>·</span>
+          <span className="font-mono-data">{modeMeta.description}</span>
         </div>
       </div>
 
-      {mode === "calendar" ? (
-        <PlanningCalendar projectId={projectId} />
-      ) : (
-        <ProjectTasksTab key={mode} projectId={projectId} defaultView={mode === "list" ? "list" : "kanban"} />
+      {/* Vista activa */}
+      {mode === "list" && (
+        <PlanningHierarchyView projectId={projectId} mode={planningMode} onCreate={openCreate} />
       )}
+      {mode === "kanban" && (
+        <ProjectTasksTab key="kanban" projectId={projectId} defaultView="kanban" />
+      )}
+      {mode === "calendar" && (
+        <PlanningTimelineView projectId={projectId} />
+      )}
+
+      <QuickCreateNodeDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        projectId={projectId}
+        parentId={createParent}
+        nodeType={createType}
+      />
     </div>
   );
 }
-
-function PlanningCalendar({ projectId }: { projectId: string }) {
-  const [cursor, setCursor] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
-  const [panelTask, setPanelTask] = useState<any>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
-
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["project-tasks-calendar", projectId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("project_id", projectId)
-        .not("due_date", "is", null);
-      if (error) throw error;
-      return data as any[];
-    },
-  });
-
-  const monthLabel = cursor.toLocaleDateString("es-PE", { month: "long", year: "numeric" });
-  const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
-  const firstDayWeek = (new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay() + 6) % 7;
-
-  const tasksByDay = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    tasks.forEach((t) => {
-      if (!t.due_date) return;
-      const d = new Date(t.due_date);
-      if (d.getFullYear() === cursor.getFullYear() && d.getMonth() === cursor.getMonth()) {
-        const key = String(d.getDate());
-        if (!map[key]) map[key] = [];
-        map[key].push(t);
-      }
-    });
-    return map;
-  }, [tasks, cursor]);
-
-  const today = new Date();
-  const isCurrentMonth = today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth();
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDayWeek; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const goPrev = () => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1));
-  const goNext = () => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1));
-  const goToday = () => {
-    const d = new Date();
-    setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
-  };
-
-  const openTask = (t: any) => {
-    setPanelTask(t);
-    setPanelOpen(true);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="p-12 text-center text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" /> Cargando calendario…
-      </div>
-    );
-  }
-
-  const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-  const overdueCount = tasks.filter((t: any) => t.status !== "done" && new Date(t.due_date) < today).length;
-
-  return (
-    <>
-      <div className="surface-card p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <button onClick={goPrev} className="surface-card p-1.5 hover:bg-muted/40 transition-sf">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={goToday} className="text-[12px] font-medium px-3 py-1.5 surface-card hover:bg-muted/40 transition-sf">
-              Hoy
-            </button>
-            <button onClick={goNext} className="surface-card p-1.5 hover:bg-muted/40 transition-sf">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <h3 className="text-base font-semibold capitalize ml-2">{monthLabel}</h3>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span>{tasks.length} tarea(s) con fecha</span>
-            {overdueCount > 0 && (
-              <span className="inline-flex items-center gap-1 text-destructive font-semibold">
-                <AlertTriangle className="w-3 h-3" /> {overdueCount} atrasada(s)
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide text-center">
-          {weekDays.map((d) => (
-            <div key={d} className="py-1">{d}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((day, i) => {
-            if (day === null) {
-              return <div key={`empty-${i}`} className="min-h-[100px]" />;
-            }
-            const dayTasks = tasksByDay[String(day)] || [];
-            const isToday = isCurrentMonth && day === today.getDate();
-            const cellDate = new Date(cursor.getFullYear(), cursor.getMonth(), day);
-            cellDate.setHours(23, 59, 59, 999);
-            return (
-              <div
-                key={day}
-                className={cn(
-                  "surface-card p-1.5 min-h-[100px] flex flex-col gap-1",
-                  isToday && "border-primary bg-primary/5"
-                )}
-              >
-                <div className={cn(
-                  "text-[11px] font-mono-data font-semibold",
-                  isToday ? "text-primary" : "text-muted-foreground"
-                )}>
-                  {day}
-                </div>
-                <div className="space-y-1 flex-1 overflow-hidden">
-                  {dayTasks.slice(0, 3).map((t) => {
-                    const im = TASK_IMPACT_META[t.impact || "delivery"];
-                    const st = TASK_STATUS_META[t.status];
-                    const overdue = t.status !== "done" && cellDate < today;
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => openTask(t)}
-                        className={cn(
-                          "w-full text-left text-[10px] px-1.5 py-1 rounded truncate flex items-center gap-1 transition-sf hover:scale-[1.02]",
-                          im.bg,
-                          im.color,
-                          t.blocks_project && "ring-1 ring-cost-warning",
-                          overdue && "ring-1 ring-destructive"
-                        )}
-                        title={`${t.title} — ${st.label}${overdue ? " (Atrasada)" : ""}`}
-                      >
-                        {overdue ? (
-                          <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-destructive" />
-                        ) : t.blocks_project ? (
-                          <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
-                        ) : (
-                          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", st.color)} />
-                        )}
-                        <span className="truncate">{t.title}</span>
-                      </button>
-                    );
-                  })}
-                  {dayTasks.length > 3 && (
-                    <div className="text-[10px] text-muted-foreground font-mono-data px-1">
-                      +{dayTasks.length - 3} más
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Leyenda */}
-        <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground pt-2 border-t border-border">
-          <span className="font-medium">Impacto:</span>
-          {Object.entries(TASK_IMPACT_META).map(([k, v]) => (
-            <span key={k} className="inline-flex items-center gap-1.5">
-              <span className={cn("w-2.5 h-2.5 rounded", v.bg)} />
-              <span>{v.emoji} {v.short}</span>
-            </span>
-          ))}
-          <span className="inline-flex items-center gap-1.5">
-            <AlertTriangle className="w-3 h-3 text-destructive" /> Atrasada
-          </span>
-          <span className="inline-flex items-center gap-1.5 ml-auto">
-            <AlertTriangle className="w-3 h-3 text-cost-warning" /> Bloquea entrega
-          </span>
-        </div>
-      </div>
-
-      <TaskDetailPanel
-        task={panelTask}
-        open={panelOpen}
-        onOpenChange={setPanelOpen}
-        projectId={projectId}
-      />
-    </>
-  );
-}
-
