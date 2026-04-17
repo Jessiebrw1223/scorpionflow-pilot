@@ -74,6 +74,7 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
       qc.invalidateQueries({ queryKey: ["project-tasks-report", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-hierarchy", projectId] });
       qc.invalidateQueries({ queryKey: ["project-tasks-cost", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks-for-resources", projectId] });
       qc.invalidateQueries({ queryKey: ["project", projectId] });
       toast.success("Tarea actualizada");
       onOpenChange(false);
