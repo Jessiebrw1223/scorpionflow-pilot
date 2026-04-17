@@ -621,7 +621,8 @@ export default function CotizacionesPage() {
                           </Button>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
