@@ -41,13 +41,14 @@ export function AppSidebar() {
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg scorpion-gradient flex items-center justify-center shrink-0 shadow-lg">
-          <Flame className="w-4 h-4 text-primary-foreground" />
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+        <div className="w-8 h-8 rounded-lg scorpion-gradient flex items-center justify-center shrink-0 shadow-lg fire-glow relative z-10">
+          <Flame className="w-4 h-4 text-primary-foreground fire-icon" />
         </div>
         {!collapsed && (
-          <div className="flex flex-col">
-            <span className="text-sidebar-foreground font-bold text-sm tracking-wide truncate">
+          <div className="flex flex-col relative z-10">
+            <span className="font-bold text-sm tracking-wide truncate fire-text">
               ScorpionFlow
             </span>
             <span className="text-[10px] text-sidebar-muted tracking-widest uppercase">
@@ -70,17 +71,27 @@ export function AppSidebar() {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf group relative",
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf group relative overflow-hidden",
                 isActive
-                  ? "bg-sidebar-accent text-primary font-medium"
+                  ? "bg-sidebar-accent text-primary font-medium fire-glow"
                   : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
               )}
             >
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />
+                <>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary shadow-[0_0_8px_hsl(15_90%_55%)]" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
+                </>
               )}
-              <item.icon className={cn("w-4 h-4 shrink-0", isActive && "text-primary")} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              <item.icon
+                className={cn(
+                  "w-4 h-4 shrink-0 transition-all",
+                  isActive
+                    ? "text-primary fire-icon"
+                    : "group-hover:text-primary group-hover:drop-shadow-[0_0_6px_hsl(15_90%_55%)]"
+                )}
+              />
+              {!collapsed && <span className="truncate relative z-10">{item.label}</span>}
             </NavLink>
           );
         })}

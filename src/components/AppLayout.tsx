@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { FireBackground } from "@/components/FireBackground";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -6,8 +7,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
-      <main className="ml-60 p-6">
+    <div className="min-h-screen bg-background relative">
+      <FireBackground emberCount={28} />
+      <main className="ml-60 p-6 relative z-10">
         {children}
       </main>
     </div>

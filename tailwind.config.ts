@@ -93,11 +93,62 @@ export default {
           "0%, 100%": { backgroundColor: "transparent" },
           "50%": { backgroundColor: "hsl(142 71% 45% / 0.15)" },
         },
+        "fire-flicker": {
+          "0%, 100%": {
+            opacity: "1",
+            filter: "drop-shadow(0 0 4px hsl(15 90% 55% / 0.8)) drop-shadow(0 0 12px hsl(0 85% 55% / 0.5))",
+          },
+          "25%": {
+            opacity: "0.92",
+            filter: "drop-shadow(0 0 6px hsl(38 92% 55% / 0.9)) drop-shadow(0 0 16px hsl(15 90% 55% / 0.6))",
+          },
+          "50%": {
+            opacity: "0.96",
+            filter: "drop-shadow(0 0 8px hsl(15 90% 55% / 1)) drop-shadow(0 0 20px hsl(0 85% 55% / 0.7))",
+          },
+          "75%": {
+            opacity: "0.88",
+            filter: "drop-shadow(0 0 5px hsl(38 92% 55% / 0.8)) drop-shadow(0 0 14px hsl(15 90% 55% / 0.5))",
+          },
+        },
+        "ember-rise": {
+          "0%": { transform: "translateY(0) scale(1)", opacity: "0" },
+          "10%": { opacity: "0.8" },
+          "100%": { transform: "translateY(-100vh) scale(0.3)", opacity: "0" },
+        },
+        "fire-glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 12px hsl(15 90% 55% / 0.4), 0 0 24px hsl(0 85% 55% / 0.2), inset 0 0 8px hsl(15 90% 55% / 0.1)",
+          },
+          "50%": {
+            boxShadow: "0 0 20px hsl(15 90% 55% / 0.7), 0 0 40px hsl(0 85% 55% / 0.4), inset 0 0 12px hsl(15 90% 55% / 0.2)",
+          },
+        },
+        "fire-border-flow": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        "ignite": {
+          "0%": { transform: "scale(0.95)", opacity: "0", filter: "blur(4px) brightness(2)" },
+          "60%": { filter: "blur(0) brightness(1.4)" },
+          "100%": { transform: "scale(1)", opacity: "1", filter: "blur(0) brightness(1)" },
+        },
+        "scorch-shake": {
+          "0%, 100%": { transform: "translate(0, 0) rotate(0)" },
+          "25%": { transform: "translate(-1px, 1px) rotate(-0.3deg)" },
+          "75%": { transform: "translate(1px, -1px) rotate(0.3deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "flash-green": "flash-green 0.6s ease-out",
+        "fire-flicker": "fire-flicker 2.4s ease-in-out infinite",
+        "ember-rise": "ember-rise linear infinite",
+        "fire-glow-pulse": "fire-glow-pulse 3s ease-in-out infinite",
+        "fire-border-flow": "fire-border-flow 4s ease-in-out infinite",
+        "ignite": "ignite 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+        "scorch-shake": "scorch-shake 0.4s ease-in-out",
       },
     },
   },
