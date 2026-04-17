@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { useAuth } from "@/contexts/AuthContext";
 
 const schema = z.object({
   email: z.string().trim().email("Correo inválido").max(255),
@@ -19,14 +20,22 @@ const schema = z.object({
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const from = (location.state as { from?: Location })?.from?.pathname || "/";
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(pendingRedirect ?? from, { replace: true });
+    }
+  }, [authLoading, user, pendingRedirect, from, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +55,9 @@ export default function LoginPage() {
       toast.error("Credenciales incorrectas", { description: "Verifica tu correo o contraseña." });
       return;
     }
+
+    setPendingRedirect(from);
     toast.success("¡Bienvenido de vuelta!", { description: "Acceso autorizado al sistema." });
-    navigate(from, { replace: true });
   };
 
   const handleGoogle = async () => {

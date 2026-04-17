@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppLayout } from "@/components/AppLayout";
@@ -26,7 +26,12 @@ const queryClient = new QueryClient();
 
 function AppShell() {
   const location = useLocation();
+  const { user, loading } = useAuth();
   const isAuthRoute = location.pathname.startsWith("/auth");
+
+  if (isAuthRoute && !loading && user) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <Routes>
