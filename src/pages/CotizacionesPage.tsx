@@ -160,7 +160,7 @@ export default function CotizacionesPage() {
   });
 
   const [form, setForm] = useState({
-    client_id: "",
+    client_id: preselectedClientId,
     title: "",
     description: "",
     currency: "PEN",
@@ -168,6 +168,17 @@ export default function CotizacionesPage() {
     items: [{ description: "", quantity: 1, unit_price: 0 }] as QuoteItem[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Preseleccionar cliente y abrir form si viene desde Clientes (?clientId=...)
+  useEffect(() => {
+    if (preselectedClientId && clients.length > 0) {
+      const exists = clients.find((c) => c.id === preselectedClientId);
+      if (exists) {
+        setForm((f) => ({ ...f, client_id: preselectedClientId }));
+        setOpenForm(true);
+      }
+    }
+  }, [preselectedClientId, clients]);
 
   const subtotal = useMemo(
     () => form.items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.unit_price) || 0), 0),
