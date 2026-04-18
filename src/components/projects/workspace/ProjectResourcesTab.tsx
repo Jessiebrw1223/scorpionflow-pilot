@@ -46,12 +46,36 @@ const KIND_META: Record<Kind, { label: string; icon: typeof Users; color: string
   asset: { label: "Activo", icon: Cog, color: "text-cost-warning", bg: "bg-cost-warning/15", placeholderName: "Laptop MacBook Pro", placeholderRole: "Equipo" },
 };
 
-const UNIT_META: Record<Unit, { label: string; suffix: string }> = {
-  hour: { label: "Por hora", suffix: "h" },
-  month: { label: "Por mes", suffix: "mes" },
-  use: { label: "Por uso", suffix: "uso" },
-  fixed: { label: "Costo fijo", suffix: "" },
+// Lenguaje humano. "use" se reetiqueta como "Por tarea/entregable" para freelancers.
+const UNIT_META: Record<Unit, { label: string; suffix: string; qtyLabel: string }> = {
+  month: { label: "Pago mensual",       suffix: "mes",  qtyLabel: "Meses trabajados" },
+  hour:  { label: "Pago por hora",      suffix: "h",    qtyLabel: "Horas estimadas" },
+  use:   { label: "Pago por tarea",     suffix: "tarea",qtyLabel: "Cantidad de tareas" },
+  fixed: { label: "Costo único",        suffix: "",     qtyLabel: "Cantidad" },
 };
+
+// Opciones de tipo de costo permitidas según naturaleza del recurso
+const HUMAN_UNIT_OPTIONS: Unit[] = ["month", "hour", "use"];      // Personas: mensual / hora / tarea
+const TECH_UNIT_OPTIONS:  Unit[] = ["month", "use", "fixed"];     // Tech: SaaS mensual, APIs por uso, software único
+const ASSET_UNIT_OPTIONS: Unit[] = ["fixed", "month"];            // Activos: compra única o renta mensual
+
+// Presets sugeridos para Tecnología y Activos — reducen carga cognitiva
+const TECH_PRESETS: { id: string; label: string; defaultName: string; defaultUnit: Unit }[] = [
+  { id: "hosting",  label: "Hosting / Servidor",  defaultName: "Hosting",        defaultUnit: "month" },
+  { id: "saas",     label: "Software / SaaS",     defaultName: "Suscripción",    defaultUnit: "month" },
+  { id: "api",      label: "APIs / Integraciones",defaultName: "API externa",    defaultUnit: "use" },
+  { id: "ai",       label: "IA / Modelos LLM",    defaultName: "Créditos IA",    defaultUnit: "use" },
+  { id: "license",  label: "Licencia única",      defaultName: "Licencia",       defaultUnit: "fixed" },
+  { id: "custom",   label: "Otro",                defaultName: "",               defaultUnit: "month" },
+];
+
+const ASSET_PRESETS: { id: string; label: string; defaultName: string; defaultUnit: Unit }[] = [
+  { id: "machinery",label: "Maquinaria",          defaultName: "Equipo industrial", defaultUnit: "fixed" },
+  { id: "computer", label: "Equipo de cómputo",   defaultName: "Laptop",            defaultUnit: "fixed" },
+  { id: "tool",     label: "Herramienta",         defaultName: "Herramienta",       defaultUnit: "fixed" },
+  { id: "rental",   label: "Renta de equipo",     defaultName: "Renta",             defaultUnit: "month" },
+  { id: "custom",   label: "Otro",                defaultName: "",                  defaultUnit: "fixed" },
+];
 
 // Helpers para serializar el tipo de responsable dentro de role_or_type
 function parseRole(role: string | null): { type: ResponsibleType; label: string } {
