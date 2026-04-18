@@ -78,6 +78,10 @@ const PLANS: Array<{
 
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
+  const { plan: realPlan, status: planStatus, billingCycle: realBilling, cancelAtPeriodEnd, currentPeriodEnd, refresh: refreshPlan } = usePlan();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   // Estado local controlado, sincronizado con settings de la BD
   const [currency, setCurrency] = useState<Currency>(settings.currency);
@@ -98,8 +102,66 @@ export default function SettingsPage() {
     setChannel(settings.channel);
   }, [settings]);
 
-  const [activePlan, setActivePlan] = useState<PlanId>("free");
-  const [billing, setBilling] = useState<Billing>("monthly");
+  const [billing, setBilling] = useState<Billing>((realBilling as Billing) ?? "monthly");
+
+  // Default tab desde query (?tab=subscription)
+  const initialTab = searchParams.get("tab") === "subscription" ? "subscriptions"
+    : searchParams.get("tab") === "alerts" ? "alerts"
+    : "work";
+
+  // Detectar checkout success/cancelled desde Stripe
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (checkout === "success") {
+      toast.success("¡Suscripción activada!", {
+        description: "Tu plan se actualizará en unos segundos.",
+      });
+      setTimeout(() => refreshPlan(), 2000);
+      searchParams.delete("checkout");
+      setSearchParams(searchParams, { replace: true });
+    } else if (checkout === "cancelled") {
+      toast.info("Pago cancelado", { description: "Puedes intentarlo de nuevo cuando quieras." });
+      searchParams.delete("checkout");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, refreshPlan]);
+
+  const handleCheckout = async (planId: PlanId) => {
+    if (planId === "free") return;
+    setCheckoutLoading(planId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan: planId, billing },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else {
+        throw new Error("No se generó la URL de pago");
+      }
+    } catch (e: any) {
+      toast.error("No pudimos abrir el pago", { description: e?.message });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleOpenPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal", { body: {} });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else {
+        throw new Error("No se pudo abrir el portal");
+      }
+    } catch (e: any) {
+      toast.error("No pudimos abrir el portal", { description: e?.message });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   const handleSaveWork = async () => {
     try {
