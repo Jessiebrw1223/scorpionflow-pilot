@@ -466,7 +466,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="precios" className="border-t border-border/60 bg-secondary/20">
+      <section id="precios" className="border-t border-border/60">
         <div className="max-w-6xl mx-auto px-5 py-20">
           <div className="text-center max-w-3xl mx-auto mb-10">
             <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Precios</span>
