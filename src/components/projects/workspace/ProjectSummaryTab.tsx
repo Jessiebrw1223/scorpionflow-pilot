@@ -45,9 +45,11 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
   // === Estados DUALES: nunca mezclar tiempo con dinero ===
   const execution = getExecutionStatus({
     status: project.status,
+    startDate: project.start_date,
     endDate: project.end_date,
     progress: Number(project.progress) || 0,
     hasOverdueTasks: overdueTasks > 0,
+    taskDates: tasks.map((t) => t.due_date),
   });
   const financial = getFinancialHealth({
     budget: Number(project.budget),
