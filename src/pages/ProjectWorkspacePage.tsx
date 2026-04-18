@@ -158,13 +158,19 @@ export default function ProjectWorkspacePage() {
           <ProjectScheduleTab project={project} />
         </TabsContent>
         <TabsContent value="resources">
-          <ProjectResourcesTab project={project} />
+          <PremiumGate feature="resources_management">
+            <ProjectResourcesTab project={project} />
+          </PremiumGate>
         </TabsContent>
         <TabsContent value="costs">
-          <ProjectCostsTab project={project} />
+          <PremiumGate feature="cost_intelligence">
+            <ProjectCostsTab project={project} />
+          </PremiumGate>
         </TabsContent>
         <TabsContent value="report">
-          <ProjectReportTab project={project} />
+          <PremiumGate feature="advanced_reports">
+            <ProjectReportTab project={project} />
+          </PremiumGate>
         </TabsContent>
       </Tabs>
     </div>
