@@ -331,7 +331,11 @@ export default function ProjectCostsTab({ project }: Props) {
                 "text-xl font-bold font-mono-data mt-1",
                 projectionTone === "bad" ? "text-cost-negative" : projectionTone === "warn" ? "text-cost-warning" : "text-cost-positive"
               )}>
-                {projectedProfit >= 0 ? "+" : ""}{PEN.format(projectedProfit)} ({projectedMargin.toFixed(1)}%)
+                {safeProjMargin.isExtreme ? (
+                  <span className="text-base">{safeProjMargin.text}</span>
+                ) : (
+                  <>{projectedProfit >= 0 ? "+" : ""}{PEN.format(projectedProfit)} ({safeProjMargin.text})</>
+                )}
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">
                 Basado en tu avance actual ({progress}%). Costo proyectado: {PEN.format(projectedTotal)}.
@@ -341,15 +345,21 @@ export default function ProjectCostsTab({ project }: Props) {
         </div>
       </div>
 
-      {/* === Clasificación de costos === */}
+      {/* === Clasificación de costos (derivada de Recursos) === */}
       <div>
-        <h3 className="section-header mb-2">Costos por categoría</h3>
+        <h3 className="section-header mb-2 inline-flex items-center gap-1.5">
+          Costos por categoría
+          <span className="text-[10px] font-normal text-muted-foreground normal-case tracking-normal">
+            · viene de Recursos
+          </span>
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {categories.map((c) => {
             const pct = liveTotal > 0 ? (c.value / liveTotal) * 100 : 0;
             const Icon = c.icon;
+            const empty = c.value === 0;
             return (
-              <div key={c.key} className={cn("surface-card p-4 border-l-4", c.color)}>
+              <div key={c.key} className={cn("surface-card p-4 border-l-4", empty ? "border-border" : c.color)}>
                 <div className="flex items-center gap-2 mb-2">
                   <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", c.iconBg)}>
                     <Icon className="w-4 h-4" />
@@ -359,14 +369,25 @@ export default function ProjectCostsTab({ project }: Props) {
                     <div className="text-[10px] text-muted-foreground">{c.description}</div>
                   </div>
                 </div>
-                <div className="text-xl font-bold font-mono-data">{PEN.format(c.value)}</div>
-                <div className="text-[11px] text-muted-foreground font-mono-data mt-0.5">
-                  {pct.toFixed(0)}% del gasto total
-                </div>
+                {empty ? (
+                  <div className="text-[12px] text-muted-foreground italic">{c.emptyHint}</div>
+                ) : (
+                  <>
+                    <div className="text-xl font-bold font-mono-data">{PEN.format(c.value)}</div>
+                    <div className="text-[11px] text-muted-foreground font-mono-data mt-0.5">
+                      {pct.toFixed(0)}% del gasto total
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}
         </div>
+        {taskActual > 0 && (
+          <p className="text-[11px] text-muted-foreground mt-2">
+            + {PEN.format(taskActual)} de costos directos registrados en tareas individuales.
+          </p>
+        )}
       </div>
 
       {/* === Resumen presupuesto: 4 conceptos clave === */}
