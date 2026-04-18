@@ -223,14 +223,27 @@ export default function Dashboard() {
               </div>
             ) : (
               projects.slice(0, 5).map((p) => {
-                const meta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.on_track;
+                const execution = getExecutionStatus({
+                  status: p.status,
+                  startDate: p.start_date,
+                  endDate: p.end_date,
+                  progress: Number(p.progress) || 0,
+                  inferSchedule: settings.auto_behavior.inferSchedule,
+                });
+                const financial = getFinancialHealth({
+                  budget: Number(p.budget),
+                  actualCost: Number(p.actual_cost),
+                  targetMargin: settings.target_margin,
+                });
+                const health = getProjectHealth({ execution, financial });
                 const margin = Number(p.budget) - Number(p.actual_cost);
                 const marginPct = Number(p.budget) > 0
                   ? ((margin / Number(p.budget)) * 100).toFixed(0)
                   : "0";
+                const progressClamped = Math.max(0, Math.min(100, Number(p.progress) || 0));
                 return (
-                  <Link key={p.id} to="/projects" className="block">
-                    <div className={cn("surface-card surface-card-hover p-3 border-l-4", meta.border)}>
+                  <Link key={p.id} to={`/projects/${p.id}`} className="block">
+                    <div className={cn("surface-card surface-card-hover p-3 border-l-4", health.border)}>
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-sm text-foreground truncate">{p.name}</div>
@@ -238,16 +251,25 @@ export default function Dashboard() {
                             {p.clients?.name || "Sin cliente"}
                           </div>
                         </div>
-                        <span className={cn(
-                          "text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded",
-                          meta.bg, meta.color
-                        )}>
-                          {meta.label}
+                        <span
+                          className={cn(
+                            "text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1",
+                            health.bg, health.color
+                          )}
+                          title={health.description}
+                        >
+                          {health.emoji} {health.label}
                         </span>
                       </div>
-                      <Progress value={p.progress} className="h-1.5 mb-2" />
+                      {/* Barra inteligente: color según salud, no fija roja */}
+                      <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mb-2">
+                        <div
+                          className={cn("h-full rounded-full transition-sf", health.barColor)}
+                          style={{ width: `${progressClamped}%` }}
+                        />
+                      </div>
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground font-mono-data">{p.progress}% completado</span>
+                        <span className="text-muted-foreground font-mono-data">{progressClamped}% completado</span>
                         <span className={cn(
                           "font-mono-data font-semibold",
                           margin >= 0 ? "text-cost-positive" : "text-cost-negative"
