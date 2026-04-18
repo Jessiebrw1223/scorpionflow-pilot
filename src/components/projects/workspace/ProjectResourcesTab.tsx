@@ -815,6 +815,26 @@ export default function ProjectResourcesTab({ project }: Props) {
           </DialogHeader>
           {dialogKind && (
             <div className="space-y-3 mt-2">
+              {/* Preset selector — solo al CREAR (al editar lo dejamos vacío para no sobreescribir) */}
+              {!editingNonHuman && (
+                <div className="space-y-1.5">
+                  <Label className="text-[12px]">¿Qué tipo de {KIND_META[dialogKind].label.toLowerCase()} es?</Label>
+                  <Select value={presetId} onValueChange={applyPreset}>
+                    <SelectTrigger className="h-9 text-[13px]">
+                      <SelectValue placeholder="Selecciona un tipo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(dialogKind === "tech" ? TECH_PRESETS : ASSET_PRESETS).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Te pre-llena la unidad de cobro más común. Puedes ajustar todo después.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label className="text-[12px]">Nombre</Label>
                 <Input
@@ -825,32 +845,33 @@ export default function ProjectResourcesTab({ project }: Props) {
                   maxLength={120}
                 />
               </div>
+
+              {/* Tipo de costo — toggle limitado por categoría */}
               <div className="space-y-1.5">
-                <Label className="text-[12px]">Tipo</Label>
-                <Input
-                  value={form.role_or_type}
-                  onChange={(e) => setForm(f => ({ ...f, role_or_type: e.target.value }))}
-                  placeholder={KIND_META[dialogKind].placeholderRole}
-                  className="h-9 text-[13px]"
-                  maxLength={80}
-                />
+                <Label className="text-[12px]">¿Cómo se paga?</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(dialogKind === "tech" ? TECH_UNIT_OPTIONS : ASSET_UNIT_OPTIONS).map((u) => {
+                    const active = form.unit === u;
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, unit: u }))}
+                        className={cn(
+                          "px-2 py-2 rounded-md border text-[11px] font-medium transition-sf",
+                          active ? "bg-primary/10 border-primary text-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {UNIT_META[u].label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">Unidad</Label>
-                  <Select value={form.unit} onValueChange={(v: Unit) => setForm(f => ({ ...f, unit: v }))}>
-                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(UNIT_META) as Unit[]).map(u => (
-                        <SelectItem key={u} value={u}>{UNIT_META[u].label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[12px]">
-                    {form.unit === "hour" ? "Horas" : form.unit === "month" ? "Meses" : form.unit === "use" ? "Usos" : "Cantidad"}
-                  </Label>
+                  <Label className="text-[12px]">{UNIT_META[form.unit].qtyLabel}</Label>
                   <Input
                     type="number"
                     min={0.01}
@@ -860,17 +881,18 @@ export default function ProjectResourcesTab({ project }: Props) {
                     className="h-9 text-[13px] font-mono-data"
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[12px]">
+                    Costo {form.unit === "fixed" ? "único" : `por ${UNIT_META[form.unit].suffix}`}
+                  </Label>
+                  <CurrencyInput
+                    value={form.unit_cost}
+                    onValueChange={(v) => setForm(f => ({ ...f, unit_cost: v }))}
+                    className="h-9"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[12px]">
-                  Costo {form.unit === "fixed" ? "fijo" : `por ${UNIT_META[form.unit].suffix || "unidad"}`}
-                </Label>
-                <CurrencyInput
-                  value={form.unit_cost}
-                  onValueChange={(v) => setForm(f => ({ ...f, unit_cost: v }))}
-                  className="h-9"
-                />
-              </div>
+
               <div className="rounded-md bg-primary/5 border border-primary/20 p-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-muted-foreground">Costo total</span>
