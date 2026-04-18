@@ -101,7 +101,7 @@ export default function ProjectWorkspacePage() {
                 💰 {financial.label}
               </span>
               <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded", execution.bg, execution.color)}>
-                📅 {execution.label}
+                {execution.key === "not_evaluable" ? "⚠️" : "📅"} {execution.label}
               </span>
             </div>
             <p className="text-[13px] text-muted-foreground mt-1 ml-7">
