@@ -11,12 +11,14 @@ import {
   getBusinessSnapshot,
   getRecommendedActions,
   daysSince,
-  PROJECT_STATUS_META,
+  getExecutionStatus,
+  getFinancialHealth,
+  getProjectHealth,
 } from "@/lib/business-intelligence";
 import { useAutoAlertEngine } from "@/hooks/useNotifications";
+import { useUserSettings } from "@/hooks/useUserSettings";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
 import { useMoney } from "@/lib/format-money";
 
 export default function Dashboard() {
