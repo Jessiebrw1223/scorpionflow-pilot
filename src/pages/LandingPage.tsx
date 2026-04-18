@@ -441,27 +441,134 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SOBRE NOSOTROS */}
-      <section id="nosotros" className="border-t border-border/60 bg-secondary/20">
-        <div className="max-w-3xl mx-auto px-5 py-20 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/40 text-[11px] uppercase tracking-widest text-muted-foreground mb-6">
-            <Users className="w-3 h-3 text-primary" />
-            Sobre nosotros
+      {/* SOBRE NOSOTROS — Narrativa con timeline */}
+      <section id="nosotros" className="border-t border-border/60 bg-secondary/20 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-1/3 left-[-10%] w-[400px] h-[400px] rounded-full bg-primary/5 blur-[120px]" />
+          <div className="absolute bottom-0 right-[-10%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px]" />
+        </div>
+
+        <div className="max-w-5xl mx-auto px-5 py-24">
+          {/* Hero identidad */}
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/40 text-[11px] uppercase tracking-widest text-muted-foreground mb-6">
+              <Users className="w-3 h-3 text-primary" />
+              Nosotros
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.1]">
+              No creamos otra herramienta.
+              <span className="block text-primary mt-2">Creamos claridad para tomar mejores decisiones.</span>
+            </h2>
+            <p className="mt-6 text-base md:text-lg text-muted-foreground leading-relaxed">
+              ScorpionFlow nace de una necesidad real: entender qué está pasando
+              en un proyecto, más allá de tareas y estados.
+            </p>
+            <p className="mt-4 text-[13px] text-foreground/60 italic">
+              Construido desde la experiencia real.
+            </p>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Construido desde la experiencia,
-            <span className="block text-primary">no desde la teoría.</span>
-          </h2>
-          <div className="mt-6 space-y-4 text-foreground/85 leading-relaxed">
-            <p>
-              ScorpionFlow nace de una necesidad real. Después de gestionar
-              proyectos con distintas herramientas, nos dimos cuenta de algo:
-              teníamos datos… pero no claridad.
-            </p>
-            <p>
-              Trabajábamos más, pero no siempre entendíamos los resultados.
-              Por eso lo construimos: para ayudar a ver lo que realmente importa.
-            </p>
+
+          {/* Timeline narrativa */}
+          <div className="relative max-w-3xl mx-auto">
+            {/* Línea vertical */}
+            <div className="absolute left-5 md:left-6 top-2 bottom-2 w-px bg-gradient-to-b from-primary/60 via-border to-transparent" />
+
+            <div className="space-y-10">
+              {[
+                {
+                  icon: Compass,
+                  tag: "El contexto",
+                  title: "Usábamos herramientas que organizaban bien el trabajo.",
+                  body: "Tareas, cronogramas, seguimiento. Pero algo no estaba claro: el impacto real de cada proyecto en el negocio. Teníamos información, no una visión completa.",
+                },
+                {
+                  icon: Lightbulb,
+                  tag: "La brecha",
+                  title: "Gestionar no es lo mismo que entender.",
+                  body: "Tener datos no significa tener claridad. Y muchas decisiones se toman sin ver el panorama completo. Esa falta de visibilidad genera errores, retrasos y pérdidas que podrían evitarse.",
+                },
+                {
+                  icon: Flame,
+                  tag: "Nuestra respuesta",
+                  title: "Decidimos construir algo diferente.",
+                  body: "No una herramienta más para gestionar tareas. Una plataforma que permita entender lo que está pasando, identificar riesgos a tiempo y tomar decisiones con información clara.",
+                },
+                {
+                  icon: LineChart,
+                  tag: "Lo que es hoy",
+                  title: "Trabajo, proyectos y negocio en un solo lugar.",
+                  body: "Hoy ScorpionFlow conecta tareas, proyectos e información clave del negocio, con un objetivo claro: dar contexto a cada decisión.",
+                },
+                {
+                  icon: Target,
+                  tag: "Propósito",
+                  title: "Que cada equipo entienda la realidad de sus proyectos.",
+                  body: "Ayudar a personas y equipos a tomar decisiones con claridad, basadas en información que sí refleja lo que está pasando.",
+                },
+                {
+                  icon: Sparkles,
+                  tag: "Visión",
+                  title: "Redefinir cómo se gestionan los proyectos.",
+                  body: "Integrar trabajo y negocio en un sistema donde cada decisión tenga sentido, sustentada por datos claros y a tiempo.",
+                },
+              ].map(({ icon: Icon, tag, title, body }, i) => (
+                <div key={i} className="relative pl-16 md:pl-20 group">
+                  <div className="absolute left-0 top-0 w-10 h-10 md:w-12 md:h-12 rounded-xl border border-border bg-card flex items-center justify-center group-hover:border-primary/50 group-hover:bg-primary/5 transition-colors">
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-[10px] uppercase tracking-widest text-primary font-semibold mb-1.5">
+                    {tag}
+                  </p>
+                  <h3 className="text-lg md:text-xl font-semibold tracking-tight">
+                    {title}
+                  </h3>
+                  <p className="mt-2 text-sm md:text-[15px] text-muted-foreground leading-relaxed">
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Filosofía */}
+          <div className="mt-20 max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">
+                Filosofía de trabajo
+              </span>
+              <h3 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight">
+                En lo que creemos.
+              </h3>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {[
+                { title: "La claridad reduce la incertidumbre", body: "Cuando ves los números, decides distinto." },
+                { title: "Mejor información, mejores decisiones", body: "No es cuánto sabes, es cómo lo entiendes." },
+                { title: "Las herramientas deben simplificar", body: "Si te complican, no están haciendo su trabajo." },
+              ].map((p, i) => (
+                <div key={i} className="rounded-xl border border-border bg-card p-6">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <p className="font-semibold text-[15px]">{p.title}</p>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{p.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cierre emocional */}
+          <div className="mt-20 text-center max-w-2xl mx-auto">
+            <div className="inline-block">
+              <div className="h-px w-16 bg-primary/40 mx-auto mb-8" />
+              <p className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">
+                No se trata de hacer más.
+                <span className="block text-primary mt-1">Se trata de entender mejor.</span>
+              </p>
+              <p className="mt-6 text-[13px] text-muted-foreground italic">
+                — El equipo de ScorpionFlow
+              </p>
+            </div>
           </div>
         </div>
       </section>
