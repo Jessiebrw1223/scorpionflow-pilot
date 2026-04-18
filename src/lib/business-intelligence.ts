@@ -29,13 +29,22 @@ export interface FinancialHealthInfo {
 
 /**
  * Estado de ejecución basado SOLO en tiempo / cronograma.
- * No considera dinero.
+ * Principio: "Si no se puede calcular, no se debe mostrar."
+ *
+ * - Sin fechas (ni del proyecto ni inferibles desde tareas) → NO_EVALUABLE
+ * - Con fechas → compara progreso real vs progreso esperado
+ *      real >= esperado            → EN TIEMPO
+ *      real >= esperado - 0.15     → EN RIESGO
+ *      en otro caso                → ATRASADO
+ * - Si hay tareas vencidas siempre baja al menos a EN RIESGO.
  */
 export function getExecutionStatus(opts: {
-  status: string;             // project.status crudo (legacy)
+  status: string;
+  startDate?: string | null;
   endDate?: string | null;
-  progress: number;
+  progress: number;                           // 0-100
   hasOverdueTasks?: boolean;
+  taskDates?: (string | null | undefined)[]; // due_date de tareas, para inferir cronograma
 }): ExecutionStatusInfo {
   if (opts.status === "completed") {
     return {
@@ -57,25 +66,86 @@ export function getExecutionStatus(opts: {
       description: "Proyecto cancelado.",
     };
   }
-  const endPassed = opts.endDate ? new Date(opts.endDate) < new Date() : false;
-  const isDelayed = opts.hasOverdueTasks || (endPassed && opts.progress < 100);
-  if (isDelayed) {
+
+  // Resolver fechas: explícitas del proyecto → o inferidas desde tareas
+  let startDate = opts.startDate ? new Date(opts.startDate) : null;
+  let endDate = opts.endDate ? new Date(opts.endDate) : null;
+
+  if ((!startDate || !endDate) && opts.taskDates && opts.taskDates.length > 0) {
+    const validDates = opts.taskDates
+      .filter((d): d is string => !!d)
+      .map((d) => new Date(d).getTime())
+      .filter((t) => Number.isFinite(t));
+    if (validDates.length > 0) {
+      if (!endDate) endDate = new Date(Math.max(...validDates));
+      if (!startDate) startDate = new Date(Math.min(...validDates));
+    }
+  }
+
+  // Sin cronograma → no evaluable. NUNCA decir "En tiempo".
+  if (!startDate || !endDate || endDate.getTime() <= startDate.getTime()) {
+    return {
+      key: "not_evaluable",
+      label: "No evaluable",
+      color: "text-muted-foreground",
+      bg: "bg-muted/30",
+      border: "border-muted/50",
+      description: "Se calcula cuando definas fechas de inicio y fin.",
+    };
+  }
+
+  const today = new Date();
+  const total = endDate.getTime() - startDate.getTime();
+  const elapsed = Math.max(0, today.getTime() - startDate.getTime());
+  const expectedPct = Math.min(1, elapsed / total) * 100;
+  const realPct = Math.max(0, Math.min(100, opts.progress || 0));
+  const endPassed = today > endDate;
+
+  // Atrasado duro: pasó la fecha final y aún no termina
+  if (endPassed && realPct < 100) {
     return {
       key: "delayed",
       label: "Atrasado",
+      color: "text-cost-negative",
+      bg: "bg-cost-negative/10",
+      border: "border-cost-negative/40",
+      description: "Pasó la fecha de entrega y el proyecto no está completo.",
+    };
+  }
+
+  const gap = expectedPct - realPct; // positivo = vas por debajo de lo esperado
+
+  if (gap > 15) {
+    return {
+      key: "delayed",
+      label: "Atrasado",
+      color: "text-cost-negative",
+      bg: "bg-cost-negative/10",
+      border: "border-cost-negative/40",
+      description: `Vas ${gap.toFixed(0)}% por debajo de lo esperado para esta fecha.`,
+    };
+  }
+
+  if (gap > 0 || opts.hasOverdueTasks) {
+    return {
+      key: "at_risk",
+      label: "En riesgo",
       color: "text-cost-warning",
       bg: "bg-cost-warning/10",
       border: "border-cost-warning/40",
-      description: "Hay tareas vencidas o el proyecto pasó su fecha de entrega.",
+      description: opts.hasOverdueTasks
+        ? "Hay tareas vencidas que pueden retrasar la entrega."
+        : `Vas ligeramente por debajo del avance esperado (${gap.toFixed(0)}%).`,
     };
   }
+
   return {
     key: "on_time",
     label: "En tiempo",
     color: "text-cost-positive",
     bg: "bg-cost-positive/10",
     border: "border-cost-positive/40",
-    description: "Avance acorde al cronograma.",
+    description: "Tu avance va acorde al cronograma definido.",
   };
 }
 
