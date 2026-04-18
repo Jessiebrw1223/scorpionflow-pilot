@@ -200,12 +200,14 @@ export function InviteMemberDialog({ open, onOpenChange, onInvite }: Props) {
                 </p>
               </div>
 
-              {!result.emailSent && result.emailError && (
-                <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-600 dark:text-orange-400 flex gap-2">
+              {!result.emailSent && (
+                <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-700 dark:text-orange-300 flex gap-2">
                   <Mail className="w-4 h-4 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-semibold mb-1">Detalle del error de envío</div>
-                    <div className="opacity-80">{result.emailError}</div>
+                    <div className="font-semibold mb-1">No pudimos enviar el correo automáticamente</div>
+                    <div className="opacity-90">
+                      Copia el enlace de arriba y compártelo manualmente con la persona invitada (WhatsApp, Slack, correo personal, etc.). La invitación está activa y funcional.
+                    </div>
                   </div>
                 </div>
               )}
