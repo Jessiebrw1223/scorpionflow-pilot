@@ -70,9 +70,11 @@ export default function ProjectWorkspacePage() {
   ).length;
   const execution = getExecutionStatus({
     status: project.status,
+    startDate: project.start_date,
     endDate: project.end_date,
     progress: Number(project.progress) || 0,
     hasOverdueTasks: overdueCount > 0,
+    taskDates: tasks.map((t: any) => t.due_date),
   });
   const financial = getFinancialHealth({
     budget: Number(project.budget),
