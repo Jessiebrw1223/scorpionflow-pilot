@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  Palette, CreditCard, User, Bell, Check, Sparkles, Star, Rocket, TrendingUp, Zap,
+  Palette, CreditCard, User, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
 } from "lucide-react";
 
 type PlanId = "free" | "starter" | "pro" | "business";
