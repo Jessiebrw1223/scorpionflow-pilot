@@ -24,6 +24,7 @@ import { useMoney } from "@/lib/format-money";
 export default function Dashboard() {
   const { user } = useAuth();
   const PEN = useMoney();
+  const { settings } = useUserSettings();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min-dash"],
