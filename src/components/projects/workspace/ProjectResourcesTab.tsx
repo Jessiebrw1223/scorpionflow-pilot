@@ -720,22 +720,32 @@ export default function ProjectResourcesTab({ project }: Props) {
                 />
               </div>
 
+              {/* Tipo de costo: toggle visual claro (sin Select confuso) */}
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">¿Cómo se le paga?</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {HUMAN_UNIT_OPTIONS.map((u) => {
+                    const active = humanForm.unit === u;
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setHumanForm(f => ({ ...f, unit: u }))}
+                        className={cn(
+                          "px-2 py-2 rounded-md border text-[11px] font-medium transition-sf",
+                          active ? "bg-primary/10 border-primary text-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {UNIT_META[u].label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">Unidad</Label>
-                  <Select value={humanForm.unit} onValueChange={(v: Unit) => setHumanForm(f => ({ ...f, unit: v }))}>
-                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(UNIT_META) as Unit[]).map(u => (
-                        <SelectItem key={u} value={u}>{UNIT_META[u].label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[12px]">
-                    {humanForm.unit === "hour" ? "Horas" : humanForm.unit === "month" ? "Meses" : humanForm.unit === "use" ? "Usos" : "Cantidad"}
-                  </Label>
+                  <Label className="text-[12px]">{UNIT_META[humanForm.unit].qtyLabel}</Label>
                   <Input
                     type="number"
                     min={0.01}
@@ -745,17 +755,16 @@ export default function ProjectResourcesTab({ project }: Props) {
                     className="h-9 text-[13px] font-mono-data"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[12px]">
-                  Costo {humanForm.unit === "fixed" ? "fijo" : `por ${UNIT_META[humanForm.unit].suffix || "unidad"}`}
-                </Label>
-                <CurrencyInput
-                  value={humanForm.unit_cost}
-                  onValueChange={(v) => setHumanForm(f => ({ ...f, unit_cost: v }))}
-                  className="h-9"
-                />
+                <div className="space-y-1.5">
+                  <Label className="text-[12px]">
+                    Costo {humanForm.unit === "fixed" ? "único" : `por ${UNIT_META[humanForm.unit].suffix}`}
+                  </Label>
+                  <CurrencyInput
+                    value={humanForm.unit_cost}
+                    onValueChange={(v) => setHumanForm(f => ({ ...f, unit_cost: v }))}
+                    className="h-9"
+                  />
+                </div>
               </div>
 
               <div className="rounded-md bg-primary/5 border border-primary/20 p-2.5">
