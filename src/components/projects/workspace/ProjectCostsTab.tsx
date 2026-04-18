@@ -364,23 +364,46 @@ export default function ProjectCostsTab({ project }: Props) {
         </div>
       </div>
 
-      {/* === Resumen presupuesto === */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* === Resumen presupuesto: 4 conceptos clave === */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="surface-card p-4 border-l-4 border-status-progress">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto cobrado</div>
-          <div className="text-xl font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto cliente</div>
+          <div className="text-lg font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Lo que cobraste</div>
         </div>
         <div className="surface-card p-4 border-l-4 border-cost-warning">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total gastado</div>
-          <div className={cn("text-xl font-bold font-mono-data", liveLosing && "text-cost-negative")}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Costos reales</div>
+          <div className={cn("text-lg font-bold font-mono-data", liveLosing && "text-cost-negative")}>
             {PEN.format(liveTotal)}
           </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">{usedPct.toFixed(0)}% del presupuesto</div>
         </div>
-        <div className="surface-card p-4 border-l-4 border-primary">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">% del presupuesto usado</div>
-          <div className="text-xl font-bold font-mono-data">{usedPct.toFixed(0)}%</div>
+        <div className={cn("surface-card p-4 border-l-4", totalContributions > 0 ? "border-primary bg-primary/5" : "border-border")}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
+            <HandCoins className="w-3 h-3" /> Aporte adicional
+          </div>
+          <div className={cn("text-lg font-bold font-mono-data", totalContributions > 0 ? "text-primary" : "text-muted-foreground")}>
+            {PEN.format(totalContributions)}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">
+            {totalContributions > 0 ? "Inversión tuya" : "Sin aportes"}
+          </div>
+        </div>
+        <div className={cn("surface-card p-4 border-l-4", realLosing ? "border-cost-negative" : "border-cost-positive")}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Ganancia real</div>
+          <div className={cn("text-lg font-bold font-mono-data", realLosing ? "text-cost-negative" : "text-cost-positive")}>
+            {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Tu ganancia neta</div>
         </div>
       </div>
+
+      {/* === Sección de aportes adicionales === */}
+      <ProjectContributionsSection
+        projectId={project.id}
+        budget={Number(project.budget)}
+        actualCost={liveTotal}
+      />
 
       {/* === Progress bar === */}
       <div className="surface-card p-4">
