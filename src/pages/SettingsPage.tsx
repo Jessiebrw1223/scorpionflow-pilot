@@ -380,11 +380,12 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                const isCurrent = activePlan === plan.id;
+                const isCurrent = realPlan === plan.id;
                 const pricePEN = billing === "monthly" ? plan.monthlyPEN : plan.annualPEN;
                 const priceUSD = billing === "monthly" ? plan.monthlyUSD : plan.annualUSD;
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
+                const isLoadingThis = checkoutLoading === plan.id;
 
                 return (
                   <div
@@ -440,13 +441,34 @@ export default function SettingsPage() {
                     </ul>
 
                     {isCurrent ? (
-                      <Badge variant="secondary" className="w-full justify-center py-2 text-[12px]">Plan actual</Badge>
+                      <div className="space-y-2">
+                        <Badge variant="secondary" className="w-full justify-center py-2 text-[12px]">
+                          {cancelAtPeriodEnd ? "Cancelando al final del período" : "Plan actual"}
+                        </Badge>
+                        {!isFree && (
+                          <Button
+                            variant="outline"
+                            className="w-full h-9 text-[12px] gap-1.5"
+                            onClick={handleOpenPortal}
+                            disabled={portalLoading}
+                          >
+                            {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                            Gestionar suscripción
+                          </Button>
+                        )}
+                      </div>
+                    ) : isFree ? (
+                      <Badge variant="outline" className="w-full justify-center py-2 text-[12px] text-muted-foreground">
+                        Disponible al cancelar
+                      </Badge>
                     ) : (
                       <Button
                         variant={plan.highlight ? "default" : "outline"}
-                        className={cn("w-full h-9 text-[12px]", plan.highlight && "scorpion-gradient text-white border-0 hover:opacity-90")}
-                        onClick={() => setActivePlan(plan.id)}
+                        className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
+                        onClick={() => handleCheckout(plan.id)}
+                        disabled={isLoadingThis}
                       >
+                        {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                         {plan.cta}
                       </Button>
                     )}
