@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   Flame,
@@ -14,9 +15,76 @@ import {
   Target,
   LineChart,
   Sparkles,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+
+type Billing = "monthly" | "annual";
+
+const PLANS = [
+  {
+    id: "free",
+    name: "Free",
+    monthly: 0,
+    emotional: "Empieza a organizar tu trabajo",
+    features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
+    cta: "Empezar gratis",
+    highlight: false,
+    accent: "muted" as const,
+  },
+  {
+    id: "starter",
+    name: "Starter",
+    monthly: 35,
+    emotional: "Trabaja sin límites",
+    features: ["Clientes ilimitados", "Más proyectos", "Planificación completa", "Calendario"],
+    cta: "Actualizar a Starter",
+    highlight: false,
+    accent: "blue" as const,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    monthly: 90,
+    emotional: "Aquí es donde dejas de adivinar.",
+    features: [
+      "Todo lo anterior",
+      "💰 Ver si ganas o pierdes dinero",
+      "Margen real",
+      "ROI claro",
+      "Costos por tarea",
+      "Alertas inteligentes",
+      "Recursos con impacto",
+    ],
+    cta: "Actualizar a Pro",
+    highlight: true,
+    accent: "fire" as const,
+  },
+  {
+    id: "business",
+    name: "Business",
+    monthly: 200,
+    emotional: "Decisiones estratégicas",
+    features: ["Todo Pro", "Proyección financiera", "Control multi-proyecto", "Reportes ejecutivos"],
+    cta: "Hablar con ventas",
+    highlight: false,
+    accent: "muted" as const,
+  },
+];
+
+const COMPARE_ROWS: Array<{
+  label: string;
+  values: [string | boolean, string | boolean, string | boolean, string | boolean];
+}> = [
+  { label: "Clientes", values: ["limitado", true, true, true] },
+  { label: "Proyectos", values: ["limitado", true, true, true] },
+  { label: "Ver si ganas dinero", values: [false, false, true, true] },
+  { label: "Margen real", values: [false, false, true, true] },
+  { label: "ROI claro", values: [false, false, true, true] },
+  { label: "Alertas inteligentes", values: [false, false, true, true] },
+  { label: "Gestión de recursos", values: [false, false, true, true] },
+];
 
 /**
  * Landing pública de ScorpionFlow.
@@ -25,6 +93,7 @@ import { useAuth } from "@/contexts/AuthContext";
  */
 export default function LandingPage() {
   const { user, loading } = useAuth();
+  const [billing, setBilling] = useState<Billing>("monthly");
 
   if (!loading && user) {
     return <Navigate to="/" replace />;
@@ -310,80 +379,232 @@ export default function LandingPage() {
       {/* PRICING */}
       <section id="precios" className="border-t border-border/60">
         <div className="max-w-6xl mx-auto px-5 py-20">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+          {/* Header */}
+          <div className="text-center max-w-3xl mx-auto mb-10">
             <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Precios</span>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+            <h2 className="mt-3 text-3xl md:text-5xl font-bold tracking-tight leading-[1.1]">
               Empiezas gratis.
-              <span className="block text-muted-foreground">Pagas cuando realmente lo necesitas.</span>
+              <span className="block bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                Controlas tu negocio cuando decides verlo en serio.
+              </span>
             </h2>
-            <p className="mt-4 text-sm text-muted-foreground italic">
-              "Hay cosas que solo puedes ver… cuando decides mirar en serio."
+            <p className="mt-5 text-sm md:text-base text-muted-foreground italic">
+              "Hay cosas que solo ves… cuando decides mirar los números."
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {[
-              {
-                name: "Free",
-                price: "S/ 0",
-                tag: "Para empezar",
-                features: ["Hasta 3 proyectos", "Tareas y clientes", "Vista básica de costos"],
-                cta: "Empezar gratis",
-                highlight: false,
-              },
-              {
-                name: "Pro",
-                price: "S/ 49",
-                tag: "Más elegido",
-                features: ["Proyectos ilimitados", "Control de margen y ganancia", "Alertas inteligentes", "Reportes ejecutivos"],
-                cta: "Probar Pro",
-                highlight: true,
-              },
-              {
-                name: "Business",
-                price: "S/ 129",
-                tag: "Para decidir",
-                features: ["Todo lo de Pro", "Multi-usuario", "Roles y permisos", "Soporte prioritario"],
-                cta: "Hablar con ventas",
-                highlight: false,
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative rounded-xl border p-6 flex flex-col ${
-                  plan.highlight
-                    ? "border-primary bg-gradient-to-br from-primary/10 to-accent/5 fire-glow"
-                    : "border-border bg-card"
+          {/* Toggle Mensual / Anual */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex items-center gap-1 p-1 rounded-full border border-border bg-card">
+              <button
+                onClick={() => setBilling("monthly")}
+                className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all ${
+                  billing === "monthly"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {plan.highlight && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] uppercase tracking-widest font-bold">
-                    {plan.tag}
-                  </span>
-                )}
-                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{plan.name}</p>
-                <p className="mt-2 text-3xl font-bold">
-                  {plan.price}
-                  <span className="text-sm font-normal text-muted-foreground"> /mes</span>
-                </p>
-                <ul className="mt-5 space-y-2 text-sm flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <CheckCircle2 className={`w-4 h-4 mt-0.5 shrink-0 ${plan.highlight ? "text-primary" : "text-muted-foreground"}`} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/auth/register" className="mt-6">
-                  <Button
-                    className={`w-full ${plan.highlight ? "fire-button font-semibold" : ""}`}
-                    variant={plan.highlight ? "default" : "outline"}
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
+                Mensual
+              </button>
+              <button
+                onClick={() => setBilling("annual")}
+                className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all flex items-center gap-1.5 ${
+                  billing === "annual"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Anual
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  billing === "annual" ? "bg-primary-foreground/20" : "bg-cost-positive/15 text-cost-positive"
+                }`}>
+                  −20%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Cards de planes */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+            {PLANS.map((plan) => {
+              const effectivePrice = billing === "annual"
+                ? Math.round(plan.monthly * 0.8)
+                : plan.monthly;
+              const isFree = plan.monthly === 0;
+              const isPro = plan.highlight;
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative rounded-2xl border p-6 flex flex-col transition-all ${
+                    isPro
+                      ? "border-primary bg-gradient-to-br from-primary/15 via-card to-accent/5 fire-glow scale-100 lg:scale-105 z-10"
+                      : "border-border bg-card hover:border-border/80"
+                  }`}
+                >
+                  {isPro && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold shadow-lg whitespace-nowrap">
+                      ⭐ Más elegido
+                    </span>
+                  )}
+
+                  {/* Nombre */}
+                  <p className={`text-[11px] uppercase tracking-widest font-semibold ${
+                    isPro ? "text-primary" : "text-muted-foreground"
+                  }`}>
+                    {plan.name}
+                  </p>
+
+                  {/* Precio */}
+                  <div className="mt-3 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold tracking-tight">
+                      S/ {effectivePrice}
+                    </span>
+                    <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                  </div>
+                  {billing === "annual" && !isFree && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      antes <span className="line-through">S/ {plan.monthly}</span> · facturado anual
+                    </p>
+                  )}
+                  {billing === "monthly" && !isFree && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      o S/ {Math.round(plan.monthly * 0.8)}/mes anual
+                    </p>
+                  )}
+                  {isFree && <p className="mt-1 text-[11px] text-muted-foreground">para siempre</p>}
+
+                  {/* Frase emocional */}
+                  <p className={`mt-4 text-sm font-medium ${
+                    isPro ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {plan.emotional}
+                  </p>
+
+                  {/* Beneficios */}
+                  <ul className="mt-5 space-y-2 text-sm flex-1">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className={`w-4 h-4 mt-0.5 shrink-0 ${
+                          isPro ? "text-primary" : "text-cost-positive/70"
+                        }`} />
+                        <span className="text-foreground/90">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Link to={plan.id === "business" ? "/auth/register" : "/auth/register"} className="mt-6">
+                    <Button
+                      className={`w-full ${isPro ? "fire-button font-semibold" : ""}`}
+                      variant={isPro ? "default" : isFree ? "secondary" : "outline"}
+                    >
+                      {plan.cta}
+                    </Button>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* TABLA COMPARATIVA */}
+          <div className="mt-20">
+            <div className="text-center max-w-2xl mx-auto mb-8">
+              <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Comparativa</span>
+              <h3 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight">
+                Lo que realmente puedes ver en cada plan
+              </h3>
+              <p className="mt-3 text-sm text-muted-foreground italic">
+                "No es lo que usas… es lo que entiendes."
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/30">
+                      <th className="text-left font-semibold text-muted-foreground px-5 py-4 min-w-[200px]">
+                        Función clave
+                      </th>
+                      {PLANS.map((p) => (
+                        <th
+                          key={p.id}
+                          className={`text-center font-semibold px-4 py-4 min-w-[110px] ${
+                            p.highlight ? "text-primary bg-primary/5" : "text-foreground"
+                          }`}
+                        >
+                          {p.name}
+                          {p.highlight && (
+                            <span className="block text-[9px] uppercase tracking-widest text-primary/80 mt-0.5">
+                              Más elegido
+                            </span>
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARE_ROWS.map((row, idx) => (
+                      <tr
+                        key={row.label}
+                        className={`border-b border-border/60 last:border-b-0 ${
+                          idx % 2 === 0 ? "bg-transparent" : "bg-secondary/10"
+                        }`}
+                      >
+                        <td className="px-5 py-3.5 font-medium text-foreground/90">{row.label}</td>
+                        {row.values.map((v, i) => {
+                          const isProCol = i === 2;
+                          return (
+                            <td
+                              key={i}
+                              className={`text-center px-4 py-3.5 ${
+                                isProCol ? "bg-primary/5" : ""
+                              }`}
+                            >
+                              {v === true ? (
+                                <CheckCircle2 className={`inline w-5 h-5 ${
+                                  isProCol ? "text-primary" : "text-cost-positive"
+                                }`} />
+                              ) : v === false ? (
+                                <Minus className="inline w-4 h-4 text-muted-foreground/40" />
+                              ) : (
+                                <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+                                  {v}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            </div>
+
+            {/* Frase de impacto debajo de la tabla */}
+            <p className="mt-8 text-center text-base md:text-lg text-foreground/90 italic max-w-2xl mx-auto">
+              "Puedes gestionar sin pagar…
+              <span className="block font-semibold text-primary not-italic mt-1">
+                pero no puedes controlar sin ver."
+              </span>
+            </p>
+          </div>
+
+          {/* Activador psicológico */}
+          <div className="mt-16 text-center max-w-xl mx-auto">
+            <p className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">
+              La mayoría trabaja…
+              <span className="block text-primary mt-1">sin saber si gana dinero.</span>
+            </p>
+            <Link to="/auth/register" className="inline-block mt-6">
+              <Button size="lg" className="fire-button h-12 px-8 font-semibold gap-2">
+                <Flame className="w-4 h-4" />
+                Empezar gratis
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
