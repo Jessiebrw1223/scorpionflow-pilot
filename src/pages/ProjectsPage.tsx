@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { PROJECT_STATUS_META } from "@/lib/business-intelligence";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
 
 type ProjectStatus = "on_track" | "at_risk" | "over_budget" | "completed" | "cancelled";
 
@@ -41,6 +40,7 @@ const STATUS_FILTERS: { key: ProjectStatus | "all"; label: string }[] = [
 export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
+  const PEN = useMoney();
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { daysSince } from "@/lib/business-intelligence";
 import { tasks, projects, personnelResources } from "@/lib/mock-data";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 export type AlertType =
   | "task_blocked"
@@ -104,6 +105,8 @@ export function useAutoAlertEngine(opts: {
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { settings } = useUserSettings();
+  const alertsCfg = settings.alerts;
 
   useEffect(() => {
     if (!user) return;
@@ -132,28 +135,32 @@ export function useAutoAlertEngine(opts: {
         link: string;
       }[] = [];
 
-      // Blocked tasks > 24h (mock data is static, so we just check if blocked)
-      tasks
-        .filter((t) => t.status === "blocked")
-        .forEach((t) => {
-          const title = `Tarea bloqueada: ${t.title}`;
-          if (!existingTitles.has(title)) {
-            toInsert.push({
-              user_id: user.id,
-              alert_type: "task_blocked",
-              severity: "warning",
-              title,
-              message: `${t.assignee} · ${t.id} requiere intervención.`,
-              link: "/tasks",
-            });
-          }
-        });
+      // Tareas bloqueadas — solo si el usuario tiene habilitado "blockingTask"
+      if (alertsCfg.blockingTask) {
+        tasks
+          .filter((t) => t.status === "blocked")
+          .forEach((t) => {
+            const title = `Tarea bloqueada: ${t.title}`;
+            if (!existingTitles.has(title)) {
+              toInsert.push({
+                user_id: user.id,
+                alert_type: "task_blocked",
+                severity: "warning",
+                title,
+                message: `${t.assignee} · ${t.id} requiere intervención.`,
+                link: "/tasks",
+              });
+            }
+          });
+      }
 
-      // Projects at risk / over budget
+      // Proyectos en riesgo / sobrecosto — respetan toggles del usuario
       projects
         .filter((p) => p.status !== "on_track")
         .forEach((p) => {
           const isOver = p.status === "over_budget";
+          if (isOver && !alertsCfg.budgetExceeded) return;
+          if (!isOver && !alertsCfg.criticalDelays && !alertsCfg.losingMoney) return;
           const title = isOver ? `Sobrecosto: ${p.name}` : `Proyecto en riesgo: ${p.name}`;
           if (!existingTitles.has(title)) {
             toInsert.push({
@@ -234,5 +241,5 @@ export function useAutoAlertEngine(opts: {
     };
 
     run();
-  }, [user, opts.clients, opts.quotations, qc]);
+  }, [user, opts.clients, opts.quotations, qc, alertsCfg]);
 }

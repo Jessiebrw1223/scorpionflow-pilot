@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useMoney } from "@/lib/format-money";
 import {
   DollarSign,
   Plus,
@@ -127,10 +128,9 @@ const formSchema = z.object({
   items: z.array(itemSchema).min(1, "Agrega al menos un ítem"),
 });
 
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
-
 export default function CotizacionesPage() {
   const qc = useQueryClient();
+  const PEN = useMoney();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const preselectedClientId = searchParams.get("clientId") || "";
