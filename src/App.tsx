@@ -48,6 +48,8 @@ function AppShell() {
       <Route path="/auth/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
+      <Route path="/" element={<RootGate />} />
+
       <Route
         path="*"
         element={
@@ -56,7 +58,6 @@ function AppShell() {
               <AppSidebar />
               <AppLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
                   <Route path="/clientes" element={<ClientesPage />} />
                   <Route path="/cotizaciones" element={<CotizacionesPage />} />
                   <Route path="/projects" element={<ProjectsPage />} />
