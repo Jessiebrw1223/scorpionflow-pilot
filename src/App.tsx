@@ -18,7 +18,25 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
+import { useAuth } from "@/contexts/AuthContext";
+
+/** En "/" mostramos landing pública si no hay sesión, y dashboard si la hay. */
+function RootGate() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? (
+    <ProtectedRoute>
+      <>
+        <AppSidebar />
+        <AppLayout><Dashboard /></AppLayout>
+      </>
+    </ProtectedRoute>
+  ) : (
+    <LandingPage />
+  );
+}
 
 const queryClient = new QueryClient();
 
