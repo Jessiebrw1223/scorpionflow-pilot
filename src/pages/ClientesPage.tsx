@@ -50,6 +50,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CLIENT_TYPE_META, CLIENT_TYPES, daysSince, inferCommercialBadge } from "@/lib/business-intelligence";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { humanizeError } from "@/lib/humanize-error";
+import { Sparkles } from "lucide-react";
 
 type ClientType = string;
 type CommercialStatus = "active" | "pending" | "no_followup";
@@ -110,6 +114,8 @@ export default function ClientesPage() {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState<Client | null>(null);
+  const [showUpsell, setShowUpsell] = useState(false);
+  const planLimits = usePlanLimits();
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
 
@@ -264,6 +270,11 @@ export default function ClientesPage() {
   };
 
   const openCreate = () => {
+    // Gating por plan: si está al límite, mostrar upsell en vez de abrir el form
+    if (planLimits.isAtLimit("clients")) {
+      setShowUpsell(true);
+      return;
+    }
     setEditing(null);
     setForm(emptyForm);
     setOpenForm(true);
