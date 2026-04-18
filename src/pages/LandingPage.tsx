@@ -441,7 +441,7 @@ export default function LandingPage() {
       </section>
 
       {/* SOBRE NOSOTROS */}
-      <section id="nosotros" className="border-t border-border/60">
+      <section id="nosotros" className="border-t border-border/60 bg-secondary/20">
         <div className="max-w-3xl mx-auto px-5 py-20 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/40 text-[11px] uppercase tracking-widest text-muted-foreground mb-6">
             <Users className="w-3 h-3 text-primary" />
