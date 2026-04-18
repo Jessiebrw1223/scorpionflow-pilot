@@ -368,6 +368,46 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* COLABORACIÓN */}
+      <section id="colaboracion" className="border-t border-border/60 bg-secondary/20">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Trabaja en equipo</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              No trabajas solo.
+              <span className="block text-primary">Tus proyectos tampoco deberían.</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Invita a tu equipo, comparte la información correcta y toma decisiones alineadas.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: UserPlus, title: "Invita en segundos", body: "Suma colaboradores con un correo y empiezan a trabajar juntos." },
+              { icon: Share2, title: "Misma información", body: "Todos ven los mismos datos, en tiempo real, sin versiones." },
+              { icon: ShieldAlert, title: "Menos errores", body: "Evitas decisiones desalineadas y duplicación de trabajo." },
+              { icon: EyeIcon, title: "Control compartido", body: "Visibilidad conjunta sin perder claridad ni gobernanza." },
+            ].map(({ icon: Icon, title, body }, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6">
+                <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-10 text-center text-base md:text-lg text-foreground/85 max-w-xl mx-auto">
+            La claridad no sirve si no es compartida.
+            <span className="block font-semibold text-primary mt-1">
+              No solo entiendes tu negocio. Tu equipo también.
+            </span>
+          </p>
+        </div>
+      </section>
+
       {/* DIFERENCIA */}
       <section id="diferencia" className="border-t border-border/60 bg-secondary/20">
         <div className="max-w-6xl mx-auto px-5 py-20">
