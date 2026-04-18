@@ -20,6 +20,8 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import LandingPage from "./pages/LandingPage";
+import InviteAcceptPage from "./pages/InviteAcceptPage";
+import UnsubscribePage from "./pages/UnsubscribePage";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -48,6 +50,10 @@ function AppShell() {
       <Route path="/auth/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
       <Route path="/auth/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
+      {/* Rutas públicas accesibles con o sin sesión */}
+      <Route path="/invite/:token" element={<InviteAcceptPage />} />
+      <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
       <Route path="/" element={<RootGate />} />
 
