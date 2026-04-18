@@ -25,9 +25,9 @@ const queryClient = new QueryClient();
 function AppShell() {
   return (
     <Routes>
-      <Route path="/auth/login" element={<LoginPage />} />
-      <Route path="/auth/register" element={<RegisterPage />} />
-      <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/auth/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+      <Route path="/auth/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+      <Route path="/auth/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
       <Route
