@@ -109,6 +109,7 @@ export default function ProjectResourcesTab({ project }: Props) {
   const [dialogKind, setDialogKind] = useState<Exclude<Kind, "human"> | null>(null);
   const [editingNonHuman, setEditingNonHuman] = useState<ProjectResource | null>(null);
   const [form, setForm] = useState({ name: "", role_or_type: "", unit: "fixed" as Unit, unit_cost: 0, quantity: 1, notes: "" });
+  const [presetId, setPresetId] = useState<string>("custom");
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ["project-resources", project.id],
