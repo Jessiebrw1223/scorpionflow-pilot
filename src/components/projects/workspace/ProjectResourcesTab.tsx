@@ -496,7 +496,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                     </div>
                     <div className="divide-y divide-border border border-border rounded-md">
                       {configuredHumans.map((r) => {
-                        const detected = detectedHumans.find(d => d.name === r.name.trim());
+                        const detected = detectedHumans.find(d => d.name === (r.name ?? "").trim());
                         const isOrphan = !detected;
                         const active = detected?.active || 0;
                         const total = detected?.total || 0;
