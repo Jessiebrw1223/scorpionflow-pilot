@@ -201,19 +201,16 @@ export default function ProjectCostsTab({ project }: Props) {
         </div>
         <Dialog open={open} onOpenChange={(v) => {
           setOpen(v);
-          if (v) {
-            setBudget(Number(project.budget));
-            setBreakdown(loadBreakdown(project.id, Number(project.actual_cost)));
-          }
+          if (v) setBudget(Number(project.budget));
         }}>
           <Button variant="outline" onClick={() => setOpen(true)}>
-            <Pencil className="w-3.5 h-3.5" /> Actualizar costos
+            <Pencil className="w-3.5 h-3.5" /> Editar presupuesto
           </Button>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Actualizar datos financieros</DialogTitle>
+              <DialogTitle>Editar presupuesto del cliente</DialogTitle>
               <p className="text-[12px] text-muted-foreground">
-                Indica lo que cobraste y desglosa lo gastado por categoría.
+                Solo el monto que cobraste al cliente. Los costos se calculan automáticamente desde Recursos y tareas.
               </p>
             </DialogHeader>
             <div className="space-y-3">
@@ -221,31 +218,14 @@ export default function ProjectCostsTab({ project }: Props) {
                 <Label>Presupuesto (lo que cobré)</Label>
                 <CurrencyInput value={budget} onValueChange={setBudget} />
               </div>
-              <div className="grid grid-cols-1 gap-2 pt-2 border-t border-border">
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Costos por categoría</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] inline-flex items-center gap-1"><Users className="w-3 h-3" /> Personal</Label>
-                    <CurrencyInput value={breakdown.personnel} onValueChange={(v) => setBreakdown({ ...breakdown, personnel: v })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] inline-flex items-center gap-1"><Cpu className="w-3 h-3" /> Tecnología</Label>
-                    <CurrencyInput value={breakdown.tech} onValueChange={(v) => setBreakdown({ ...breakdown, tech: v })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] inline-flex items-center gap-1"><Wrench className="w-3 h-3" /> Operativos</Label>
-                    <CurrencyInput value={breakdown.operations} onValueChange={(v) => setBreakdown({ ...breakdown, operations: v })} />
-                  </div>
-                </div>
-                <div className="text-[12px] text-muted-foreground font-mono-data">
-                  Total gastado: <span className="text-foreground font-semibold">{PEN.format(totalActual)}</span>
-                </div>
-              </div>
               <div className={cn("surface-card p-3", previewLosing ? "border-cost-negative/40 bg-cost-negative/5" : "border-cost-positive/40 bg-cost-positive/5")}>
-                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Ganancia real estimada</div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Ganancia con el nuevo presupuesto</div>
                 <div className={cn("text-xl font-bold font-mono-data", previewLosing ? "text-cost-negative" : "text-cost-positive")}>
-                  {previewProfit >= 0 ? "+" : ""}{PEN.format(previewProfit)} ({previewMargin.toFixed(1)}%)
+                  {previewProfit >= 0 ? "+" : ""}{PEN.format(previewProfit)} ({previewSafe.text})
                 </div>
+                {previewSafe.isExtreme && (
+                  <p className="text-[11px] text-cost-negative mt-1">{previewSafe.text}</p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -258,22 +238,46 @@ export default function ProjectCostsTab({ project }: Props) {
         </Dialog>
       </div>
 
-      {/* === Big number: GANANCIA REAL (descontando aportes propios) === */}
-      <div className={cn("surface-card p-6 border-l-4", realLosing ? "border-cost-negative" : "border-cost-positive")}>
+      {/* === Banner sugerencia aporte cuando gasto > presupuesto === */}
+      {liveLosing && totalContributions === 0 && Number(project.budget) > 0 && (
+        <div className="surface-card border border-primary/40 bg-primary/5 p-4 flex items-start gap-3">
+          <HandCoins className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground text-sm">Este proyecto está excediendo el presupuesto</p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              Llevas {PEN.format(Math.abs(liveProfit))} por encima. Si pusiste dinero propio para continuar, regístralo como aporte para reflejar tu ganancia real.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* === Big number: GANANCIA REAL con badge de salud financiera === */}
+      <div className={cn("surface-card p-6 border-l-4", financialHealth.border)}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Ganancia real (hoy){totalContributions > 0 && " · descontando tu aporte"}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                Ganancia real (hoy){totalContributions > 0 && " · descontando tu aporte"}
+              </span>
+              <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded inline-flex items-center gap-1", financialHealth.bg, financialHealth.color)}>
+                {financialHealth.emoji} {financialHealth.label}
+              </span>
             </div>
-            <div className={cn("text-4xl font-bold font-mono-data mt-1", realLosing ? "text-cost-negative" : "text-cost-positive")}>
+            <div className={cn("text-4xl font-bold font-mono-data", realLosing ? "text-cost-negative" : "text-cost-positive")}>
               {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
             </div>
             <div className="text-[13px] text-muted-foreground mt-1">
-              Margen real: <span className={cn("font-mono-data font-semibold", liveMarginWithContrib >= 20 ? "text-cost-positive" : liveMarginWithContrib >= 0 ? "text-cost-warning" : "text-cost-negative")}>
-                {liveMarginWithContrib.toFixed(1)}%
-              </span>
-              {" · "}
-              {realLosing ? "Estás perdiendo dinero. Revisa qué ajustar." : liveMarginWithContrib >= 30 ? "Excelente rentabilidad." : "Margen aceptable, vigila los costos."}
+              {safeMargin.isExtreme ? (
+                <span className="text-cost-negative font-medium">{safeMargin.text}</span>
+              ) : (
+                <>
+                  Margen real: <span className={cn("font-mono-data font-semibold", liveMarginWithContrib >= 20 ? "text-cost-positive" : liveMarginWithContrib >= 0 ? "text-cost-warning" : "text-cost-negative")}>
+                    {safeMargin.text}
+                  </span>
+                  {" · "}
+                  {financialHealth.description}
+                </>
+              )}
             </div>
             {totalContributions > 0 && (
               <div className="text-[11px] text-primary mt-1 inline-flex items-center gap-1">
@@ -291,19 +295,22 @@ export default function ProjectCostsTab({ project }: Props) {
 
       {/* === Tarjetas simplificadas: ROI + Proyección final === */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="surface-card p-4 border-l-4 border-status-progress">
+        <div className={cn(
+          "surface-card p-4 border-l-4",
+          roi.tone === "good" ? "border-cost-positive" : roi.tone === "bad" ? "border-cost-negative" : roi.tone === "warn" ? "border-cost-warning" : "border-status-progress"
+        )}>
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground">
             <Sparkles className="w-3.5 h-3.5 text-status-progress" /> Retorno sobre tu inversión
           </div>
-          <div className="text-xl font-bold font-mono-data mt-1 text-foreground">{roiText}</div>
+          <div className={cn(
+            "text-lg font-bold font-mono-data mt-1",
+            roi.tone === "bad" ? "text-cost-negative" : roi.tone === "good" ? "text-cost-positive" : "text-foreground"
+          )}>{roi.text}</div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {liveTotal > 0 && roiRatio >= 1.3
-              ? "Buena rentabilidad por cada sol invertido."
-              : liveTotal > 0 && roiRatio >= 1.0
-              ? "Recuperas la inversión, pero el margen es ajustado."
-              : liveTotal > 0
-              ? "Estás perdiendo dinero por cada sol invertido."
-              : "Cuando registres gastos verás tu ROI aquí."}
+            {roi.tone === "good" && "Buena rentabilidad por cada sol invertido."}
+            {roi.tone === "warn" && "Recuperas la inversión, pero el margen es ajustado."}
+            {roi.tone === "bad" && "Estás perdiendo dinero por cada sol invertido."}
+            {roi.tone === "neutral" && "Cuando registres gastos verás tu ROI aquí."}
           </p>
         </div>
 
