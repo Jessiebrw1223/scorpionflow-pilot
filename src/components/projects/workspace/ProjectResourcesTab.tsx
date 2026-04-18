@@ -263,11 +263,14 @@ export default function ProjectResourcesTab({ project }: Props) {
   // ===== Tech / Asset (creación manual permitida) =====
   function openCreateNonHuman(kind: Exclude<Kind, "human">) {
     setEditingNonHuman(null);
-    setForm({ name: "", role_or_type: "", unit: "fixed", unit_cost: 0, quantity: 1, notes: "" });
+    setPresetId("custom");
+    const defaultUnit: Unit = kind === "tech" ? "month" : "fixed";
+    setForm({ name: "", role_or_type: "", unit: defaultUnit, unit_cost: 0, quantity: 1, notes: "" });
     setDialogKind(kind);
   }
   function openEditNonHuman(r: ProjectResource) {
     setEditingNonHuman(r);
+    setPresetId("custom");
     setForm({
       name: r.name,
       role_or_type: r.role_or_type || "",
@@ -277,6 +280,19 @@ export default function ProjectResourcesTab({ project }: Props) {
       notes: r.notes || "",
     });
     setDialogKind(r.kind as Exclude<Kind, "human">);
+  }
+  function applyPreset(id: string) {
+    setPresetId(id);
+    if (!dialogKind) return;
+    const list = dialogKind === "tech" ? TECH_PRESETS : ASSET_PRESETS;
+    const preset = list.find((p) => p.id === id);
+    if (!preset || id === "custom") return;
+    setForm((f) => ({
+      ...f,
+      name: f.name || preset.defaultName,
+      role_or_type: f.role_or_type || preset.label,
+      unit: preset.defaultUnit,
+    }));
   }
   function submitNonHuman() {
     if (!form.name.trim()) {
