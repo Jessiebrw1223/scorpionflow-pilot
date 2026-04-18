@@ -56,7 +56,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, status, progress, budget, actual_cost, client_id, clients(name)")
+        .select("id, name, status, progress, budget, actual_cost, start_date, end_date, client_id, clients(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
