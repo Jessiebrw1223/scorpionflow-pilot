@@ -47,6 +47,28 @@ export const PLAN_LABELS: Record<SubscriptionPlan, string> = {
   business: "Business",
 };
 
+/** Construye la URL completa para que el invitado acepte la invitación. */
+export function buildInviteUrl(token: string): string {
+  if (typeof window === "undefined") return `/invite/${token}`;
+  return `${window.location.origin}/invite/${token}`;
+}
+
+/** Estado real de una invitación, considerando expiración por fecha. */
+export function computeInvitationStatus(inv: TeamInvitation): InvitationStatus {
+  if (inv.status === "pending" && new Date(inv.expires_at).getTime() < Date.now()) {
+    return "expired";
+  }
+  return inv.status;
+}
+
+export interface InviteResult {
+  error: string | null;
+  invitation?: TeamInvitation;
+  inviteUrl?: string;
+  emailSent?: boolean;
+  emailError?: string;
+}
+
 export function useTeam() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<AccountSubscription | null>(null);
@@ -70,7 +92,6 @@ export function useTeam() {
     if (subRes.data) {
       setSubscription(subRes.data as AccountSubscription);
     } else {
-      // Fallback: crear una si por algún motivo no existe
       const { data: created } = await supabase
         .from("account_subscriptions")
         .insert({ owner_id: user.id, plan: "free", status: "active" })
@@ -99,29 +120,108 @@ export function useTeam() {
   const canInvite = isUnlimited || used < limit;
   const remaining = isUnlimited ? Infinity : Math.max(0, limit - used);
 
-  const inviteUser = async (email: string, role: TeamRole) => {
-    if (!user) throw new Error("No user");
+  const inviteUser = async (email: string, role: TeamRole): Promise<InviteResult> => {
+    if (!user) return { error: "No user" };
     if (!canInvite) {
-      return { error: "limit_reached" as const };
+      return { error: "limit_reached" };
     }
     const normalized = email.trim().toLowerCase();
-    // Validar duplicados
     const dupMember = members.find((m) => m.email.toLowerCase() === normalized);
-    if (dupMember) return { error: "already_member" as const };
+    if (dupMember) return { error: "already_member" };
     const dupInv = invitations.find(
       (i) => i.email.toLowerCase() === normalized && i.status === "pending"
     );
-    if (dupInv) return { error: "already_invited" as const };
+    if (dupInv) return { error: "already_invited" };
 
-    const { error } = await supabase.from("team_invitations").insert({
-      owner_id: user.id,
-      email: normalized,
-      role,
-      invited_by_name: user.user_metadata?.full_name ?? user.email ?? null,
-    });
-    if (error) return { error: error.message };
+    const inviterName =
+      (user.user_metadata as any)?.full_name ||
+      (user.user_metadata as any)?.name ||
+      user.email ||
+      null;
+
+    // 1. Crear invitación en DB (genera token único automáticamente)
+    const { data: created, error } = await supabase
+      .from("team_invitations")
+      .insert({
+        owner_id: user.id,
+        email: normalized,
+        role,
+        invited_by_name: inviterName,
+      })
+      .select()
+      .single();
+
+    if (error || !created) {
+      return { error: error?.message ?? "No se pudo crear la invitación" };
+    }
+
+    const invitation = created as TeamInvitation;
+    const inviteUrl = buildInviteUrl(invitation.token);
+
+    // 2. Intentar enviar correo (NO bloquea el flujo si falla)
+    let emailSent = false;
+    let emailError: string | undefined;
+    try {
+      const { error: fnErr } = await supabase.functions.invoke(
+        "send-transactional-email",
+        {
+          body: {
+            templateName: "team-invitation",
+            recipientEmail: normalized,
+            idempotencyKey: `team-invite-${invitation.id}`,
+            templateData: {
+              inviterName,
+              role,
+              inviteUrl,
+            },
+          },
+        }
+      );
+      if (fnErr) {
+        emailError = fnErr.message;
+      } else {
+        emailSent = true;
+      }
+    } catch (e: any) {
+      emailError = e?.message ?? "Error desconocido";
+    }
+
     await refresh();
-    return { error: null };
+    return { error: null, invitation, inviteUrl, emailSent, emailError };
+  };
+
+  const resendInvitation = async (invitation: TeamInvitation): Promise<InviteResult> => {
+    if (!user) return { error: "No user" };
+    const inviterName =
+      (user.user_metadata as any)?.full_name ||
+      (user.user_metadata as any)?.name ||
+      user.email ||
+      null;
+    const inviteUrl = buildInviteUrl(invitation.token);
+    let emailSent = false;
+    let emailError: string | undefined;
+    try {
+      const { error: fnErr } = await supabase.functions.invoke(
+        "send-transactional-email",
+        {
+          body: {
+            templateName: "team-invitation",
+            recipientEmail: invitation.email,
+            idempotencyKey: `team-invite-resend-${invitation.id}-${Date.now()}`,
+            templateData: {
+              inviterName,
+              role: invitation.role,
+              inviteUrl,
+            },
+          },
+        }
+      );
+      if (fnErr) emailError = fnErr.message;
+      else emailSent = true;
+    } catch (e: any) {
+      emailError = e?.message ?? "Error desconocido";
+    }
+    return { error: null, invitation, inviteUrl, emailSent, emailError };
   };
 
   const cancelInvitation = async (id: string) => {
@@ -145,7 +245,9 @@ export function useTeam() {
     planLabel: PLAN_LABELS[plan],
     subscription,
     members,
-    invitations: invitations.filter((i) => i.status === "pending"),
+    invitations: invitations.filter(
+      (i) => computeInvitationStatus(i) === "pending"
+    ),
     allInvitations: invitations,
     used,
     limit,
@@ -153,6 +255,7 @@ export function useTeam() {
     canInvite,
     remaining,
     inviteUser,
+    resendInvitation,
     cancelInvitation,
     removeMember,
     updateMemberRole,
