@@ -7,12 +7,99 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  Palette, CreditCard, User, Bell, Settings, Check, Crown, Shield,
+  Palette, CreditCard, User, Bell, Check, Sparkles, Star, Rocket, TrendingUp, Zap,
 } from "lucide-react";
+
+type PlanId = "free" | "starter" | "pro" | "business";
+type Billing = "monthly" | "annual";
+
+const PLANS: Array<{
+  id: PlanId;
+  name: string;
+  tagline: string;
+  monthlyPEN: number;
+  monthlyUSD: number;
+  annualPEN: number; // precio mensual al pagar anual
+  annualUSD: number;
+  icon: typeof Sparkles;
+  accent: string; // tailwind classes
+  features: string[];
+  cta: string;
+  highlight?: boolean;
+}> = [
+  {
+    id: "free",
+    name: "Free",
+    tagline: "Empieza a organizar tu trabajo",
+    monthlyPEN: 0, monthlyUSD: 0, annualPEN: 0, annualUSD: 0,
+    icon: Sparkles,
+    accent: "text-muted-foreground",
+    features: [
+      "Hasta 5 clientes",
+      "Hasta 3 proyectos",
+      "Planificación básica",
+      "Tareas y tablero simple",
+      "Dashboard básico",
+    ],
+    cta: "Empezar gratis",
+  },
+  {
+    id: "starter",
+    name: "Starter",
+    tagline: "Trabaja sin límites",
+    monthlyPEN: 35, monthlyUSD: 12, annualPEN: 28, annualUSD: 9,
+    icon: Rocket,
+    accent: "text-blue-400",
+    features: [
+      "Clientes ilimitados",
+      "Proyectos ilimitados",
+      "Planificación completa",
+      "Calendario y vistas avanzadas",
+      "Cotizaciones ilimitadas",
+    ],
+    cta: "Actualizar a Starter",
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    tagline: "Controla tu negocio y evita pérdidas",
+    monthlyPEN: 90, monthlyUSD: 27, annualPEN: 70, annualUSD: 21,
+    icon: Star,
+    accent: "text-primary",
+    highlight: true,
+    features: [
+      "Todo lo de Starter",
+      "💰 Ganancia real y margen",
+      "ROI por proyecto",
+      "Costos por tarea y recursos",
+      "Alertas inteligentes de riesgo",
+      "Gestión avanzada de recursos",
+    ],
+    cta: "Actualizar a Pro",
+  },
+  {
+    id: "business",
+    name: "Business",
+    tagline: "Decisiones estratégicas y control total",
+    monthlyPEN: 200, monthlyUSD: 60, annualPEN: 160, annualUSD: 48,
+    icon: TrendingUp,
+    accent: "text-cost-warning",
+    features: [
+      "Todo lo de Pro",
+      "Dashboard ejecutivo",
+      "Proyección financiera",
+      "Informes avanzados",
+      "Control multi-proyecto",
+      "Soporte prioritario",
+    ],
+    cta: "Actualizar a Business",
+  },
+];
 
 export default function SettingsPage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [activePlan, setActivePlan] = useState<"admin" | "manager">("admin");
+  const [activePlan, setActivePlan] = useState<PlanId>("free");
+  const [billing, setBilling] = useState<Billing>("monthly");
   const [notifications, setNotifications] = useState({
     tasks: true,
     delays: true,
