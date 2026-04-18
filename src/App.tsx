@@ -24,6 +24,8 @@ import InviteAcceptPage from "./pages/InviteAcceptPage";
 import UnsubscribePage from "./pages/UnsubscribePage";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useLocation } from "react-router-dom";
 
 /** En "/" mostramos landing pública si no hay sesión, y dashboard si la hay. */
 function RootGate() {
@@ -44,6 +46,7 @@ function RootGate() {
 const queryClient = new QueryClient();
 
 function AppShell() {
+  const location = useLocation();
   return (
     <Routes>
       <Route path="/auth/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
@@ -55,7 +58,7 @@ function AppShell() {
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
-      <Route path="/" element={<RootGate />} />
+      <Route path="/" element={<ErrorBoundary resetKey={location.pathname}><RootGate /></ErrorBoundary>} />
 
       <Route
         path="*"
@@ -64,20 +67,22 @@ function AppShell() {
             <>
               <AppSidebar />
               <AppLayout>
-                <Routes>
-                  <Route path="/clientes" element={<ClientesPage />} />
-                  <Route path="/cotizaciones" element={<CotizacionesPage />} />
-                  <Route path="/projects" element={<ProjectsPage />} />
-                  <Route path="/projects/:id" element={<ProjectWorkspacePage />} />
-                  <Route path="/team" element={<TeamPage />} />
-                  {/* Rutas legacy redirigidas al nuevo flujo por proyecto */}
-                  <Route path="/tasks" element={<Navigate to="/projects" replace />} />
-                  <Route path="/costs" element={<Navigate to="/projects" replace />} />
-                  <Route path="/reports" element={<Navigate to="/projects" replace />} />
-                  <Route path="/resources" element={<Navigate to="/projects" replace />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <ErrorBoundary resetKey={location.pathname}>
+                  <Routes>
+                    <Route path="/clientes" element={<ClientesPage />} />
+                    <Route path="/cotizaciones" element={<CotizacionesPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/projects/:id" element={<ProjectWorkspacePage />} />
+                    <Route path="/team" element={<TeamPage />} />
+                    {/* Rutas legacy redirigidas al nuevo flujo por proyecto */}
+                    <Route path="/tasks" element={<Navigate to="/projects" replace />} />
+                    <Route path="/costs" element={<Navigate to="/projects" replace />} />
+                    <Route path="/reports" element={<Navigate to="/projects" replace />} />
+                    <Route path="/resources" element={<Navigate to="/projects" replace />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </ErrorBoundary>
               </AppLayout>
             </>
           </ProtectedRoute>

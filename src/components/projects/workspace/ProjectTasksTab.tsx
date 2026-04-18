@@ -27,6 +27,7 @@ interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   impact: TaskImpact;
+  node_type: string;
   assignee_name: string | null;
   due_date: string | null;
   blocks_project: boolean;
@@ -69,6 +70,8 @@ const emptyForm: FormValues = {
 interface Props {
   projectId: string;
   defaultView?: "kanban" | "list";
+  /** Filtra por tipo de nodo (epic/story/task/phase/subphase/activity). */
+  nodeTypeFilter?: string | null;
 }
 
 function getInitials(name: string | null): string {
@@ -76,7 +79,7 @@ function getInitials(name: string | null): string {
   return name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
 }
 
-export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: Props) {
+export default function ProjectTasksTab({ projectId, defaultView = "kanban", nodeTypeFilter }: Props) {
   const qc = useQueryClient();
   const [view, setView] = useState<"kanban" | "list">(defaultView);
   const [openForm, setOpenForm] = useState(false);
@@ -85,7 +88,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
   const [panelTask, setPanelTask] = useState<Task | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: allTasks = [], isLoading } = useQuery({
     queryKey: ["project-tasks", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -98,6 +101,11 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban" }: P
       return data as Task[];
     },
   });
+
+  const tasks = useMemo(
+    () => (nodeTypeFilter ? allTasks.filter((t) => t.node_type === nodeTypeFilter) : allTasks),
+    [allTasks, nodeTypeFilter]
+  );
 
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
