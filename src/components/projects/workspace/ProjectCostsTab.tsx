@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Pencil, Loader2, Users, Cpu, Wrench, Sparkles, Target, Clock } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Pencil, Loader2, Users, Cpu, Wrench, Sparkles, Target, Clock, HandCoins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
+import ProjectContributionsSection from "./ProjectContributionsSection";
 
 const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
