@@ -51,10 +51,17 @@ export function useMoney() {
     const fmt = buildFormatter(currency);
     const fmtCompact = buildFormatter(currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const symbol = SYMBOL_BY_CURRENCY[currency];
-    const fn = (value: number) => fmt.format(Number.isFinite(value) ? value : 0);
-    fn.compact = (value: number) => fmtCompact.format(Number.isFinite(value) ? value : 0);
+    const safe = (v: number) => (Number.isFinite(v) ? v : 0);
+    const fn: any = (value: number) => fmt.format(safe(value));
+    fn.format = (value: number) => fmt.format(safe(value));   // compat con Intl.NumberFormat
+    fn.compact = (value: number) => fmtCompact.format(safe(value));
     fn.currency = currency;
     fn.symbol = symbol;
-    return fn;
+    return fn as ((v: number) => string) & {
+      format: (v: number) => string;
+      compact: (v: number) => string;
+      currency: Currency;
+      symbol: string;
+    };
   }, [currency]);
 }
