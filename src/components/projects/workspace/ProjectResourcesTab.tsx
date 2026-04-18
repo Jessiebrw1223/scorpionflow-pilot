@@ -14,8 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
 
 type Kind = "human" | "tech" | "asset";
 type Unit = "hour" | "month" | "use" | "fixed";

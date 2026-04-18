@@ -17,11 +17,11 @@ import { useAutoAlertEngine } from "@/hooks/useNotifications";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const PEN = useMoney();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min-dash"],

@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
 
 interface Props {
   projectId: string;
@@ -19,6 +18,7 @@ interface Props {
 }
 
 export default function ProjectContributionsSection({ projectId, budget, actualCost }: Props) {
+  const PEN = useMoney();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(0);

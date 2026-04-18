@@ -11,8 +11,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
 import ProjectContributionsSection from "./ProjectContributionsSection";
 import { formatSafeMargin, formatROI, getFinancialHealth } from "@/lib/business-intelligence";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 interface Props {
   project: any;
@@ -28,6 +28,8 @@ function timeAgo(ts: number): string {
 
 export default function ProjectCostsTab({ project }: Props) {
   const qc = useQueryClient();
+  const PEN = useMoney();
+  const { settings } = useUserSettings();
   const [open, setOpen] = useState(false);
   const [budget, setBudget] = useState(Number(project.budget));
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now());

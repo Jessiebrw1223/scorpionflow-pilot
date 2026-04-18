@@ -5,14 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { PROJECT_STATUS_META, TASK_PRIORITY_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
 
 interface Props {
   project: any;
 }
 
 export default function ProjectReportTab({ project }: Props) {
+  const PEN = useMoney();
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["project-tasks-report", project.id],
     queryFn: async () => {
