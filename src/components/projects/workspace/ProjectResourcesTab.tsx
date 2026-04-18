@@ -89,6 +89,7 @@ function serializeRole(type: ResponsibleType, label: string) {
 
 export default function ProjectResourcesTab({ project }: Props) {
   const qc = useQueryClient();
+  const PEN = useMoney();
 
   // Dialog para asignar costo a humano detectado
   const [humanDialog, setHumanDialog] = useState<{

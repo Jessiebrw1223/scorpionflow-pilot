@@ -40,6 +40,7 @@ const STATUS_FILTERS: { key: ProjectStatus | "all"; label: string }[] = [
 export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
+  const PEN = useMoney();
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
