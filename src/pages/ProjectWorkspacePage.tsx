@@ -14,6 +14,7 @@ import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
 import ProjectReportTab from "@/components/projects/workspace/ProjectReportTab";
 import ProjectResourcesTab from "@/components/projects/workspace/ProjectResourcesTab";
 import ProjectScheduleTab from "@/components/projects/workspace/ProjectScheduleTab";
+import { PremiumGate } from "@/components/billing/PremiumGate";
 
 export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
