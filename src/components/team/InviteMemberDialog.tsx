@@ -58,16 +58,22 @@ export function InviteMemberDialog({ open, onOpenChange, onInvite }: Props) {
       return;
     }
     if (res.error) {
-      toast.error(res.error);
+      // Humanize technical errors
+      const msg = /non-2xx|fetch|network|failed/i.test(res.error)
+        ? "No pudimos procesar la invitación. Intenta de nuevo en un momento."
+        : res.error;
+      toast.error(msg);
       return;
     }
 
     setResult(res);
     setStep("result");
     if (res.emailSent) {
-      toast.success("Invitación enviada por correo");
+      toast.success("📨 Invitación enviada por correo");
     } else {
-      toast.warning("Invitación creada. Comparte el enlace manualmente.");
+      toast.warning(
+        "No se pudo enviar el correo. Puedes compartir el enlace manualmente.",
+      );
     }
   };
 

@@ -15,9 +15,16 @@ import {
   CheckCircle2,
   Clock,
   CircleAlert,
+  Sparkle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   useTeam,
   type TeamRole,
@@ -26,6 +33,7 @@ import {
   buildInviteUrl,
   computeInvitationStatus,
 } from "@/hooks/useTeam";
+import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/team/InviteMemberDialog";
 import { UpgradePlanDialog } from "@/components/team/UpgradePlanDialog";
 import { useNavigate } from "react-router-dom";
@@ -74,14 +82,28 @@ const STATUS_META: Record<
   },
 };
 
+function daysUntil(iso: string): number {
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
+function formatExpiresIn(iso: string): string {
+  const d = daysUntil(iso);
+  if (d < 0) return `Expiró hace ${Math.abs(d)}d`;
+  if (d === 0) return "Expira hoy";
+  if (d === 1) return "Expira mañana";
+  return `Vence en ${d} días`;
+}
+
 export default function TeamPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     loading,
     plan,
     planLabel,
     members,
-    invitations,
+    allInvitations,
     used,
     limit,
     isUnlimited,
@@ -107,19 +129,19 @@ export default function TeamPage() {
   const handleCopy = async (token: string) => {
     try {
       await navigator.clipboard.writeText(buildInviteUrl(token));
-      toast.success("Enlace copiado");
+      toast.success("✅ Enlace copiado");
     } catch {
-      toast.error("No se pudo copiar");
+      toast.error("No se pudo copiar el enlace");
     }
   };
 
   const handleResend = async (inv: TeamInvitation) => {
     const res = await resendInvitation(inv);
     if (res.emailSent) {
-      toast.success("Correo reenviado");
+      toast.success("📨 Invitación reenviada");
     } else {
       toast.warning(
-        "No se pudo reenviar el correo. Comparte el enlace manualmente."
+        "No pudimos reenviar el correo. Comparte el enlace manualmente.",
       );
     }
   };
@@ -132,215 +154,258 @@ export default function TeamPage() {
       ? "bg-orange-500"
       : "scorpion-gradient";
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            Equipo
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Invita a tu equipo. Comparte la misma información. Toma decisiones alineadas.
-          </p>
-        </div>
-        <Button
-          onClick={handleInviteClick}
-          className="scorpion-gradient text-primary-foreground border-0 fire-glow"
-          size="lg"
-        >
-          {canInvite ? <UserPlus className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-          Invitar usuario
-        </Button>
-      </div>
+  // Visible: pending + recent history (accepted/expired/cancelled)
+  const pendingInvs = allInvitations.filter(
+    (i) => computeInvitationStatus(i) === "pending",
+  );
+  const historyInvs = allInvitations.filter(
+    (i) => computeInvitationStatus(i) !== "pending",
+  );
 
-      {/* Plan usage card */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Crown className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Plan {planLabel}</span>
-            <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-              {isUnlimited ? "Ilimitado" : `${used} / ${limit} usuarios`}
-            </Badge>
+  const ownerName =
+    (user?.user_metadata as any)?.full_name ||
+    (user?.user_metadata as any)?.name ||
+    user?.email?.split("@")[0] ||
+    "Tú";
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Users className="w-6 h-6 text-primary" />
+              Equipo
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Invita personas y colabora en tiempo real. Comparte la misma
+              información, toma decisiones alineadas.
+            </p>
           </div>
-          {!isUnlimited && (
-            <button
-              onClick={() => navigate("/settings?tab=subscription")}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3" />
-              Mejorar plan
-            </button>
+          <Button
+            onClick={handleInviteClick}
+            className="scorpion-gradient text-primary-foreground border-0 fire-glow"
+            size="lg"
+          >
+            {canInvite ? (
+              <UserPlus className="w-4 h-4 mr-2" />
+            ) : (
+              <Lock className="w-4 h-4 mr-2" />
+            )}
+            Invitar usuario
+          </Button>
+        </div>
+
+        {/* Plan usage card */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold">Plan {planLabel}</span>
+              <Badge
+                variant="outline"
+                className="text-[10px] uppercase tracking-wider"
+              >
+                {isUnlimited ? "Ilimitado" : `${used} / ${limit} usuarios`}
+              </Badge>
+            </div>
+            {!isUnlimited && (
+              <button
+                onClick={() => navigate("/settings?tab=subscription")}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <Sparkles className="w-3 h-3" />
+                Mejorar plan
+              </button>
+            )}
+          </div>
+
+          {!isUnlimited ? (
+            <>
+              <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className={`h-full ${progressColor} transition-all`}
+                  style={{ width: `${usagePercent}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {remaining > 0
+                  ? `Te quedan ${remaining} ${
+                      remaining === 1 ? "cupo" : "cupos"
+                    } por usar.`
+                  : "Has alcanzado el límite de usuarios de tu plan."}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Tu plan permite usuarios ilimitados. Invita a todo tu equipo sin
+              restricciones.
+            </p>
           )}
         </div>
 
-        {!isUnlimited ? (
-          <>
-            <div className="h-2 rounded-full bg-secondary overflow-hidden">
-              <div
-                className={`h-full ${progressColor} transition-all`}
-                style={{ width: `${usagePercent}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {remaining > 0
-                ? `Te quedan ${remaining} ${remaining === 1 ? "usuario" : "usuarios"} por invitar.`
-                : "Has alcanzado el límite de usuarios de tu plan."}
-            </p>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Tu plan permite usuarios ilimitados. Invita a todo tu equipo sin restricciones.
-          </p>
-        )}
-      </div>
-
-      {/* Members list */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Miembros activos</h2>
-          <span className="text-xs text-muted-foreground">{members.length + 1} total</span>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">Cargando...</div>
-        ) : (
-          <div className="divide-y divide-border">
-            <MemberRow
-              name="Tú (Propietario)"
-              email=""
-              role="admin"
-              isOwner
-            />
-            {members.map((m) => (
-              <MemberRow
-                key={m.id}
-                name={m.full_name || m.email}
-                email={m.email}
-                role={m.role}
-                onRemove={async () => {
-                  await removeMember(m.id);
-                  toast.success("Miembro removido");
-                }}
-              />
-            ))}
-            {members.length === 0 && (
-              <div className="p-8 text-center">
-                <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  Aún no hay otros miembros. Invita a tu equipo para colaborar.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Pending invitations */}
-      {invitations.length > 0 && (
+        {/* Members list */}
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="px-5 py-3 border-b border-border">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              Invitaciones pendientes
-              <Badge variant="secondary" className="text-[10px]">{invitations.length}</Badge>
-            </h2>
+          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Miembros activos</h2>
+            <span className="text-xs text-muted-foreground">
+              {members.length + 1} {members.length + 1 === 1 ? "persona" : "personas"}
+            </span>
           </div>
-          <div className="divide-y divide-border">
-            {invitations.map((inv) => {
-              const status = computeInvitationStatus(inv);
-              const meta = STATUS_META[status];
-              const StatusIcon = meta.icon;
-              return (
-                <div key={inv.id} className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{inv.email}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {ROLE_LABEL[inv.role]} · Enviada el{" "}
-                        {new Date(inv.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-[10px] gap-1 ${meta.className}`}>
-                      <StatusIcon className="w-3 h-3" />
-                      {meta.label}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopy(inv.token)}
-                      title="Copiar enlace"
-                      className="h-8"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleResend(inv)}
-                      title="Reenviar correo"
-                      className="h-8"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </Button>
-                    <button
-                      onClick={async () => {
-                        await cancelInvitation(inv.id);
-                        toast.success("Invitación cancelada");
-                      }}
-                      className="text-muted-foreground hover:text-destructive"
-                      title="Cancelar invitación"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+
+          {loading ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              Cargando…
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              <MemberRow
+                name={ownerName}
+                email={user?.email ?? ""}
+                role="admin"
+                joinedAt={user?.created_at ?? null}
+                isOwner
+              />
+              {members.map((m) => (
+                <MemberRow
+                  key={m.id}
+                  name={m.full_name || m.email.split("@")[0]}
+                  email={m.email}
+                  role={m.role}
+                  joinedAt={m.joined_at}
+                  onRemove={async () => {
+                    await removeMember(m.id);
+                    toast.success("Miembro removido del equipo");
+                  }}
+                />
+              ))}
+              {members.length === 0 && (
+                <div className="p-8 text-center">
+                  <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Aún no hay otros miembros. Invita a tu equipo para colaborar.
+                  </p>
                 </div>
-              );
-            })}
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Pending invitations */}
+        {pendingInvs.length > 0 && (
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Invitaciones pendientes
+                <Badge variant="secondary" className="text-[10px]">
+                  {pendingInvs.length}
+                </Badge>
+              </h2>
+            </div>
+            <div className="divide-y divide-border">
+              {pendingInvs.map((inv) => (
+                <InvitationRow
+                  key={inv.id}
+                  inv={inv}
+                  onCopy={handleCopy}
+                  onResend={handleResend}
+                  onCancel={async () => {
+                    await cancelInvitation(inv.id);
+                    toast.success("❌ Invitación cancelada");
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* History */}
+        {historyInvs.length > 0 && (
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-border">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Historial de invitaciones
+                <Badge variant="secondary" className="text-[10px]">
+                  {historyInvs.length}
+                </Badge>
+              </h2>
+            </div>
+            <div className="divide-y divide-border">
+              {historyInvs.slice(0, 10).map((inv) => (
+                <InvitationRow
+                  key={inv.id}
+                  inv={inv}
+                  history
+                  onCopy={handleCopy}
+                  onResend={handleResend}
+                  onCancel={async () => {
+                    await cancelInvitation(inv.id);
+                    toast.success("Invitación eliminada");
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Roles helper */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {(["admin", "collaborator", "viewer"] as TeamRole[]).map((r) => {
+            const Icon = ROLE_ICON[r];
+            const desc =
+              r === "admin"
+                ? "Control total: gestiona equipo, proyectos y datos."
+                : r === "collaborator"
+                ? "Acceso operativo: trabaja en proyectos y tareas."
+                : "Solo lectura: consulta sin modificar.";
+            return (
+              <div
+                key={r}
+                className="rounded-lg border border-border bg-card p-4"
+              >
+                <Icon className="w-4 h-4 text-primary mb-2" />
+                <div className="text-sm font-semibold mb-1">
+                  {ROLE_LABEL[r]}
+                </div>
+                <div className="text-xs text-muted-foreground">{desc}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Trust banner */}
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg scorpion-gradient flex items-center justify-center shrink-0">
+            <Sparkle className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <div className="text-sm">
+            <div className="font-semibold mb-0.5">
+              Invita personas y colabora en tiempo real
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tus colaboradores verán los mismos proyectos, costos y alertas que tú,
+              según el rol que les asignes. Sin reenvíos, sin duplicidad.
+            </p>
           </div>
         </div>
-      )}
 
-      {/* Roles helper */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {(["admin", "collaborator", "viewer"] as TeamRole[]).map((r) => {
-          const Icon = ROLE_ICON[r];
-          const desc =
-            r === "admin"
-              ? "Control total: gestiona equipo, proyectos y datos."
-              : r === "collaborator"
-              ? "Acceso operativo: trabaja en proyectos y tareas."
-              : "Solo lectura: consulta sin modificar.";
-          return (
-            <div key={r} className="rounded-lg border border-border bg-card p-4">
-              <Icon className="w-4 h-4 text-primary mb-2" />
-              <div className="text-sm font-semibold mb-1">{ROLE_LABEL[r]}</div>
-              <div className="text-xs text-muted-foreground">{desc}</div>
-            </div>
-          );
-        })}
+        <InviteMemberDialog
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          onInvite={inviteUser}
+        />
+        <UpgradePlanDialog
+          open={upsellOpen}
+          onOpenChange={setUpsellOpen}
+          currentPlan={plan}
+          used={used}
+          limit={limit}
+        />
       </div>
-
-      <InviteMemberDialog
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
-        onInvite={inviteUser}
-      />
-      <UpgradePlanDialog
-        open={upsellOpen}
-        onOpenChange={setUpsellOpen}
-        currentPlan={plan}
-        used={used}
-        limit={limit}
-      />
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -349,12 +414,14 @@ function MemberRow({
   email,
   role,
   isOwner,
+  joinedAt,
   onRemove,
 }: {
   name: string;
   email: string;
   role: TeamRole;
   isOwner?: boolean;
+  joinedAt?: string | null;
   onRemove?: () => void;
 }) {
   const initial = (name || email || "?").charAt(0).toUpperCase();
@@ -369,27 +436,180 @@ function MemberRow({
           <div className="text-sm font-medium truncate flex items-center gap-2">
             {name}
             {isOwner && (
-              <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-primary/40 text-primary">
-                <Crown className="w-2.5 h-2.5 mr-1" />Owner
+              <Badge
+                variant="outline"
+                className="text-[9px] uppercase tracking-wider border-primary/40 text-primary"
+              >
+                <Crown className="w-2.5 h-2.5 mr-1" />
+                Propietario
               </Badge>
             )}
           </div>
-          {email && <div className="text-xs text-muted-foreground truncate">{email}</div>}
+          <div className="text-xs text-muted-foreground truncate flex flex-wrap gap-x-2">
+            {email && <span>{email}</span>}
+            {joinedAt && (
+              <span className="opacity-70">
+                · Desde{" "}
+                {new Date(joinedAt).toLocaleDateString(undefined, {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
           <RoleIcon className="w-3.5 h-3.5" />
           {ROLE_LABEL[role]}
         </div>
         {!isOwner && onRemove && (
-          <button
-            onClick={onRemove}
-            className="text-muted-foreground hover:text-destructive"
-            title="Remover"
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onRemove}
+                className="text-muted-foreground hover:text-destructive p-1 rounded-md"
+                aria-label="Remover miembro"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Remover del equipo</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InvitationRow({
+  inv,
+  history,
+  onCopy,
+  onResend,
+  onCancel,
+}: {
+  inv: TeamInvitation;
+  history?: boolean;
+  onCopy: (token: string) => void;
+  onResend: (inv: TeamInvitation) => void;
+  onCancel: () => void;
+}) {
+  const status = computeInvitationStatus(inv);
+  const meta = STATUS_META[status];
+  const StatusIcon = meta.icon;
+  const isPending = status === "pending";
+  const canResend = isPending || status === "expired";
+
+  return (
+    <div className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+          <Mail className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-medium truncate">{inv.email}</div>
+          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+            <span>{ROLE_LABEL[inv.role]}</span>
+            <span>·</span>
+            <span>
+              Enviada{" "}
+              {new Date(inv.created_at).toLocaleDateString(undefined, {
+                day: "numeric",
+                month: "short",
+              })}
+            </span>
+            {isPending && (
+              <>
+                <span>·</span>
+                <span>{formatExpiresIn(inv.expires_at)}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Badge
+          variant="outline"
+          className={`text-[10px] gap-1 ${meta.className}`}
+        >
+          <StatusIcon className="w-3 h-3" />
+          {meta.label}
+        </Badge>
+
+        {isPending && (
+          <>
+            {/* Desktop: text + icon */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onCopy(inv.token)}
+              className="h-8 hidden sm:inline-flex"
+            >
+              <Copy className="w-3.5 h-3.5 mr-1.5" />
+              Copiar enlace
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onResend(inv)}
+              className="h-8 hidden sm:inline-flex"
+            >
+              <Send className="w-3.5 h-3.5 mr-1.5" />
+              Reenviar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="h-8 text-muted-foreground hover:text-destructive hidden sm:inline-flex"
+            >
+              <X className="w-3.5 h-3.5 mr-1.5" />
+              Cancelar
+            </Button>
+
+            {/* Mobile: only icons + tooltip */}
+            <div className="sm:hidden flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => onCopy(inv.token)} className="h-8 w-8">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copiar enlace</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => onResend(inv)} className="h-8 w-8">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reenviar</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={onCancel} className="h-8 w-8 hover:text-destructive">
+                    <X className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cancelar invitación</TooltipContent>
+              </Tooltip>
+            </div>
+          </>
+        )}
+
+        {history && status === "expired" && canResend && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onResend(inv)}
+            className="h-8"
           >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            <Send className="w-3.5 h-3.5 mr-1.5" />
+            Reenviar
+          </Button>
         )}
       </div>
     </div>

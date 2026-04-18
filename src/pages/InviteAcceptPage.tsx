@@ -82,11 +82,14 @@ export default function InviteAcceptPage() {
     );
     setAccepting(false);
     if (fnErr) {
-      toast.error(fnErr.message);
+      const msg = /non-2xx|fetch|network|failed/i.test(fnErr.message)
+        ? "No pudimos procesar la invitación. Intenta de nuevo."
+        : fnErr.message;
+      toast.error(msg);
       return;
     }
     if ((data as any)?.error) {
-      toast.error((data as any).message || (data as any).error);
+      toast.error((data as any).message || "Esta invitación ya no es válida.");
       return;
     }
     toast.success("¡Te uniste al equipo!");
