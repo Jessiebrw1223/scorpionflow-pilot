@@ -134,6 +134,11 @@ export default function ProjectCostsTab({ project }: Props) {
     ? `Por cada S/ 1 invertido, recibes S/ ${roiRatio.toFixed(2)}`
     : "Aún no hay gastos registrados";
 
+  // Live financials con aportes
+  const liveProfitWithContrib = liveProfit - totalContributions;
+  const liveMarginWithContrib = Number(project.budget) > 0 ? (liveProfitWithContrib / Number(project.budget)) * 100 : 0;
+  const realLosing = liveProfitWithContrib < 0;
+
   // Suma de costos por tarea (diferencial)
   const taskEstimated = tasks.reduce((s, t) => s + Number(t.estimated_cost || 0), 0);
   const taskActual = tasks.reduce((s, t) => s + Number(t.actual_cost || 0), 0);
