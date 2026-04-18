@@ -409,7 +409,7 @@ export default function LandingPage() {
       </section>
 
       {/* DIFERENCIA */}
-      <section id="diferencia" className="border-t border-border/60 bg-secondary/20">
+      <section id="diferencia" className="border-t border-border/60">
         <div className="max-w-6xl mx-auto px-5 py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">La diferencia</span>
