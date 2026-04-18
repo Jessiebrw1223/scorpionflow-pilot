@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_subscriptions: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          id: string
+          owner_id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_interactions: {
         Row: {
           client_id: string
@@ -541,6 +571,87 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_name: string | null
+          owner_id: string
+          role: Database["public"]["Enums"]["team_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by_name?: string | null
+          owner_id: string
+          role?: Database["public"]["Enums"]["team_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_name?: string | null
+          owner_id?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          joined_at: string
+          owner_id: string
+          role: Database["public"]["Enums"]["team_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          owner_id: string
+          role?: Database["public"]["Enums"]["team_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          owner_id?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -609,6 +720,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_team_usage: { Args: { _owner_id: string }; Returns: number }
+      get_plan_user_limit: {
+        Args: { _plan: Database["public"]["Enums"]["subscription_plan"] }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -659,6 +775,12 @@ export type Database = {
         | "whatsapp"
         | "note"
         | "proposal_sent"
+      invitation_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "cancelled"
+        | "expired"
       planning_mode: "agile" | "traditional"
       project_status:
         | "on_track"
@@ -669,6 +791,7 @@ export type Database = {
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
       resource_kind: "human" | "tech" | "asset"
       resource_unit: "hour" | "month" | "use" | "fixed"
+      subscription_plan: "free" | "starter" | "pro" | "business"
       task_impact: "time" | "cost" | "delivery"
       task_node_type:
         | "epic"
@@ -679,6 +802,7 @@ export type Database = {
         | "activity"
       task_priority: "low" | "medium" | "high" | "critical"
       task_status: "todo" | "in_progress" | "in_review" | "done" | "blocked"
+      team_role: "admin" | "collaborator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -842,6 +966,13 @@ export const Constants = {
         "note",
         "proposal_sent",
       ],
+      invitation_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "cancelled",
+        "expired",
+      ],
       planning_mode: ["agile", "traditional"],
       project_status: [
         "on_track",
@@ -853,6 +984,7 @@ export const Constants = {
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
       resource_kind: ["human", "tech", "asset"],
       resource_unit: ["hour", "month", "use", "fixed"],
+      subscription_plan: ["free", "starter", "pro", "business"],
       task_impact: ["time", "cost", "delivery"],
       task_node_type: [
         "epic",
@@ -864,6 +996,7 @@ export const Constants = {
       ],
       task_priority: ["low", "medium", "high", "critical"],
       task_status: ["todo", "in_progress", "in_review", "done", "blocked"],
+      team_role: ["admin", "collaborator", "viewer"],
     },
   },
 } as const
