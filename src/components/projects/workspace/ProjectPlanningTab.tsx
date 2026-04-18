@@ -183,25 +183,70 @@ export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
           </div>
         </div>
 
-        {/* Indicador del modelo activo */}
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground border-t border-border pt-2">
-          <GitBranch className="w-3 h-3" />
-          <span>Modelo:</span>
-          <span className={cn("font-semibold", modeMeta.color)}>{modeMeta.emoji} {modeMeta.label}</span>
-          <span>·</span>
-          <span className="font-mono-data">{modeMeta.description}</span>
+        {/* Indicador del modelo activo + filtro por tipo de nodo */}
+        <div className="flex items-center gap-2 text-[11px] border-t border-border pt-2 flex-wrap">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <GitBranch className="w-3 h-3" />
+            <span>Modelo:</span>
+            <span className={cn("font-semibold", modeMeta.color)}>{modeMeta.emoji} {modeMeta.label}</span>
+          </div>
+          <span className="text-muted-foreground hidden md:inline">·</span>
+
+          {/* Filtro por tipo de nodo (Tareas / Historias / Épicas) */}
+          <div className="flex items-center gap-1 ml-auto">
+            <Filter className="w-3 h-3 text-muted-foreground" />
+            <span className="text-muted-foreground mr-1">Ver:</span>
+            <div className="flex items-center bg-secondary/40 border border-border rounded p-0.5 gap-0.5">
+              <button
+                onClick={() => setNodeFilter(null)}
+                className={cn(
+                  "px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide transition-sf",
+                  !nodeFilter
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todo
+              </button>
+              {getNodeTypesForMode(planningMode).map((nt) => {
+                const meta = NODE_TYPE_META[nt];
+                const active = nodeFilter === nt;
+                return (
+                  <button
+                    key={nt}
+                    onClick={() => setNodeFilter(nt)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide transition-sf inline-flex items-center gap-1",
+                      active
+                        ? cn("shadow-sm", meta.bg, meta.color)
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    title={`Ver solo ${meta.label}s`}
+                  >
+                    <span>{meta.emoji}</span>
+                    {meta.short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Vista activa */}
       {mode === "list" && (
-        <PlanningHierarchyView projectId={projectId} mode={planningMode} onCreate={openCreate} />
+        <PlanningHierarchyView
+          projectId={projectId}
+          mode={planningMode}
+          onCreate={openCreate}
+          nodeTypeFilter={nodeFilter}
+        />
       )}
       {mode === "kanban" && (
-        <ProjectTasksTab key="kanban" projectId={projectId} defaultView="kanban" />
+        <ProjectTasksTab key="kanban" projectId={projectId} defaultView="kanban" nodeTypeFilter={nodeFilter} />
       )}
       {mode === "calendar" && (
-        <PlanningTimelineView projectId={projectId} />
+        <PlanningTimelineView projectId={projectId} nodeTypeFilter={nodeFilter} />
       )}
 
       <QuickCreateNodeDialog
