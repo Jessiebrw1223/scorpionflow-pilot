@@ -40,7 +40,9 @@ export function AppSidebar() {
   const handleLogout = async () => {
     await signOut();
     toast.success("Sesión cerrada");
-    navigate("/auth/login");
+    // Bloque 6: Logout regresa a la Landing Page, nunca directo al login.
+    // Mantiene la narrativa del producto y evita el bucle de re-autenticación.
+    navigate("/", { replace: true });
   };
 
   // Group items
