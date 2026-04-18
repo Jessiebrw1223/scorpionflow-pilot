@@ -45,9 +45,11 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
   // === Estados DUALES: nunca mezclar tiempo con dinero ===
   const execution = getExecutionStatus({
     status: project.status,
+    startDate: project.start_date,
     endDate: project.end_date,
     progress: Number(project.progress) || 0,
     hasOverdueTasks: overdueTasks > 0,
+    taskDates: tasks.map((t) => t.due_date),
   });
   const financial = getFinancialHealth({
     budget: Number(project.budget),
@@ -118,9 +120,21 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
             <Calendar className="w-3 h-3" /> Estado de ejecución
           </div>
           <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-sm", execution.bg, execution.color)}>
+            {execution.key === "not_evaluable" && <AlertTriangle className="w-3.5 h-3.5" />}
             {execution.label}
           </div>
           <p className="text-[12px] text-muted-foreground mt-2">{execution.description}</p>
+          {execution.key === "not_evaluable" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3 h-7 text-[11px] gap-1"
+              onClick={() => onTabChange("planning")}
+            >
+              <Calendar className="w-3 h-3" /> Definir fechas del proyecto
+              <ArrowRight className="w-3 h-3" />
+            </Button>
+          )}
         </div>
       </div>
 
