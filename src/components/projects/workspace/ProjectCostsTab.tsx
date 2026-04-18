@@ -85,6 +85,20 @@ export default function ProjectCostsTab({ project }: Props) {
     },
   });
 
+  // Aportes adicionales del propietario (no afectan actual_cost; sí ganancia real)
+  const { data: contributions = [] } = useQuery({
+    queryKey: ["project-contributions", project.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_contributions")
+        .select("amount")
+        .eq("project_id", project.id);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const totalContributions = contributions.reduce((s, c: any) => s + Number(c.amount || 0), 0);
+
   const totalActual = breakdown.personnel + breakdown.tech + breakdown.operations;
 
   const update = useMutation({
