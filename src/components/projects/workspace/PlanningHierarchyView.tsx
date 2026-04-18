@@ -18,6 +18,8 @@ interface Props {
   projectId: string;
   mode: "agile" | "traditional";
   onCreate: (parentId: string | null, nodeType: string) => void;
+  /** Si está definido, solo muestra nodos de ese tipo (y sus padres si aplica). */
+  nodeTypeFilter?: string | null;
 }
 
 interface TaskRow {
@@ -42,7 +44,7 @@ function getInitials(name: string | null): string {
   return name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 }
 
-export default function PlanningHierarchyView({ projectId, mode, onCreate }: Props) {
+export default function PlanningHierarchyView({ projectId, mode, onCreate, nodeTypeFilter }: Props) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [panelTask, setPanelTask] = useState<TaskRow | null>(null);
@@ -65,17 +67,23 @@ export default function PlanningHierarchyView({ projectId, mode, onCreate }: Pro
   const nodeTypes = getNodeTypesForMode(mode);
   const [rootType, midType, leafType] = nodeTypes;
 
-  // Agrupar por jerarquía. Si una tarea no tiene padre o tipo no encaja, va a "Sin agrupar"
+  // Si hay filtro por tipo, mostramos solo nodos de ese tipo en plano (sin jerarquía).
+  // Si no hay filtro, agrupamos por jerarquía.
   const tree = useMemo(() => {
+    if (nodeTypeFilter) {
+      const filtered = tasks.filter((t) => t.node_type === nodeTypeFilter);
+      return { roots: filtered, orphans: [] as TaskRow[], flat: true };
+    }
     const roots = tasks.filter((t) => t.node_type === rootType);
     const orphans = tasks.filter((t) => {
       // Tareas sin padre que no son del tipo raíz (datos legacy)
       return !t.parent_id && t.node_type !== rootType;
     });
-    return { roots, orphans };
-  }, [tasks, rootType]);
+    return { roots, orphans, flat: false };
+  }, [tasks, rootType, nodeTypeFilter]);
 
-  const childrenOf = (parentId: string) => tasks.filter((t) => t.parent_id === parentId);
+  const childrenOf = (parentId: string) =>
+    nodeTypeFilter ? [] : tasks.filter((t) => t.parent_id === parentId);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
