@@ -1,12 +1,13 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type"> {
   value: number;
   onValueChange: (val: number) => void;
-  currency?: string;          // PEN, USD, EUR
-  locale?: string;            // es-PE
+  currency?: string;          // PEN, USD, EUR — si no se pasa, usa el setting global del usuario
+  locale?: string;            // se infiere por moneda si no se pasa
   min?: number;
   max?: number;
   error?: string | null;
@@ -19,18 +20,25 @@ const SYMBOL_MAP: Record<string, string> = {
   EUR: "€",
 };
 
+const LOCALE_MAP: Record<string, string> = {
+  PEN: "es-PE",
+  USD: "en-US",
+  EUR: "es-ES",
+};
+
 /**
  * Input monetario reutilizable:
  * - Solo acepta números (y un punto decimal)
  * - Formatea en vivo: 1200 → "S/ 1,200.00" cuando pierde el foco
  * - Muestra error claro si el valor no es válido
  * - Sin ceros a la izquierda, sin texto
+ * - Por defecto respeta la moneda configurada en Configuración → Trabajo
  */
 export function CurrencyInput({
   value,
   onValueChange,
-  currency = "PEN",
-  locale = "es-PE",
+  currency,
+  locale,
   min = 0,
   max,
   error,
@@ -40,10 +48,13 @@ export function CurrencyInput({
   onBlur,
   ...rest
 }: CurrencyInputProps) {
-  const symbol = SYMBOL_MAP[currency] || currency;
+  const { settings } = useUserSettings();
+  const effectiveCurrency = currency || settings.currency;
+  const effectiveLocale = locale || LOCALE_MAP[effectiveCurrency] || "es-PE";
+  const symbol = SYMBOL_MAP[effectiveCurrency] || effectiveCurrency;
   const formatter = React.useMemo(
-    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    [locale]
+    () => new Intl.NumberFormat(effectiveLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    [effectiveLocale]
   );
 
   const [focused, setFocused] = React.useState(false);
