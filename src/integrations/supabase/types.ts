@@ -184,6 +184,39 @@ export type Database = {
         }
         Relationships: []
       }
+      project_contributions: {
+        Row: {
+          amount: number
+          contributed_at: string
+          created_at: string
+          id: string
+          owner_id: string
+          project_id: string
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          contributed_at?: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          project_id: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          contributed_at?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          project_id?: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_resources: {
         Row: {
           created_at: string

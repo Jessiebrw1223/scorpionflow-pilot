@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Pencil, Loader2, Users, Cpu, Wrench, Sparkles, Target, Clock } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Pencil, Loader2, Users, Cpu, Wrench, Sparkles, Target, Clock, HandCoins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
+import ProjectContributionsSection from "./ProjectContributionsSection";
 
 const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
@@ -84,6 +85,20 @@ export default function ProjectCostsTab({ project }: Props) {
     },
   });
 
+  // Aportes adicionales del propietario (no afectan actual_cost; sí ganancia real)
+  const { data: contributions = [] } = useQuery({
+    queryKey: ["project-contributions", project.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_contributions")
+        .select("amount")
+        .eq("project_id", project.id);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const totalContributions = contributions.reduce((s, c: any) => s + Number(c.amount || 0), 0);
+
   const totalActual = breakdown.personnel + breakdown.tech + breakdown.operations;
 
   const update = useMutation({
@@ -118,6 +133,11 @@ export default function ProjectCostsTab({ project }: Props) {
   const roiText = liveTotal > 0
     ? `Por cada S/ 1 invertido, recibes S/ ${roiRatio.toFixed(2)}`
     : "Aún no hay gastos registrados";
+
+  // Live financials con aportes
+  const liveProfitWithContrib = liveProfit - totalContributions;
+  const liveMarginWithContrib = Number(project.budget) > 0 ? (liveProfitWithContrib / Number(project.budget)) * 100 : 0;
+  const realLosing = liveProfitWithContrib < 0;
 
   // Suma de costos por tarea (diferencial)
   const taskEstimated = tasks.reduce((s, t) => s + Number(t.estimated_cost || 0), 0);
@@ -240,23 +260,30 @@ export default function ProjectCostsTab({ project }: Props) {
         </Dialog>
       </div>
 
-      {/* === Big number: GANANCIA REAL === */}
-      <div className={cn("surface-card p-6 border-l-4", liveLosing ? "border-cost-negative" : "border-cost-positive")}>
+      {/* === Big number: GANANCIA REAL (descontando aportes propios) === */}
+      <div className={cn("surface-card p-6 border-l-4", realLosing ? "border-cost-negative" : "border-cost-positive")}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Ganancia real (hoy)</div>
-            <div className={cn("text-4xl font-bold font-mono-data mt-1", liveLosing ? "text-cost-negative" : "text-cost-positive")}>
-              {liveProfit >= 0 ? "+" : ""}{PEN.format(liveProfit)}
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Ganancia real (hoy){totalContributions > 0 && " · descontando tu aporte"}
+            </div>
+            <div className={cn("text-4xl font-bold font-mono-data mt-1", realLosing ? "text-cost-negative" : "text-cost-positive")}>
+              {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
             </div>
             <div className="text-[13px] text-muted-foreground mt-1">
-              Margen real: <span className={cn("font-mono-data font-semibold", liveMargin >= 20 ? "text-cost-positive" : liveMargin >= 0 ? "text-cost-warning" : "text-cost-negative")}>
-                {liveMargin.toFixed(1)}%
+              Margen real: <span className={cn("font-mono-data font-semibold", liveMarginWithContrib >= 20 ? "text-cost-positive" : liveMarginWithContrib >= 0 ? "text-cost-warning" : "text-cost-negative")}>
+                {liveMarginWithContrib.toFixed(1)}%
               </span>
               {" · "}
-              {liveLosing ? "Estás perdiendo dinero. Revisa qué ajustar." : liveMargin >= 30 ? "Excelente rentabilidad." : "Margen aceptable, vigila los costos."}
+              {realLosing ? "Estás perdiendo dinero. Revisa qué ajustar." : liveMarginWithContrib >= 30 ? "Excelente rentabilidad." : "Margen aceptable, vigila los costos."}
             </div>
+            {totalContributions > 0 && (
+              <div className="text-[11px] text-primary mt-1 inline-flex items-center gap-1">
+                <HandCoins className="w-3 h-3" /> Incluye {PEN.format(totalContributions)} de aporte propio descontado
+              </div>
+            )}
           </div>
-          {liveLosing ? (
+          {realLosing ? (
             <TrendingDown className="w-12 h-12 text-cost-negative" />
           ) : (
             <TrendingUp className="w-12 h-12 text-cost-positive fire-icon" />
@@ -337,23 +364,46 @@ export default function ProjectCostsTab({ project }: Props) {
         </div>
       </div>
 
-      {/* === Resumen presupuesto === */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* === Resumen presupuesto: 4 conceptos clave === */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="surface-card p-4 border-l-4 border-status-progress">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto cobrado</div>
-          <div className="text-xl font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto cliente</div>
+          <div className="text-lg font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Lo que cobraste</div>
         </div>
         <div className="surface-card p-4 border-l-4 border-cost-warning">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total gastado</div>
-          <div className={cn("text-xl font-bold font-mono-data", liveLosing && "text-cost-negative")}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Costos reales</div>
+          <div className={cn("text-lg font-bold font-mono-data", liveLosing && "text-cost-negative")}>
             {PEN.format(liveTotal)}
           </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">{usedPct.toFixed(0)}% del presupuesto</div>
         </div>
-        <div className="surface-card p-4 border-l-4 border-primary">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">% del presupuesto usado</div>
-          <div className="text-xl font-bold font-mono-data">{usedPct.toFixed(0)}%</div>
+        <div className={cn("surface-card p-4 border-l-4", totalContributions > 0 ? "border-primary bg-primary/5" : "border-border")}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
+            <HandCoins className="w-3 h-3" /> Aporte adicional
+          </div>
+          <div className={cn("text-lg font-bold font-mono-data", totalContributions > 0 ? "text-primary" : "text-muted-foreground")}>
+            {PEN.format(totalContributions)}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">
+            {totalContributions > 0 ? "Inversión tuya" : "Sin aportes"}
+          </div>
+        </div>
+        <div className={cn("surface-card p-4 border-l-4", realLosing ? "border-cost-negative" : "border-cost-positive")}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Ganancia real</div>
+          <div className={cn("text-lg font-bold font-mono-data", realLosing ? "text-cost-negative" : "text-cost-positive")}>
+            {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Tu ganancia neta</div>
         </div>
       </div>
+
+      {/* === Sección de aportes adicionales === */}
+      <ProjectContributionsSection
+        projectId={project.id}
+        budget={Number(project.budget)}
+        actualCost={liveTotal}
+      />
 
       {/* === Progress bar === */}
       <div className="surface-card p-4">
