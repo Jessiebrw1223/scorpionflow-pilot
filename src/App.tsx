@@ -22,14 +22,6 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppShell() {
-  const location = useLocation();
-  const { user, loading } = useAuth();
-  const isAuthRoute = location.pathname.startsWith("/auth");
-
-  if (isAuthRoute && !loading && user) {
-    return <Navigate to="/" replace />;
-  }
-
   return (
     <Routes>
       <Route path="/auth/login" element={<LoginPage />} />
