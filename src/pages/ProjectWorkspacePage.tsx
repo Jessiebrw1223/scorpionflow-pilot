@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FolderKanban, LayoutDashboard, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange } from "lucide-react";
+import { ArrowLeft, FolderKanban, LayoutDashboard, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import ProjectPlanningTab from "@/components/projects/workspace/ProjectPlanningT
 import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
 import ProjectReportTab from "@/components/projects/workspace/ProjectReportTab";
 import ProjectResourcesTab from "@/components/projects/workspace/ProjectResourcesTab";
+import ProjectScheduleTab from "@/components/projects/workspace/ProjectScheduleTab";
 
 export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -133,6 +134,9 @@ export default function ProjectWorkspacePage() {
           <TabsTrigger value="planning" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
             <CalendarRange className="w-3.5 h-3.5" /> Planificación
           </TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
+            <Clock className="w-3.5 h-3.5" /> Cronograma
+          </TabsTrigger>
           <TabsTrigger value="resources" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
             <Users className="w-3.5 h-3.5" /> Recursos
           </TabsTrigger>
@@ -149,6 +153,9 @@ export default function ProjectWorkspacePage() {
         </TabsContent>
         <TabsContent value="planning">
           <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} />
+        </TabsContent>
+        <TabsContent value="schedule">
+          <ProjectScheduleTab project={project} />
         </TabsContent>
         <TabsContent value="resources">
           <ProjectResourcesTab project={project} />
