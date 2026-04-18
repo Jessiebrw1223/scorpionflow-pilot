@@ -562,6 +562,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          alerts: Json
+          auto_alerts: Json
+          auto_behavior: Json
+          channel: string
+          cost_model: string
+          created_at: string
+          currency: string
+          id: string
+          target_margin: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alerts?: Json
+          auto_alerts?: Json
+          auto_behavior?: Json
+          channel?: string
+          cost_model?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          target_margin?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alerts?: Json
+          auto_alerts?: Json
+          auto_behavior?: Json
+          channel?: string
+          cost_model?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          target_margin?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
