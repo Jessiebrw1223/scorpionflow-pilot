@@ -93,6 +93,7 @@ const COMPARE_ROWS: Array<{
  */
 export default function LandingPage() {
   const { user, loading } = useAuth();
+  const [billing, setBilling] = useState<Billing>("monthly");
 
   if (!loading && user) {
     return <Navigate to="/" replace />;
