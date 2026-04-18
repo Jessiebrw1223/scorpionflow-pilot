@@ -12,6 +12,7 @@ import TaskDetailPanel from "./TaskDetailPanel";
 
 interface Props {
   projectId: string;
+  nodeTypeFilter?: string | null;
 }
 
 interface TaskRow {
@@ -38,7 +39,7 @@ function parseDate(s: string | null): Date | null {
   return new Date(y, m - 1, d);
 }
 
-export default function PlanningTimelineView({ projectId }: Props) {
+export default function PlanningTimelineView({ projectId, nodeTypeFilter }: Props) {
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -46,7 +47,7 @@ export default function PlanningTimelineView({ projectId }: Props) {
   const [panelTask, setPanelTask] = useState<any>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: rawTasks = [], isLoading } = useQuery({
     queryKey: ["project-tasks-timeline", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,6 +59,11 @@ export default function PlanningTimelineView({ projectId }: Props) {
       return data as TaskRow[];
     },
   });
+
+  const tasks = useMemo(
+    () => (nodeTypeFilter ? rawTasks.filter((t) => t.node_type === nodeTypeFilter) : rawTasks),
+    [rawTasks, nodeTypeFilter]
+  );
 
   const monthLabel = cursor.toLocaleDateString("es-PE", { month: "long", year: "numeric" });
   const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
