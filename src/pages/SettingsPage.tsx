@@ -191,7 +191,7 @@ export default function SettingsPage() {
         <p className="text-[13px] text-muted-foreground">Define cómo funciona tu negocio en ScorpionFlow</p>
       </div>
 
-      <Tabs defaultValue="work" className="space-y-4">
+      <Tabs defaultValue={initialTab} className="space-y-4">
         <TabsList className="bg-secondary border border-border h-9">
           <TabsTrigger value="work" className="text-[12px] gap-1.5 data-[state=active]:bg-card">
             <Briefcase className="w-3.5 h-3.5" /> Trabajo
