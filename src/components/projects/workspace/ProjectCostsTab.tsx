@@ -260,23 +260,30 @@ export default function ProjectCostsTab({ project }: Props) {
         </Dialog>
       </div>
 
-      {/* === Big number: GANANCIA REAL === */}
-      <div className={cn("surface-card p-6 border-l-4", liveLosing ? "border-cost-negative" : "border-cost-positive")}>
+      {/* === Big number: GANANCIA REAL (descontando aportes propios) === */}
+      <div className={cn("surface-card p-6 border-l-4", realLosing ? "border-cost-negative" : "border-cost-positive")}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Ganancia real (hoy)</div>
-            <div className={cn("text-4xl font-bold font-mono-data mt-1", liveLosing ? "text-cost-negative" : "text-cost-positive")}>
-              {liveProfit >= 0 ? "+" : ""}{PEN.format(liveProfit)}
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Ganancia real (hoy){totalContributions > 0 && " · descontando tu aporte"}
+            </div>
+            <div className={cn("text-4xl font-bold font-mono-data mt-1", realLosing ? "text-cost-negative" : "text-cost-positive")}>
+              {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
             </div>
             <div className="text-[13px] text-muted-foreground mt-1">
-              Margen real: <span className={cn("font-mono-data font-semibold", liveMargin >= 20 ? "text-cost-positive" : liveMargin >= 0 ? "text-cost-warning" : "text-cost-negative")}>
-                {liveMargin.toFixed(1)}%
+              Margen real: <span className={cn("font-mono-data font-semibold", liveMarginWithContrib >= 20 ? "text-cost-positive" : liveMarginWithContrib >= 0 ? "text-cost-warning" : "text-cost-negative")}>
+                {liveMarginWithContrib.toFixed(1)}%
               </span>
               {" · "}
-              {liveLosing ? "Estás perdiendo dinero. Revisa qué ajustar." : liveMargin >= 30 ? "Excelente rentabilidad." : "Margen aceptable, vigila los costos."}
+              {realLosing ? "Estás perdiendo dinero. Revisa qué ajustar." : liveMarginWithContrib >= 30 ? "Excelente rentabilidad." : "Margen aceptable, vigila los costos."}
             </div>
+            {totalContributions > 0 && (
+              <div className="text-[11px] text-primary mt-1 inline-flex items-center gap-1">
+                <HandCoins className="w-3 h-3" /> Incluye {PEN.format(totalContributions)} de aporte propio descontado
+              </div>
+            )}
           </div>
-          {liveLosing ? (
+          {realLosing ? (
             <TrendingDown className="w-12 h-12 text-cost-negative" />
           ) : (
             <TrendingUp className="w-12 h-12 text-cost-positive fire-icon" />
