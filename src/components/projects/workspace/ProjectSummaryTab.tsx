@@ -10,8 +10,8 @@ import {
   getExecutionStatus,
   formatSafeMargin,
 } from "@/lib/business-intelligence";
-
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+import { useMoney } from "@/lib/format-money";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 interface Props {
   project: any;
@@ -20,6 +20,8 @@ interface Props {
 }
 
 export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props) {
+  const PEN = useMoney();
+  const { settings } = useUserSettings();
   // Aportes para ganancia REAL (mismo cálculo que Costos)
   const { data: contributions = [] } = useQuery({
     queryKey: ["project-contributions", project.id],
@@ -50,11 +52,13 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
     progress: Number(project.progress) || 0,
     hasOverdueTasks: overdueTasks > 0,
     taskDates: tasks.map((t) => t.due_date),
+    inferSchedule: settings.auto_behavior.inferSchedule,
   });
   const financial = getFinancialHealth({
     budget: Number(project.budget),
     actualCost: Number(project.actual_cost),
     contributions: totalContributions,
+    targetMargin: settings.target_margin,
   });
 
   // === Métricas financieras (con cap visual) ===

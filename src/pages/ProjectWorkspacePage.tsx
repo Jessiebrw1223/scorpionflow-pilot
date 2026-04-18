@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getExecutionStatus, getFinancialHealth } from "@/lib/business-intelligence";
+import { useUserSettings } from "@/hooks/useUserSettings";
 import ProjectSummaryTab from "@/components/projects/workspace/ProjectSummaryTab";
 import ProjectPlanningTab from "@/components/projects/workspace/ProjectPlanningTab";
 import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
@@ -17,6 +18,7 @@ export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [tab, setTab] = useState("planning");
+  const { settings } = useUserSettings();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", id],
@@ -75,10 +77,12 @@ export default function ProjectWorkspacePage() {
     progress: Number(project.progress) || 0,
     hasOverdueTasks: overdueCount > 0,
     taskDates: tasks.map((t: any) => t.due_date),
+    inferSchedule: settings.auto_behavior.inferSchedule,
   });
   const financial = getFinancialHealth({
     budget: Number(project.budget),
     actualCost: Number(project.actual_cost),
+    targetMargin: settings.target_margin,
   });
 
   return (
