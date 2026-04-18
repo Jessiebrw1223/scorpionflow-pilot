@@ -15,6 +15,7 @@ import { useUserSettings, type Currency, type CostModel, type Channel } from "@/
 import { usePlan } from "@/hooks/usePlan";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
+import { humanizeError } from "@/lib/humanize-error";
 
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
@@ -140,7 +141,9 @@ export default function SettingsPage() {
         throw new Error("No se generó la URL de pago");
       }
     } catch (e: any) {
-      toast.error("No pudimos abrir el pago", { description: e?.message });
+      toast.error("No pudimos abrir el pago", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
     } finally {
       setCheckoutLoading(null);
     }
@@ -157,7 +160,9 @@ export default function SettingsPage() {
         throw new Error("No se pudo abrir el portal");
       }
     } catch (e: any) {
-      toast.error("No pudimos abrir el portal", { description: e?.message });
+      toast.error("No pudimos abrir el portal", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
     } finally {
       setPortalLoading(false);
     }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { usePlan, getRequiredPlan, PLAN_LABELS, type PremiumFeature, type PlanId } from "@/hooks/usePlan";
+import { humanizeError } from "@/lib/humanize-error";
 
 interface UpsellDialogProps {
   open: boolean;
@@ -86,8 +87,9 @@ export function UpsellDialog({
         throw new Error("No se generó la URL de pago");
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Error";
-      toast.error("No pudimos abrir el pago", { description: msg });
+      toast.error("No pudimos abrir el pago", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
     } finally {
       setLoading(false);
     }

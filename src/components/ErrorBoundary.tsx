@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { humanizeError } from "@/lib/humanize-error";
 
 interface Props {
   children: ReactNode;
@@ -55,9 +56,9 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-[13px] text-muted-foreground">
               Encontramos un error inesperado al cargar este contenido. Tu información sigue segura.
             </p>
-            {this.state.error?.message && (
-              <p className="text-[11px] font-mono-data text-muted-foreground bg-muted/30 rounded px-2 py-1 mt-2 break-words">
-                {this.state.error.message}
+            {this.state.error && (
+              <p className="text-[12px] text-muted-foreground/90 bg-muted/30 rounded px-3 py-2 mt-2">
+                {humanizeError(this.state.error, "No pudimos cargar esta sección. Reintenta en unos segundos.")}
               </p>
             )}
           </div>

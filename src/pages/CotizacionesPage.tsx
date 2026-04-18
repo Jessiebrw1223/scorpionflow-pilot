@@ -46,6 +46,8 @@ import {
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { UpsellDialog } from "@/components/billing/UpsellDialog";
 
 type QuoteStatus = "pending" | "in_contact" | "quoted" | "won" | "lost";
 
@@ -135,6 +137,16 @@ export default function CotizacionesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
+  const planLimits = usePlanLimits();
+
+  const tryOpenForm = () => {
+    if (planLimits.isAtLimit("quotations")) {
+      setShowUpsell(true);
+      return;
+    }
+    setOpenForm(true);
+  };
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min"],
@@ -435,16 +447,15 @@ export default function CotizacionesPage() {
         </div>
 
         <Dialog open={openForm} onOpenChange={setOpenForm}>
-          <DialogTrigger asChild>
-            <Button
-              className="fire-button font-semibold"
-              disabled={clients.length === 0}
-              title={clients.length === 0 ? "Crea un cliente primero" : ""}
-            >
-              <Plus className="w-4 h-4" />
-              Nueva cotización
-            </Button>
-          </DialogTrigger>
+          <Button
+            className="fire-button font-semibold"
+            disabled={clients.length === 0}
+            title={clients.length === 0 ? "Crea un cliente primero" : ""}
+            onClick={tryOpenForm}
+          >
+            <Plus className="w-4 h-4" />
+            Nueva cotización
+          </Button>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="fire-text">Nueva cotización</DialogTitle>
@@ -675,7 +686,7 @@ export default function CotizacionesPage() {
               Todo tu flujo comercial comienza aquí. Define qué vendes, cuánto cobras y haz seguimiento hasta cerrar.
             </p>
           </div>
-          <Button onClick={() => setOpenForm(true)} className="fire-button">
+          <Button onClick={tryOpenForm} className="fire-button">
             <Plus className="w-4 h-4" /> Crear primera cotización
           </Button>
         </div>
@@ -879,6 +890,13 @@ export default function CotizacionesPage() {
           })}
         </div>
       )}
+
+      <UpsellDialog
+        open={showUpsell}
+        onOpenChange={setShowUpsell}
+        recommendedPlan="starter"
+        reason={`Has alcanzado el límite de ${planLimits.limits.quotations} cotizaciones del plan ${planLimits.plan.toUpperCase()}`}
+      />
     </div>
   );
 }
