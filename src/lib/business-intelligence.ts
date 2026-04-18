@@ -45,6 +45,7 @@ export function getExecutionStatus(opts: {
   progress: number;                           // 0-100
   hasOverdueTasks?: boolean;
   taskDates?: (string | null | undefined)[]; // due_date de tareas, para inferir cronograma
+  inferSchedule?: boolean;                   // setting del usuario: si false, NO infiere desde tareas
 }): ExecutionStatusInfo {
   if (opts.status === "completed") {
     return {
@@ -71,7 +72,8 @@ export function getExecutionStatus(opts: {
   let startDate = opts.startDate ? new Date(opts.startDate) : null;
   let endDate = opts.endDate ? new Date(opts.endDate) : null;
 
-  if ((!startDate || !endDate) && opts.taskDates && opts.taskDates.length > 0) {
+  // Solo inferir desde tareas si el setting "inferSchedule" está activo
+  if (opts.inferSchedule !== false && (!startDate || !endDate) && opts.taskDates && opts.taskDates.length > 0) {
     const validDates = opts.taskDates
       .filter((d): d is string => !!d)
       .map((d) => new Date(d).getTime())
@@ -157,10 +159,14 @@ export function getFinancialHealth(opts: {
   budget: number;
   actualCost: number;
   contributions?: number;
+  targetMargin?: number;            // % objetivo configurado por el usuario (default 20)
+  budgetUsedThreshold?: number;     // % de uso de presupuesto que dispara "Riesgo" (default 85)
 }): FinancialHealthInfo {
   const budget = Number(opts.budget) || 0;
   const cost = Number(opts.actualCost) || 0;
   const contrib = Number(opts.contributions) || 0;
+  const targetMargin = Number.isFinite(opts.targetMargin) ? Number(opts.targetMargin) : 20;
+  const usedThreshold = Number.isFinite(opts.budgetUsedThreshold) ? Number(opts.budgetUsedThreshold) : 85;
 
   if (budget === 0 && cost === 0) {
     return {
@@ -188,7 +194,9 @@ export function getFinancialHealth(opts: {
       description: "Estás perdiendo dinero en este proyecto.",
     };
   }
-  if (usedPct >= 85) {
+  // Margen real vs margen objetivo configurado por el usuario
+  const marginPct = budget > 0 ? (realProfit / budget) * 100 : 0;
+  if (usedPct >= usedThreshold || marginPct < targetMargin) {
     return {
       key: "risk",
       label: "Riesgo",
@@ -196,7 +204,9 @@ export function getFinancialHealth(opts: {
       color: "text-cost-warning",
       bg: "bg-cost-warning/10",
       border: "border-cost-warning/40",
-      description: "Has consumido la mayor parte del presupuesto. Vigila los costos.",
+      description: marginPct < targetMargin
+        ? `Tu margen (${marginPct.toFixed(0)}%) está por debajo del objetivo (${targetMargin}%).`
+        : "Has consumido la mayor parte del presupuesto. Vigila los costos.",
     };
   }
   return {
@@ -239,21 +249,24 @@ export function formatSafeMargin(marginPct: number): { text: string; isExtreme: 
  * ROI en lenguaje humano: "Por cada S/1 invertido recibes/pierdes S/X.XX".
  * Capeado para no mostrar valores absurdos.
  */
-export function formatROI(budget: number, actualCost: number): { text: string; tone: "good" | "warn" | "bad" | "neutral" } {
+export function formatROI(
+  budget: number,
+  actualCost: number,
+  symbol: string = "S/"
+): { text: string; tone: "good" | "warn" | "bad" | "neutral" } {
   if (actualCost <= 0) {
     return { text: "Aún no hay gastos registrados", tone: "neutral" };
   }
   const ratio = budget / actualCost;
   if (ratio >= 1) {
     return {
-      text: `Por cada S/ 1 invertido, recibes S/ ${ratio.toFixed(2)}`,
+      text: `Por cada ${symbol} 1 invertido, recibes ${symbol} ${ratio.toFixed(2)}`,
       tone: ratio >= 1.3 ? "good" : "warn",
     };
   }
-  // pérdida: muestra cuánto pierdes por sol
   const loss = 1 - ratio;
   return {
-    text: `Por cada S/ 1 invertido, pierdes S/ ${loss.toFixed(2)}`,
+    text: `Por cada ${symbol} 1 invertido, pierdes ${symbol} ${loss.toFixed(2)}`,
     tone: "bad",
   };
 }
