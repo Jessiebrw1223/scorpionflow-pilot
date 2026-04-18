@@ -162,7 +162,7 @@ export function useTeam() {
     let emailSent = false;
     let emailError: string | undefined;
     try {
-      const { error: fnErr } = await supabase.functions.invoke(
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke(
         "send-transactional-email",
         {
           body: {
@@ -178,12 +178,18 @@ export function useTeam() {
         }
       );
       if (fnErr) {
-        emailError = fnErr.message;
+        // eslint-disable-next-line no-console
+        console.error("[useTeam] send-transactional-email error", fnErr);
+        emailError = fnErr.message || "No se pudo enviar el correo";
+      } else if (fnData && (fnData as any).success === false) {
+        emailError = (fnData as any).reason || "El correo fue rechazado";
       } else {
         emailSent = true;
       }
     } catch (e: any) {
-      emailError = e?.message ?? "Error desconocido";
+      // eslint-disable-next-line no-console
+      console.error("[useTeam] send-transactional-email exception", e);
+      emailError = e?.message ?? "Error desconocido al enviar correo";
     }
 
     await refresh();
