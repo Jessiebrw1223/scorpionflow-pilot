@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Pencil, Loader2, Users, Cpu, Wrench, Sparkles, Target, Clock, HandCoins } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Pencil, Loader2, Users, Cpu, Wrench, Sparkles, Target, Clock, HandCoins, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -10,42 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
 import ProjectContributionsSection from "./ProjectContributionsSection";
+import { formatSafeMargin, formatROI, getFinancialHealth } from "@/lib/business-intelligence";
 
 const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
 interface Props {
   project: any;
-}
-
-interface CostBreakdown {
-  personnel: number;
-  tech: number;
-  operations: number;
-}
-
-const STORAGE_KEY = (id: string) => `sf_cost_breakdown_${id}`;
-
-function loadBreakdown(projectId: string, total: number): CostBreakdown {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY(projectId));
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        personnel: Number(parsed.personnel) || 0,
-        tech: Number(parsed.tech) || 0,
-        operations: Number(parsed.operations) || 0,
-      };
-    }
-  } catch {}
-  return {
-    personnel: Math.round(total * 0.6),
-    tech: Math.round(total * 0.2),
-    operations: Math.round(total * 0.2),
-  };
-}
-
-function saveBreakdown(projectId: string, b: CostBreakdown) {
-  try { localStorage.setItem(STORAGE_KEY(projectId), JSON.stringify(b)); } catch {}
 }
 
 function timeAgo(ts: number): string {
@@ -60,9 +30,6 @@ export default function ProjectCostsTab({ project }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [budget, setBudget] = useState(Number(project.budget));
-  const [breakdown, setBreakdown] = useState<CostBreakdown>(() =>
-    loadBreakdown(project.id, Number(project.actual_cost))
-  );
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
   const [, force] = useState(0);
 
@@ -85,6 +52,19 @@ export default function ProjectCostsTab({ project }: Props) {
     },
   });
 
+  // Recursos: FUENTE ÚNICA DE VERDAD para el desglose por categoría
+  const { data: resources = [] } = useQuery({
+    queryKey: ["project-resources", project.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_resources" as any)
+        .select("kind, total_cost, status")
+        .eq("project_id", project.id);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
   // Aportes adicionales del propietario (no afectan actual_cost; sí ganancia real)
   const { data: contributions = [] } = useQuery({
     queryKey: ["project-contributions", project.id],
@@ -99,14 +79,24 @@ export default function ProjectCostsTab({ project }: Props) {
   });
   const totalContributions = contributions.reduce((s, c: any) => s + Number(c.amount || 0), 0);
 
-  const totalActual = breakdown.personnel + breakdown.tech + breakdown.operations;
+  // === Desglose REAL desde project_resources (sin valores mágicos) ===
+  const breakdown = useMemo(() => {
+    const sum = (kind: string) =>
+      resources
+        .filter((r: any) => r.kind === kind && r.status === "active")
+        .reduce((s: number, r: any) => s + Number(r.total_cost || 0), 0);
+    return {
+      personnel: sum("human"),
+      tech: sum("tech"),
+      operations: sum("asset"),
+    };
+  }, [resources]);
 
   const update = useMutation({
     mutationFn: async () => {
-      saveBreakdown(project.id, breakdown);
       const { error } = await supabase
         .from("projects")
-        .update({ budget, actual_cost: totalActual })
+        .update({ budget })
         .eq("id", project.id);
       if (error) throw error;
     },
@@ -114,30 +104,34 @@ export default function ProjectCostsTab({ project }: Props) {
       qc.invalidateQueries({ queryKey: ["project", project.id] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       setLastUpdate(Date.now());
-      toast.success("Datos financieros actualizados");
+      toast.success("Presupuesto actualizado");
       setOpen(false);
     },
     onError: (e: Error) => toast.error("Error", { description: e.message }),
   });
 
-  // Live data desde el proyecto en BD
-  const liveBreakdown = loadBreakdown(project.id, Number(project.actual_cost));
+  // Live data desde el proyecto en BD (actual_cost = recursos + tasks vía trigger)
   const liveTotal = Number(project.actual_cost);
   const liveProfit = Number(project.budget) - liveTotal;
   const liveMargin = Number(project.budget) > 0 ? (liveProfit / Number(project.budget)) * 100 : 0;
   const liveLosing = liveProfit < 0;
   const usedPct = Number(project.budget) > 0 ? Math.min(100, (liveTotal / Number(project.budget)) * 100) : 0;
 
-  // ROI en lenguaje simple: por cada S/1 invertido ganas S/X.XX
-  const roiRatio = liveTotal > 0 ? Number(project.budget) / liveTotal : 0;
-  const roiText = liveTotal > 0
-    ? `Por cada S/ 1 invertido, recibes S/ ${roiRatio.toFixed(2)}`
-    : "Aún no hay gastos registrados";
+  // ROI con cap visual humanizado
+  const roi = formatROI(Number(project.budget), liveTotal);
 
   // Live financials con aportes
   const liveProfitWithContrib = liveProfit - totalContributions;
   const liveMarginWithContrib = Number(project.budget) > 0 ? (liveProfitWithContrib / Number(project.budget)) * 100 : 0;
   const realLosing = liveProfitWithContrib < 0;
+  const safeMargin = formatSafeMargin(liveMarginWithContrib);
+
+  // Salud financiera (estado dual)
+  const financialHealth = getFinancialHealth({
+    budget: Number(project.budget),
+    actualCost: liveTotal,
+    contributions: totalContributions,
+  });
 
   // Suma de costos por tarea (diferencial)
   const taskEstimated = tasks.reduce((s, t) => s + Number(t.estimated_cost || 0), 0);
@@ -147,19 +141,20 @@ export default function ProjectCostsTab({ project }: Props) {
     .sort((a, b) => Number(b.actual_cost || b.estimated_cost) - Number(a.actual_cost || a.estimated_cost))
     .slice(0, 5);
 
-  // Proyección: si todo sigue así, ¿cómo terminamos?
-  // Avance del proyecto (auto desde tareas — viene del trigger en BD)
+  // Proyección final
   const progress = Number(project.progress) || 0;
   const projectedTotal = progress > 0 ? (liveTotal / progress) * 100 : liveTotal;
   const projectedProfit = Number(project.budget) - projectedTotal;
   const projectedMargin = Number(project.budget) > 0 ? (projectedProfit / Number(project.budget)) * 100 : 0;
+  const safeProjMargin = formatSafeMargin(projectedMargin);
   const projectionTone = projectedProfit < 0 ? "bad" : projectedMargin >= 20 ? "good" : "warn";
 
   const costImpactTasks = tasks.filter((t) => t.impact === "cost").length;
 
-  // Para preview en dialog
-  const previewProfit = budget - totalActual;
+  // Preview en dialog
+  const previewProfit = budget - liveTotal;
   const previewMargin = budget > 0 ? (previewProfit / budget) * 100 : 0;
+  const previewSafe = formatSafeMargin(previewMargin);
   const previewLosing = previewProfit < 0;
 
   const categories = useMemo(() => [
@@ -167,30 +162,33 @@ export default function ProjectCostsTab({ project }: Props) {
       key: "personnel" as const,
       icon: Users,
       label: "Personal",
-      description: "Honorarios, sueldos, freelancers",
-      value: liveBreakdown.personnel,
+      description: "Personas asignadas a tareas",
+      value: breakdown.personnel,
       color: "border-status-progress",
       iconBg: "bg-status-progress/15 text-status-progress",
+      emptyHint: "Asigna responsables y costos en Recursos",
     },
     {
       key: "tech" as const,
       icon: Cpu,
       label: "Tecnología",
       description: "Software, licencias, hosting",
-      value: liveBreakdown.tech,
+      value: breakdown.tech,
       color: "border-primary",
       iconBg: "bg-primary/15 text-primary",
+      emptyHint: "No has configurado recursos tecnológicos",
     },
     {
       key: "operations" as const,
       icon: Wrench,
-      label: "Operativos",
-      description: "Logística, viajes, materiales",
-      value: liveBreakdown.operations,
+      label: "Activos / Operativos",
+      description: "Equipos, materiales, logística",
+      value: breakdown.operations,
       color: "border-cost-warning",
       iconBg: "bg-cost-warning/15 text-cost-warning",
+      emptyHint: "No has registrado activos ni operativos",
     },
-  ], [liveBreakdown]);
+  ], [breakdown]);
 
   return (
     <div className="space-y-4">
