@@ -14,6 +14,7 @@ import ProjectWorkspacePage from "./pages/ProjectWorkspacePage";
 import SettingsPage from "./pages/SettingsPage";
 import ClientesPage from "./pages/ClientesPage";
 import CotizacionesPage from "./pages/CotizacionesPage";
+import TeamPage from "./pages/TeamPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -62,6 +63,7 @@ function AppShell() {
                   <Route path="/cotizaciones" element={<CotizacionesPage />} />
                   <Route path="/projects" element={<ProjectsPage />} />
                   <Route path="/projects/:id" element={<ProjectWorkspacePage />} />
+                  <Route path="/team" element={<TeamPage />} />
                   {/* Rutas legacy redirigidas al nuevo flujo por proyecto */}
                   <Route path="/tasks" element={<Navigate to="/projects" replace />} />
                   <Route path="/costs" element={<Navigate to="/projects" replace />} />
