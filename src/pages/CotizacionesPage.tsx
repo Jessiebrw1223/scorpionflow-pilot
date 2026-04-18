@@ -890,6 +890,13 @@ export default function CotizacionesPage() {
           })}
         </div>
       )}
+
+      <UpsellDialog
+        open={showUpsell}
+        onOpenChange={setShowUpsell}
+        recommendedPlan="starter"
+        reason={`Has alcanzado el límite de ${planLimits.limits.quotations} cotizaciones del plan ${planLimits.plan.toUpperCase()}`}
+      />
     </div>
   );
 }
