@@ -79,8 +79,9 @@ const COMPARE_ROWS: Array<{
   label: string;
   values: [string | boolean, string | boolean, string | boolean, string | boolean];
 }> = [
+  { label: "Usuarios / Equipo", values: ["5", "10", "Ilimitado", "Ilimitado"] },
+  { label: "Proyectos", values: ["3", "Ilimitado", "Ilimitado", "Ilimitado"] },
   { label: "Clientes", values: ["limitado", true, true, true] },
-  { label: "Proyectos", values: ["limitado", true, true, true] },
   { label: "Indicadores de rentabilidad", values: [false, false, true, true] },
   { label: "Margen real", values: [false, false, true, true] },
   { label: "ROI claro", values: [false, false, true, true] },
