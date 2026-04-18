@@ -19,6 +19,10 @@ import {
   Lightbulb,
   Compass,
   Users,
+  UserPlus,
+  Share2,
+  ShieldAlert,
+  Eye as EyeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +35,7 @@ const PLANS = [
     name: "Free",
     monthly: 0,
     emotional: "Empieza a organizar tu trabajo",
-    features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
+    features: ["Hasta 5 usuarios", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
     cta: "Empezar gratis",
     highlight: false,
   },
@@ -40,7 +44,7 @@ const PLANS = [
     name: "Starter",
     monthly: 35,
     emotional: "Organiza mejor tu día a día",
-    features: ["Clientes ilimitados", "Más proyectos", "Planificación completa", "Calendario"],
+    features: ["Hasta 10 usuarios", "Proyectos ilimitados", "Colaboración ampliada", "Calendario y planificación"],
     cta: "Actualizar a Starter",
     highlight: false,
   },
@@ -50,10 +54,9 @@ const PLANS = [
     monthly: 90,
     emotional: "Entiende los resultados de tu negocio",
     features: [
-      "Todo lo anterior",
-      "Indicadores de rentabilidad",
-      "Margen real por proyecto",
-      "ROI claro",
+      "Usuarios ilimitados",
+      "Control financiero completo",
+      "Margen real y ROI",
       "Costos por tarea",
       "Alertas inteligentes",
       "Gestión de recursos",
@@ -66,7 +69,7 @@ const PLANS = [
     name: "Business",
     monthly: 200,
     emotional: "Toma decisiones estratégicas",
-    features: ["Todo Pro", "Proyección financiera", "Control multi-proyecto", "Reportes ejecutivos"],
+    features: ["Usuarios ilimitados", "Control multi-proyecto", "Proyección financiera", "Reportes ejecutivos"],
     cta: "Hablar con ventas",
     highlight: false,
   },
@@ -76,8 +79,9 @@ const COMPARE_ROWS: Array<{
   label: string;
   values: [string | boolean, string | boolean, string | boolean, string | boolean];
 }> = [
+  { label: "Usuarios / Equipo", values: ["5", "10", "Ilimitado", "Ilimitado"] },
+  { label: "Proyectos", values: ["3", "Ilimitado", "Ilimitado", "Ilimitado"] },
   { label: "Clientes", values: ["limitado", true, true, true] },
-  { label: "Proyectos", values: ["limitado", true, true, true] },
   { label: "Indicadores de rentabilidad", values: [false, false, true, true] },
   { label: "Margen real", values: [false, false, true, true] },
   { label: "ROI claro", values: [false, false, true, true] },
@@ -114,7 +118,7 @@ export default function LandingPage() {
             <a href="#problema" className="hover:text-foreground transition-colors">Problema</a>
             <a href="#demo" className="hover:text-foreground transition-colors">Demo</a>
             <a href="#solucion" className="hover:text-foreground transition-colors">Solución</a>
-            <a href="#nosotros" className="hover:text-foreground transition-colors">Nosotros</a>
+            <a href="#colaboracion" className="hover:text-foreground transition-colors">Equipo</a>
             <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
           </nav>
           <div className="flex items-center gap-2">
@@ -364,8 +368,48 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* COLABORACIÓN */}
+      <section id="colaboracion" className="border-t border-border/60 bg-secondary/20">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Trabaja en equipo</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              No trabajas solo.
+              <span className="block text-primary">Tus proyectos tampoco deberían.</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Invita a tu equipo, comparte la información correcta y toma decisiones alineadas.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: UserPlus, title: "Invita en segundos", body: "Suma colaboradores con un correo y empiezan a trabajar juntos." },
+              { icon: Share2, title: "Misma información", body: "Todos ven los mismos datos, en tiempo real, sin versiones." },
+              { icon: ShieldAlert, title: "Menos errores", body: "Evitas decisiones desalineadas y duplicación de trabajo." },
+              { icon: EyeIcon, title: "Control compartido", body: "Visibilidad conjunta sin perder claridad ni gobernanza." },
+            ].map(({ icon: Icon, title, body }, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6">
+                <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-10 text-center text-base md:text-lg text-foreground/85 max-w-xl mx-auto">
+            La claridad no sirve si no es compartida.
+            <span className="block font-semibold text-primary mt-1">
+              No solo entiendes tu negocio. Tu equipo también.
+            </span>
+          </p>
+        </div>
+      </section>
+
       {/* DIFERENCIA */}
-      <section id="diferencia" className="border-t border-border/60 bg-secondary/20">
+      <section id="diferencia" className="border-t border-border/60">
         <div className="max-w-6xl mx-auto px-5 py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">La diferencia</span>
@@ -397,7 +441,7 @@ export default function LandingPage() {
       </section>
 
       {/* SOBRE NOSOTROS */}
-      <section id="nosotros" className="border-t border-border/60">
+      <section id="nosotros" className="border-t border-border/60 bg-secondary/20">
         <div className="max-w-3xl mx-auto px-5 py-20 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/40 text-[11px] uppercase tracking-widest text-muted-foreground mb-6">
             <Users className="w-3 h-3 text-primary" />
@@ -422,7 +466,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="precios" className="border-t border-border/60 bg-secondary/20">
+      <section id="precios" className="border-t border-border/60">
         <div className="max-w-6xl mx-auto px-5 py-20">
           <div className="text-center max-w-3xl mx-auto mb-10">
             <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Precios</span>
