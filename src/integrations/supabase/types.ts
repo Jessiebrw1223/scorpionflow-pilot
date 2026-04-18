@@ -17,29 +17,41 @@ export type Database = {
       account_subscriptions: {
         Row: {
           billing_cycle: string
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string | null
           id: string
           owner_id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
           status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
         }
         Insert: {
           billing_cycle?: string
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
           id?: string
           owner_id: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
         }
         Update: {
           billing_cycle?: string
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
           id?: string
           owner_id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
         }
         Relationships: []
