@@ -9,9 +9,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   CreditCard, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
-  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2,
+  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink,
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
+import { usePlan } from "@/hooks/usePlan";
+import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
@@ -75,6 +78,10 @@ const PLANS: Array<{
 
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
+  const { plan: realPlan, status: planStatus, billingCycle: realBilling, cancelAtPeriodEnd, currentPeriodEnd, refresh: refreshPlan } = usePlan();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   // Estado local controlado, sincronizado con settings de la BD
   const [currency, setCurrency] = useState<Currency>(settings.currency);
@@ -95,8 +102,66 @@ export default function SettingsPage() {
     setChannel(settings.channel);
   }, [settings]);
 
-  const [activePlan, setActivePlan] = useState<PlanId>("free");
-  const [billing, setBilling] = useState<Billing>("monthly");
+  const [billing, setBilling] = useState<Billing>((realBilling as Billing) ?? "monthly");
+
+  // Default tab desde query (?tab=subscription)
+  const initialTab = searchParams.get("tab") === "subscription" ? "subscriptions"
+    : searchParams.get("tab") === "alerts" ? "alerts"
+    : "work";
+
+  // Detectar checkout success/cancelled desde Stripe
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (checkout === "success") {
+      toast.success("¡Suscripción activada!", {
+        description: "Tu plan se actualizará en unos segundos.",
+      });
+      setTimeout(() => refreshPlan(), 2000);
+      searchParams.delete("checkout");
+      setSearchParams(searchParams, { replace: true });
+    } else if (checkout === "cancelled") {
+      toast.info("Pago cancelado", { description: "Puedes intentarlo de nuevo cuando quieras." });
+      searchParams.delete("checkout");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, refreshPlan]);
+
+  const handleCheckout = async (planId: PlanId) => {
+    if (planId === "free") return;
+    setCheckoutLoading(planId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan: planId, billing },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else {
+        throw new Error("No se generó la URL de pago");
+      }
+    } catch (e: any) {
+      toast.error("No pudimos abrir el pago", { description: e?.message });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleOpenPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal", { body: {} });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else {
+        throw new Error("No se pudo abrir el portal");
+      }
+    } catch (e: any) {
+      toast.error("No pudimos abrir el portal", { description: e?.message });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   const handleSaveWork = async () => {
     try {
@@ -126,7 +191,7 @@ export default function SettingsPage() {
         <p className="text-[13px] text-muted-foreground">Define cómo funciona tu negocio en ScorpionFlow</p>
       </div>
 
-      <Tabs defaultValue="work" className="space-y-4">
+      <Tabs defaultValue={initialTab} className="space-y-4">
         <TabsList className="bg-secondary border border-border h-9">
           <TabsTrigger value="work" className="text-[12px] gap-1.5 data-[state=active]:bg-card">
             <Briefcase className="w-3.5 h-3.5" /> Trabajo
@@ -315,11 +380,12 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                const isCurrent = activePlan === plan.id;
+                const isCurrent = realPlan === plan.id;
                 const pricePEN = billing === "monthly" ? plan.monthlyPEN : plan.annualPEN;
                 const priceUSD = billing === "monthly" ? plan.monthlyUSD : plan.annualUSD;
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
+                const isLoadingThis = checkoutLoading === plan.id;
 
                 return (
                   <div
@@ -375,13 +441,34 @@ export default function SettingsPage() {
                     </ul>
 
                     {isCurrent ? (
-                      <Badge variant="secondary" className="w-full justify-center py-2 text-[12px]">Plan actual</Badge>
+                      <div className="space-y-2">
+                        <Badge variant="secondary" className="w-full justify-center py-2 text-[12px]">
+                          {cancelAtPeriodEnd ? "Cancelando al final del período" : "Plan actual"}
+                        </Badge>
+                        {!isFree && (
+                          <Button
+                            variant="outline"
+                            className="w-full h-9 text-[12px] gap-1.5"
+                            onClick={handleOpenPortal}
+                            disabled={portalLoading}
+                          >
+                            {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                            Gestionar suscripción
+                          </Button>
+                        )}
+                      </div>
+                    ) : isFree ? (
+                      <Badge variant="outline" className="w-full justify-center py-2 text-[12px] text-muted-foreground">
+                        Disponible al cancelar
+                      </Badge>
                     ) : (
                       <Button
                         variant={plan.highlight ? "default" : "outline"}
-                        className={cn("w-full h-9 text-[12px]", plan.highlight && "scorpion-gradient text-white border-0 hover:opacity-90")}
-                        onClick={() => setActivePlan(plan.id)}
+                        className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
+                        onClick={() => handleCheckout(plan.id)}
+                        disabled={isLoadingThis}
                       >
+                        {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                         {plan.cta}
                       </Button>
                     )}
