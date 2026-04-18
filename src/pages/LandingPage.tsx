@@ -19,6 +19,10 @@ import {
   Lightbulb,
   Compass,
   Users,
+  UserPlus,
+  Share2,
+  ShieldAlert,
+  Eye as EyeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
