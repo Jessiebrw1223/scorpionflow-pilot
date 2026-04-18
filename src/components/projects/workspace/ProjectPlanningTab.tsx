@@ -9,6 +9,7 @@ import {
   GitBranch,
   Sparkles,
   Building2,
+  Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const MODE_META: Record<Mode, { label: string; helper: string; icon: typeof List
 };
 
 const VIEW_STORAGE_KEY = "scorpion.planning.lastView";
+const FILTER_STORAGE_KEY = "scorpion.planning.nodeFilter";
 
 export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
   const qc = useQueryClient();
@@ -49,6 +51,27 @@ export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
       window.localStorage.setItem(VIEW_STORAGE_KEY, mode);
     }
   }, [mode]);
+
+  // Filtro por tipo de nodo (Tareas / Historias / Épicas | Fases / Subfases / Actividades)
+  const [nodeFilter, setNodeFilter] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = window.localStorage.getItem(FILTER_STORAGE_KEY);
+    return saved && saved !== "all" ? saved : null;
+  });
+
+  // Resetea el filtro si el usuario cambia de modo (los tipos no aplican)
+  useEffect(() => {
+    const validTypes = getNodeTypesForMode(planningMode);
+    if (nodeFilter && !validTypes.includes(nodeFilter)) {
+      setNodeFilter(null);
+    }
+  }, [planningMode, nodeFilter]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(FILTER_STORAGE_KEY, nodeFilter || "all");
+    }
+  }, [nodeFilter]);
 
   // Diálogo de creación
   const [createOpen, setCreateOpen] = useState(false);
