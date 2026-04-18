@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   Flame,
@@ -14,9 +15,76 @@ import {
   Target,
   LineChart,
   Sparkles,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+
+type Billing = "monthly" | "annual";
+
+const PLANS = [
+  {
+    id: "free",
+    name: "Free",
+    monthly: 0,
+    emotional: "Empieza a organizar tu trabajo",
+    features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
+    cta: "Empezar gratis",
+    highlight: false,
+    accent: "muted" as const,
+  },
+  {
+    id: "starter",
+    name: "Starter",
+    monthly: 35,
+    emotional: "Trabaja sin límites",
+    features: ["Clientes ilimitados", "Más proyectos", "Planificación completa", "Calendario"],
+    cta: "Actualizar a Starter",
+    highlight: false,
+    accent: "blue" as const,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    monthly: 90,
+    emotional: "Aquí es donde dejas de adivinar.",
+    features: [
+      "Todo lo anterior",
+      "💰 Ver si ganas o pierdes dinero",
+      "Margen real",
+      "ROI claro",
+      "Costos por tarea",
+      "Alertas inteligentes",
+      "Recursos con impacto",
+    ],
+    cta: "Actualizar a Pro",
+    highlight: true,
+    accent: "fire" as const,
+  },
+  {
+    id: "business",
+    name: "Business",
+    monthly: 200,
+    emotional: "Decisiones estratégicas",
+    features: ["Todo Pro", "Proyección financiera", "Control multi-proyecto", "Reportes ejecutivos"],
+    cta: "Hablar con ventas",
+    highlight: false,
+    accent: "muted" as const,
+  },
+];
+
+const COMPARE_ROWS: Array<{
+  label: string;
+  values: [string | boolean, string | boolean, string | boolean, string | boolean];
+}> = [
+  { label: "Clientes", values: ["limitado", true, true, true] },
+  { label: "Proyectos", values: ["limitado", true, true, true] },
+  { label: "Ver si ganas dinero", values: [false, false, true, true] },
+  { label: "Margen real", values: [false, false, true, true] },
+  { label: "ROI claro", values: [false, false, true, true] },
+  { label: "Alertas inteligentes", values: [false, false, true, true] },
+  { label: "Gestión de recursos", values: [false, false, true, true] },
+];
 
 /**
  * Landing pública de ScorpionFlow.
