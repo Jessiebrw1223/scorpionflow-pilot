@@ -118,7 +118,7 @@ export default function LandingPage() {
             <a href="#problema" className="hover:text-foreground transition-colors">Problema</a>
             <a href="#demo" className="hover:text-foreground transition-colors">Demo</a>
             <a href="#solucion" className="hover:text-foreground transition-colors">Solución</a>
-            <a href="#nosotros" className="hover:text-foreground transition-colors">Nosotros</a>
+            <a href="#colaboracion" className="hover:text-foreground transition-colors">Equipo</a>
             <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
           </nav>
           <div className="flex items-center gap-2">
