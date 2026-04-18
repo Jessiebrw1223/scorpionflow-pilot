@@ -129,6 +129,7 @@ const formSchema = z.object({
 
 export default function CotizacionesPage() {
   const qc = useQueryClient();
+  const PEN = useMoney();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const preselectedClientId = searchParams.get("clientId") || "";
