@@ -10,6 +10,7 @@ import {
   LogOut,
   Receipt,
   Contact2,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { label: "Clientes", icon: Contact2, path: "/clientes", group: "Comercial" },
   { label: "Cotizaciones", icon: Receipt, path: "/cotizaciones", group: "Comercial" },
   { label: "Proyectos", icon: FolderKanban, path: "/projects", group: "Ejecución" },
+  { label: "Equipo", icon: Users, path: "/team", group: "Ejecución" },
 ];
 
 export function AppSidebar() {

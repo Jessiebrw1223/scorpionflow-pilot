@@ -6,6 +6,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/clientes": "Clientes",
   "/cotizaciones": "Cotizaciones",
   "/projects": "Proyectos",
+  "/team": "Equipo",
   "/tasks": "Tareas",
   "/resources": "Recursos",
   "/costs": "Costos",
