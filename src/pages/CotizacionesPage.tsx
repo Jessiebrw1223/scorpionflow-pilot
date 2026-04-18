@@ -127,8 +127,6 @@ const formSchema = z.object({
   items: z.array(itemSchema).min(1, "Agrega al menos un ítem"),
 });
 
-const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
-
 export default function CotizacionesPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
