@@ -1,9 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Calendar, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, ListChecks, ArrowRight, Building2 } from "lucide-react";
+import { Calendar, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, ListChecks, ArrowRight, Building2, HandCoins, DollarSign } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PROJECT_STATUS_META } from "@/lib/business-intelligence";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  getFinancialHealth,
+  getExecutionStatus,
+  formatSafeMargin,
+} from "@/lib/business-intelligence";
 
 const PEN = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
@@ -14,13 +20,19 @@ interface Props {
 }
 
 export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props) {
-  const meta = PROJECT_STATUS_META[project.status] || PROJECT_STATUS_META.on_track;
-  const profit = Number(project.budget) - Number(project.actual_cost);
-  const marginPct = Number(project.budget) > 0 ? (profit / Number(project.budget)) * 100 : 0;
-  const usedPct = Number(project.budget) > 0
-    ? Math.min(100, (Number(project.actual_cost) / Number(project.budget)) * 100)
-    : 0;
-  const losing = profit < 0;
+  // Aportes para ganancia REAL (mismo cálculo que Costos)
+  const { data: contributions = [] } = useQuery({
+    queryKey: ["project-contributions", project.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_contributions")
+        .select("amount")
+        .eq("project_id", project.id);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const totalContributions = contributions.reduce((s, c: any) => s + Number(c.amount || 0), 0);
 
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
@@ -29,75 +41,92 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
   const overdueTasks = tasks.filter(
     (t) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date()
   ).length;
-  const taskCompletion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
-  // Nivel de riesgo derivado para mostrar en banner ejecutivo
-  const riskLevel = losing
-    ? { label: "Alto", color: "text-cost-negative", bg: "bg-cost-negative/10", reason: "Estás gastando más de lo cobrado" }
-    : blockingProject > 0 || overdueTasks > 0
-    ? { label: "Medio", color: "text-cost-warning", bg: "bg-cost-warning/10", reason: `${blockingProject + overdueTasks} situación(es) frenando avance` }
-    : { label: "Bajo", color: "text-cost-positive", bg: "bg-cost-positive/10", reason: "Sin alertas críticas" };
+  // === Estados DUALES: nunca mezclar tiempo con dinero ===
+  const execution = getExecutionStatus({
+    status: project.status,
+    endDate: project.end_date,
+    progress: Number(project.progress) || 0,
+    hasOverdueTasks: overdueTasks > 0,
+  });
+  const financial = getFinancialHealth({
+    budget: Number(project.budget),
+    actualCost: Number(project.actual_cost),
+    contributions: totalContributions,
+  });
+
+  // === Métricas financieras (con cap visual) ===
+  const realProfit = Number(project.budget) - Number(project.actual_cost) - totalContributions;
+  const marginPct = Number(project.budget) > 0 ? (realProfit / Number(project.budget)) * 100 : 0;
+  const safeMargin = formatSafeMargin(marginPct);
+  const losing = realProfit < 0;
+  const usedPct = Number(project.budget) > 0
+    ? Math.min(100, (Number(project.actual_cost) / Number(project.budget)) * 100)
+    : 0;
 
   return (
     <div className="space-y-4">
-      {/* === BANNER EJECUTIVO: cliente + estado + ganancia, lo más importante arriba === */}
-      <div className={cn("surface-card p-5 border-l-4", meta.border)}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Cliente y estado */}
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Cliente</div>
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-foreground truncate">{project.clients?.name || "—"}</span>
-            </div>
-            {project.clients?.company && (
-              <div className="text-[12px] text-muted-foreground mt-0.5 ml-6 truncate">{project.clients.company}</div>
-            )}
-            <div className="mt-3">
-              <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded", meta.bg, meta.color)}>
-                {meta.label}
-              </span>
-            </div>
-          </div>
-
-          {/* Ganancia / pérdida (núcleo de decisión) */}
-          <div>
+      {/* ============================================================
+          1. GANANCIA / PÉRDIDA — lo PRIMERO que el usuario debe ver
+          ============================================================ */}
+      <div className={cn("surface-card p-6 border-l-4", financial.border)}>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0 flex-1">
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
-              {losing ? "Pérdida actual" : "Ganancia estimada"}
+              {losing ? "Pérdida real (hoy)" : "Ganancia real (hoy)"}
+              {totalContributions > 0 && " · descontando tu aporte"}
             </div>
-            <div className={cn("text-3xl font-bold font-mono-data", losing ? "text-cost-negative" : "text-cost-positive")}>
-              {profit >= 0 ? "+" : ""}{PEN.format(profit)}
+            <div className={cn("text-4xl font-bold font-mono-data", losing ? "text-cost-negative" : "text-cost-positive")}>
+              {realProfit >= 0 ? "+" : ""}{PEN.format(realProfit)}
             </div>
-            <div className={cn("text-[12px] font-mono-data font-semibold mt-0.5", losing ? "text-cost-negative" : marginPct >= 20 ? "text-cost-positive" : "text-cost-warning")}>
-              Margen {marginPct.toFixed(1)}%
+            <div className="text-[13px] text-muted-foreground mt-1">
+              {safeMargin.isExtreme ? (
+                <span className="text-cost-negative font-medium">{safeMargin.text}</span>
+              ) : (
+                <>Margen real: <span className={cn("font-mono-data font-semibold", marginPct >= 20 ? "text-cost-positive" : marginPct >= 0 ? "text-cost-warning" : "text-cost-negative")}>{safeMargin.text}</span></>
+              )}
             </div>
+            {totalContributions > 0 && (
+              <div className="text-[11px] text-primary mt-1 inline-flex items-center gap-1">
+                <HandCoins className="w-3 h-3" /> Incluye {PEN.format(totalContributions)} de aporte propio
+              </div>
+            )}
           </div>
-
-          {/* Riesgo */}
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Nivel de riesgo</div>
-            <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded font-semibold text-sm", riskLevel.bg, riskLevel.color)}>
-              <AlertTriangle className="w-3.5 h-3.5" /> {riskLevel.label}
-            </div>
-            <div className="text-[12px] text-muted-foreground mt-2">{riskLevel.reason}</div>
-          </div>
+          {losing ? (
+            <TrendingDown className="w-12 h-12 text-cost-negative shrink-0" />
+          ) : (
+            <TrendingUp className="w-12 h-12 text-cost-positive fire-icon shrink-0" />
+          )}
         </div>
-
-        {/* Origen del proyecto (cotización) */}
-        {project.quotations && (
-          <div className="mt-4 pt-3 border-t border-border">
-            <Link
-              to="/cotizaciones"
-              className="text-[12px] text-muted-foreground hover:text-primary inline-flex items-center gap-1.5"
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              Este proyecto proviene de la cotización · <span className="text-primary font-medium">{project.quotations.title}</span>
-            </Link>
-          </div>
-        )}
       </div>
 
-      {/* === Avance + Presupuesto en bloque secundario === */}
+      {/* ============================================================
+          2. ESTADO FINANCIERO + 3. ESTADO DE TIEMPO (separados)
+          ============================================================ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className={cn("surface-card p-4 border-l-4", financial.border)}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 inline-flex items-center gap-1">
+            <DollarSign className="w-3 h-3" /> Estado financiero
+          </div>
+          <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-sm", financial.bg, financial.color)}>
+            <span>{financial.emoji}</span> {financial.label}
+          </div>
+          <p className="text-[12px] text-muted-foreground mt-2">{financial.description}</p>
+        </div>
+        <div className={cn("surface-card p-4 border-l-4", execution.border)}>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 inline-flex items-center gap-1">
+            <Calendar className="w-3 h-3" /> Estado de ejecución
+          </div>
+          <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-sm", execution.bg, execution.color)}>
+            {execution.label}
+          </div>
+          <p className="text-[12px] text-muted-foreground mt-2">{execution.description}</p>
+        </div>
+      </div>
+
+      {/* ============================================================
+          4. PROGRESO + presupuesto
+          ============================================================ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="surface-card p-4">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
@@ -109,7 +138,7 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
             <Progress value={project.progress} className="h-2 flex-1" />
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
-            {doneTasks} de {totalTasks} tareas completadas — se actualiza solo
+            {doneTasks} de {totalTasks} tareas completadas
           </div>
         </div>
         <div className="surface-card p-4">
@@ -124,13 +153,39 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
         </div>
       </div>
 
-      {project.description && (
-        <div className="surface-card p-3 bg-muted/20">
-          <p className="text-[12px] text-muted-foreground">{project.description}</p>
+      {/* ============================================================
+          5. CLIENTE (información secundaria)
+          ============================================================ */}
+      <div className="surface-card p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Cliente</div>
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-foreground truncate">{project.clients?.name || "—"}</span>
+              {project.clients?.company && (
+                <span className="text-[12px] text-muted-foreground truncate">· {project.clients.company}</span>
+              )}
+            </div>
+          </div>
+          {project.quotations && (
+            <Link
+              to="/cotizaciones"
+              className="text-[12px] text-muted-foreground hover:text-primary inline-flex items-center gap-1.5"
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              Origen: <span className="text-primary font-medium">{project.quotations.title}</span>
+            </Link>
+          )}
         </div>
-      )}
+        {project.description && (
+          <p className="text-[12px] text-muted-foreground mt-3 pt-3 border-t border-border">{project.description}</p>
+        )}
+      </div>
 
-      {/* === Alertas accionables === */}
+      {/* ============================================================
+          ALERTAS ACCIONABLES — cada una con CTA al lugar correcto
+          ============================================================ */}
       {losing && (
         <div className="surface-card border border-cost-negative/40 bg-cost-negative/5 p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-cost-negative shrink-0 mt-0.5" />
@@ -138,10 +193,28 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
             <p className="font-semibold text-foreground text-sm">Este proyecto está perdiendo dinero</p>
             <p className="text-[13px] text-muted-foreground mt-0.5">
               Has gastado {PEN.format(Number(project.actual_cost))} contra un presupuesto de {PEN.format(Number(project.budget))}.
-              Revisa la pestaña Costos para ver dónde ajustar.
+              {totalContributions > 0 && ` Más ${PEN.format(totalContributions)} de tu aporte propio.`}
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => onTabChange("costs")}>Ver costos</Button>
+          <Button size="sm" variant="outline" onClick={() => onTabChange("costs")}>
+            <DollarSign className="w-3.5 h-3.5" /> Ver costos
+          </Button>
+        </div>
+      )}
+      {execution.key === "delayed" && (
+        <div className="surface-card border border-cost-warning/40 bg-cost-warning/5 p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-cost-warning shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground text-sm">
+              {overdueTasks > 0 ? `${overdueTasks} tarea(s) vencidas` : "Proyecto fuera de cronograma"}
+            </p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              Resuélvelas para evitar mayor impacto en la entrega.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => onTabChange("planning")}>
+            <ListChecks className="w-3.5 h-3.5" /> Ver tareas críticas
+          </Button>
         </div>
       )}
       {blockingProject > 0 && (
@@ -149,14 +222,14 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
           <AlertTriangle className="w-5 h-5 text-cost-warning shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="font-semibold text-foreground text-sm">
-              {blockingProject} tarea(s) están retrasando el proyecto
+              {blockingProject} tarea(s) están bloqueando el proyecto
             </p>
             <p className="text-[13px] text-muted-foreground mt-0.5">
-              Resuélvelas para evitar mayor impacto en la entrega.
+              Desbloquéalas para retomar el avance.
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => onTabChange("tasks")}>
-            <ListChecks className="w-3.5 h-3.5" /> Ver tareas
+          <Button size="sm" variant="outline" onClick={() => onTabChange("planning")}>
+            <ListChecks className="w-3.5 h-3.5" /> Desbloquear
           </Button>
         </div>
       )}
@@ -166,7 +239,7 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
           <div className="flex-1">
             <p className="font-semibold text-foreground text-sm">Excelente rentabilidad</p>
             <p className="text-[13px] text-muted-foreground mt-0.5">
-              Este proyecto va con margen del {marginPct.toFixed(0)}%. Buen modelo a replicar.
+              Este proyecto va con margen del {safeMargin.text}. Buen modelo a replicar.
             </p>
           </div>
         </div>
@@ -212,14 +285,14 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
           </div>
         </button>
         <button onClick={() => onTabChange("costs")} className="surface-card surface-card-hover p-4 text-left group">
-          {profit >= 0 ? (
-            <TrendingUp className="w-5 h-5 text-cost-positive mb-2" />
-          ) : (
+          {losing ? (
             <TrendingDown className="w-5 h-5 text-cost-negative mb-2" />
+          ) : (
+            <TrendingUp className="w-5 h-5 text-cost-positive mb-2" />
           )}
           <div className="font-semibold text-sm">Ver finanzas</div>
           <div className="text-[12px] text-muted-foreground mt-0.5">
-            Margen {marginPct.toFixed(0)}% · {usedPct.toFixed(0)}% del presupuesto usado
+            {safeMargin.isExtreme ? "Revisa qué se disparó" : `Margen ${safeMargin.text} · ${usedPct.toFixed(0)}% del presupuesto usado`}
           </div>
           <div className="text-[11px] text-primary mt-2 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             Abrir <ArrowRight className="w-3 h-3" />

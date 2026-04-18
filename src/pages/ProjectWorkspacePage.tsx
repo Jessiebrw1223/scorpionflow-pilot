@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PROJECT_STATUS_META } from "@/lib/business-intelligence";
+import { getExecutionStatus, getFinancialHealth } from "@/lib/business-intelligence";
 import ProjectSummaryTab from "@/components/projects/workspace/ProjectSummaryTab";
 import ProjectPlanningTab from "@/components/projects/workspace/ProjectPlanningTab";
 import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
@@ -63,7 +63,21 @@ export default function ProjectWorkspacePage() {
     );
   }
 
-  const meta = PROJECT_STATUS_META[project.status] || PROJECT_STATUS_META.on_track;
+  // Estados duales: ejecución (tiempo) y salud financiera (dinero) — NUNCA mezclar
+  const today = new Date();
+  const overdueCount = tasks.filter(
+    (t: any) => t.status !== "done" && t.due_date && new Date(t.due_date) < today
+  ).length;
+  const execution = getExecutionStatus({
+    status: project.status,
+    endDate: project.end_date,
+    progress: Number(project.progress) || 0,
+    hasOverdueTasks: overdueCount > 0,
+  });
+  const financial = getFinancialHealth({
+    budget: Number(project.budget),
+    actualCost: Number(project.actual_cost),
+  });
 
   return (
     <div className="space-y-4">
@@ -81,8 +95,11 @@ export default function ProjectWorkspacePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <FolderKanban className="w-5 h-5 text-primary fire-icon shrink-0" />
               <h1 className="text-xl font-bold fire-text truncate">{project.name}</h1>
-              <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded", meta.bg, meta.color)}>
-                {meta.label}
+              <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded inline-flex items-center gap-1", financial.bg, financial.color)}>
+                💰 {financial.label}
+              </span>
+              <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded", execution.bg, execution.color)}>
+                📅 {execution.label}
               </span>
             </div>
             <p className="text-[13px] text-muted-foreground mt-1 ml-7">
