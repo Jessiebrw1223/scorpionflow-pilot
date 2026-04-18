@@ -204,10 +204,11 @@ export default function ProjectResourcesTab({ project }: Props) {
   }, [tasks]);
 
   // Cruce: detectados + recursos humanos persistidos
-  const humanResources = resources.filter(r => r.kind === "human");
+  // Defensivo: ignora recursos sin nombre (legacy / data corrupta) para no romper la vista.
+  const humanResources = resources.filter(r => r.kind === "human" && typeof r.name === "string" && r.name.trim().length > 0);
   const humanByName = useMemo(() => {
     const m = new Map<string, ProjectResource>();
-    humanResources.forEach(r => m.set(r.name.trim(), r));
+    humanResources.forEach(r => m.set((r.name ?? "").trim(), r));
     return m;
   }, [humanResources]);
 
@@ -221,7 +222,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
   // Huérfanos: configurados que ya no aparecen en tareas (legacy o reasignados)
   const detectedNamesSet = new Set(detectedHumans.map(d => d.name));
-  const orphanConfigured = configuredHumans.filter(r => !detectedNamesSet.has(r.name.trim()));
+  const orphanConfigured = configuredHumans.filter(r => !detectedNamesSet.has((r.name ?? "").trim()));
 
   function openAssignCost(name: string) {
     const existing = humanByName.get(name);
