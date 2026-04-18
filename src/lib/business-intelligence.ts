@@ -5,7 +5,7 @@
 // Nunca mezclar. "En tiempo" puede coexistir con "Crítico financiero".
 // ============================================================
 
-export type ExecutionStatus = "on_time" | "delayed" | "completed" | "cancelled";
+export type ExecutionStatus = "on_time" | "at_risk" | "delayed" | "completed" | "cancelled" | "not_evaluable";
 export type FinancialHealth = "healthy" | "risk" | "critical" | "no_data";
 
 export interface ExecutionStatusInfo {
