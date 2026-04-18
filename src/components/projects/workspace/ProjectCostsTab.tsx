@@ -414,15 +414,37 @@ export default function ProjectCostsTab({ project }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="surface-card p-4 border-l-4 border-status-progress">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto cliente</div>
-          <div className="text-lg font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">Lo que cobraste</div>
+          {Number(project.budget) > 0 ? (
+            <>
+              <div className="text-lg font-bold font-mono-data">{PEN.format(Number(project.budget))}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Lo que cobraste</div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-semibold text-muted-foreground italic mt-0.5">No definido</div>
+              <button onClick={() => setOpen(true)} className="text-[10px] text-primary hover:underline mt-0.5">
+                Configurar →
+              </button>
+            </>
+          )}
         </div>
         <div className="surface-card p-4 border-l-4 border-cost-warning">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Costos reales</div>
-          <div className={cn("text-lg font-bold font-mono-data", liveLosing && "text-cost-negative")}>
-            {PEN.format(liveTotal)}
-          </div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">{usedPct.toFixed(0)}% del presupuesto</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total gastado</div>
+          {liveTotal > 0 ? (
+            <>
+              <div className={cn("text-lg font-bold font-mono-data", liveLosing && "text-cost-negative")}>
+                {PEN.format(liveTotal)}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {Number(project.budget) > 0 ? `${usedPct.toFixed(0)}% del presupuesto` : "Sin presupuesto de referencia"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-semibold text-muted-foreground italic mt-0.5">Sin recursos</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Configura recursos primero</div>
+            </>
+          )}
         </div>
         <div className={cn("surface-card p-4 border-l-4", totalContributions > 0 ? "border-primary bg-primary/5" : "border-border")}>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
