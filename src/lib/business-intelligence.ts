@@ -1,5 +1,194 @@
 // Business intelligence helpers — works with REAL data passed in (no more mocks).
 
+// ============================================================
+// ESTADOS DUALES: ejecución (tiempo) vs financiero (dinero)
+// Nunca mezclar. "En tiempo" puede coexistir con "Crítico financiero".
+// ============================================================
+
+export type ExecutionStatus = "on_time" | "delayed" | "completed" | "cancelled";
+export type FinancialHealth = "healthy" | "risk" | "critical" | "no_data";
+
+export interface ExecutionStatusInfo {
+  key: ExecutionStatus;
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  description: string;
+}
+
+export interface FinancialHealthInfo {
+  key: FinancialHealth;
+  label: string;
+  emoji: string;
+  color: string;
+  bg: string;
+  border: string;
+  description: string;
+}
+
+/**
+ * Estado de ejecución basado SOLO en tiempo / cronograma.
+ * No considera dinero.
+ */
+export function getExecutionStatus(opts: {
+  status: string;             // project.status crudo (legacy)
+  endDate?: string | null;
+  progress: number;
+  hasOverdueTasks?: boolean;
+}): ExecutionStatusInfo {
+  if (opts.status === "completed") {
+    return {
+      key: "completed",
+      label: "Completado",
+      color: "text-status-progress",
+      bg: "bg-status-progress/10",
+      border: "border-status-progress/40",
+      description: "Proyecto entregado.",
+    };
+  }
+  if (opts.status === "cancelled") {
+    return {
+      key: "cancelled",
+      label: "Cancelado",
+      color: "text-muted-foreground",
+      bg: "bg-muted/20",
+      border: "border-muted/40",
+      description: "Proyecto cancelado.",
+    };
+  }
+  const endPassed = opts.endDate ? new Date(opts.endDate) < new Date() : false;
+  const isDelayed = opts.hasOverdueTasks || (endPassed && opts.progress < 100);
+  if (isDelayed) {
+    return {
+      key: "delayed",
+      label: "Atrasado",
+      color: "text-cost-warning",
+      bg: "bg-cost-warning/10",
+      border: "border-cost-warning/40",
+      description: "Hay tareas vencidas o el proyecto pasó su fecha de entrega.",
+    };
+  }
+  return {
+    key: "on_time",
+    label: "En tiempo",
+    color: "text-cost-positive",
+    bg: "bg-cost-positive/10",
+    border: "border-cost-positive/40",
+    description: "Avance acorde al cronograma.",
+  };
+}
+
+/**
+ * Salud financiera basada SOLO en dinero (presupuesto, costos, aportes).
+ * No considera plazos.
+ */
+export function getFinancialHealth(opts: {
+  budget: number;
+  actualCost: number;
+  contributions?: number;
+}): FinancialHealthInfo {
+  const budget = Number(opts.budget) || 0;
+  const cost = Number(opts.actualCost) || 0;
+  const contrib = Number(opts.contributions) || 0;
+
+  if (budget === 0 && cost === 0) {
+    return {
+      key: "no_data",
+      label: "Sin datos",
+      emoji: "⚪",
+      color: "text-muted-foreground",
+      bg: "bg-muted/20",
+      border: "border-muted/40",
+      description: "Aún no hay presupuesto ni costos registrados.",
+    };
+  }
+
+  const realProfit = budget - cost - contrib;
+  const usedPct = budget > 0 ? (cost / budget) * 100 : 100;
+
+  if (realProfit < 0) {
+    return {
+      key: "critical",
+      label: "Crítico",
+      emoji: "🔴",
+      color: "text-cost-negative",
+      bg: "bg-cost-negative/10",
+      border: "border-cost-negative/40",
+      description: "Estás perdiendo dinero en este proyecto.",
+    };
+  }
+  if (usedPct >= 85) {
+    return {
+      key: "risk",
+      label: "Riesgo",
+      emoji: "🟡",
+      color: "text-cost-warning",
+      bg: "bg-cost-warning/10",
+      border: "border-cost-warning/40",
+      description: "Has consumido la mayor parte del presupuesto. Vigila los costos.",
+    };
+  }
+  return {
+    key: "healthy",
+    label: "Rentable",
+    emoji: "🟢",
+    color: "text-cost-positive",
+    bg: "bg-cost-positive/10",
+    border: "border-cost-positive/40",
+    description: "El proyecto está dejando ganancia.",
+  };
+}
+
+/**
+ * Cap visual para evitar mostrar márgenes irreales (-1100%) que rompen confianza.
+ * Si el porcentaje cae fuera de [-100, +100] devuelve un mensaje contextual.
+ */
+export function formatSafeMargin(marginPct: number): { text: string; isExtreme: boolean; capped: number } {
+  if (!Number.isFinite(marginPct)) {
+    return { text: "Sin datos suficientes", isExtreme: false, capped: 0 };
+  }
+  if (marginPct < -100) {
+    return {
+      text: "Estás gastando mucho más de lo que cobraste",
+      isExtreme: true,
+      capped: -100,
+    };
+  }
+  if (marginPct > 200) {
+    return {
+      text: "Margen muy alto · revisa que el costo esté bien registrado",
+      isExtreme: true,
+      capped: 200,
+    };
+  }
+  return { text: `${marginPct.toFixed(1)}%`, isExtreme: false, capped: marginPct };
+}
+
+/**
+ * ROI en lenguaje humano: "Por cada S/1 invertido recibes/pierdes S/X.XX".
+ * Capeado para no mostrar valores absurdos.
+ */
+export function formatROI(budget: number, actualCost: number): { text: string; tone: "good" | "warn" | "bad" | "neutral" } {
+  if (actualCost <= 0) {
+    return { text: "Aún no hay gastos registrados", tone: "neutral" };
+  }
+  const ratio = budget / actualCost;
+  if (ratio >= 1) {
+    return {
+      text: `Por cada S/ 1 invertido, recibes S/ ${ratio.toFixed(2)}`,
+      tone: ratio >= 1.3 ? "good" : "warn",
+    };
+  }
+  // pérdida: muestra cuánto pierdes por sol
+  const loss = 1 - ratio;
+  return {
+    text: `Por cada S/ 1 invertido, pierdes S/ ${loss.toFixed(2)}`,
+    tone: "bad",
+  };
+}
+
+
 export interface BusinessSnapshot {
   projectsAtRisk: number;
   projectsOnTime: number;
