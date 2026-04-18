@@ -9,9 +9,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   CreditCard, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
-  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2,
+  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink,
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
+import { usePlan } from "@/hooks/usePlan";
+import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
