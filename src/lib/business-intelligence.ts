@@ -220,6 +220,164 @@ export function getFinancialHealth(opts: {
   };
 }
 
+// ============================================================
+// SALUD GENERAL DEL PROYECTO (4 estados)
+// Combina ejecución + finanzas. Calculada en runtime, NO en DB.
+// Saludable / Riesgo / Sobrepresupuesto / Crítico
+// ============================================================
+
+export type ProjectHealth = "healthy" | "risk" | "over_budget" | "critical" | "completed" | "no_data";
+
+export interface ProjectHealthInfo {
+  key: ProjectHealth;
+  label: string;       // microcopy fuerte
+  emoji: string;
+  color: string;       // text-*
+  bg: string;          // bg-*
+  border: string;      // border-*
+  barColor: string;    // bg-* para la barra de progreso
+  description: string; // explicación humana de POR QUÉ está en este estado
+}
+
+/**
+ * Estado de salud combinado del proyecto (runtime).
+ * Se calcula a partir del estado de ejecución (tiempo) y la salud financiera (dinero).
+ *
+ * Reglas de prioridad (la peor manda):
+ * - Si está completado → "Completado"
+ * - Si pierde dinero (financial.critical) Y está atrasado → "Crítico"
+ * - Si pierde dinero (financial.critical) → "Sobrepresupuesto"
+ * - Si va atrasado fuerte (execution.delayed) → "Crítico"
+ * - Si finanzas en riesgo o ejecución en riesgo → "Riesgo"
+ * - Si todo va bien → "Saludable"
+ * - Sin datos suficientes (no_data + not_evaluable) → "Sin datos"
+ */
+export function getProjectHealth(opts: {
+  execution: ExecutionStatusInfo;
+  financial: FinancialHealthInfo;
+}): ProjectHealthInfo {
+  const exec = opts.execution.key;
+  const fin = opts.financial.key;
+
+  if (exec === "completed") {
+    return {
+      key: "completed",
+      label: "Completado",
+      emoji: "✓",
+      color: "text-status-progress",
+      bg: "bg-status-progress/10",
+      border: "border-status-progress/40",
+      barColor: "bg-status-progress",
+      description: "Proyecto entregado.",
+    };
+  }
+
+  if (exec === "cancelled") {
+    return {
+      key: "no_data",
+      label: "Cancelado",
+      emoji: "—",
+      color: "text-muted-foreground",
+      bg: "bg-muted/20",
+      border: "border-muted/40",
+      barColor: "bg-muted",
+      description: "Proyecto cancelado.",
+    };
+  }
+
+  // Pérdida de dinero + retraso fuerte = crítico absoluto
+  if (fin === "critical" && exec === "delayed") {
+    return {
+      key: "critical",
+      label: "Crítico",
+      emoji: "⚫",
+      color: "text-cost-negative",
+      bg: "bg-cost-negative/15",
+      border: "border-cost-negative/60",
+      barColor: "bg-cost-negative",
+      description: "Estás perdiendo dinero y el cronograma está atrasado.",
+    };
+  }
+
+  // Solo pérdida de dinero → sobrepresupuesto
+  if (fin === "critical") {
+    return {
+      key: "over_budget",
+      label: "Sobrepresupuesto",
+      emoji: "🔴",
+      color: "text-cost-negative",
+      bg: "bg-cost-negative/10",
+      border: "border-cost-negative/40",
+      barColor: "bg-cost-negative",
+      description: opts.financial.description,
+    };
+  }
+
+  // Solo retraso fuerte → crítico de ejecución
+  if (exec === "delayed") {
+    return {
+      key: "critical",
+      label: "Crítico",
+      emoji: "⚫",
+      color: "text-cost-negative",
+      bg: "bg-cost-negative/10",
+      border: "border-cost-negative/40",
+      barColor: "bg-cost-negative",
+      description: opts.execution.description,
+    };
+  }
+
+  // Riesgo financiero o de ejecución → riesgo
+  if (fin === "risk" || exec === "at_risk") {
+    return {
+      key: "risk",
+      label: "En riesgo",
+      emoji: "🟡",
+      color: "text-cost-warning",
+      bg: "bg-cost-warning/10",
+      border: "border-cost-warning/40",
+      barColor: "bg-cost-warning",
+      description:
+        fin === "risk" && exec === "at_risk"
+          ? "Margen ajustado y avance por debajo de lo esperado."
+          : fin === "risk"
+          ? opts.financial.description
+          : opts.execution.description,
+    };
+  }
+
+  // Sin datos en ambos lados
+  if (fin === "no_data" && exec === "not_evaluable") {
+    return {
+      key: "no_data",
+      label: "Sin datos",
+      emoji: "⚪",
+      color: "text-muted-foreground",
+      bg: "bg-muted/20",
+      border: "border-muted/40",
+      barColor: "bg-muted",
+      description: "Define presupuesto y fechas para ver la salud del proyecto.",
+    };
+  }
+
+  // Todo bien (o sin datos en uno solo, pero el otro está sano)
+  return {
+    key: "healthy",
+    label: "Saludable",
+    emoji: "🟢",
+    color: "text-cost-positive",
+    bg: "bg-cost-positive/10",
+    border: "border-cost-positive/40",
+    barColor: "bg-cost-positive",
+    description:
+      fin === "healthy" && exec === "on_time"
+        ? "Avance y rentabilidad bajo control."
+        : fin === "healthy"
+        ? "Rentabilidad bajo control."
+        : "Avance acorde al cronograma.",
+  };
+}
+
 /**
  * Cap visual para evitar mostrar márgenes irreales (-1100%) que rompen confianza.
  * Si el porcentaje cae fuera de [-100, +100] devuelve un mensaje contextual.

@@ -5,9 +5,14 @@ import { FolderKanban, Search, Loader2, Receipt, ArrowRight, Calendar, Info } fr
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { PROJECT_STATUS_META } from "@/lib/business-intelligence";
+import {
+  getExecutionStatus,
+  getFinancialHealth,
+  getProjectHealth,
+  type ProjectHealth,
+} from "@/lib/business-intelligence";
+import { useUserSettings } from "@/hooks/useUserSettings";
 import { useMoney } from "@/lib/format-money";
 
 type ProjectStatus = "on_track" | "at_risk" | "over_budget" | "completed" | "cancelled";
@@ -29,18 +34,21 @@ interface Project {
   quotations?: { id: string; title: string };
 }
 
-const STATUS_FILTERS: { key: ProjectStatus | "all"; label: string }[] = [
+const HEALTH_FILTERS: { key: ProjectHealth | "all"; label: string }[] = [
   { key: "all", label: "Todos" },
-  { key: "on_track", label: "🟢 En tiempo" },
-  { key: "at_risk", label: "🟡 En riesgo" },
-  { key: "over_budget", label: "🔴 Sobre presupuesto" },
+  { key: "healthy", label: "🟢 Saludable" },
+  { key: "risk", label: "🟡 En riesgo" },
+  { key: "over_budget", label: "🔴 Sobrepresupuesto" },
+  { key: "critical", label: "⚫ Crítico" },
   { key: "completed", label: "✓ Completados" },
 ];
 
+
 export default function ProjectsPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
+  const [healthFilter, setHealthFilter] = useState<ProjectHealth | "all">("all");
   const PEN = useMoney();
+  const { settings } = useUserSettings();
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
@@ -54,10 +62,30 @@ export default function ProjectsPage() {
     },
   });
 
+  // Pre-calcular salud para cada proyecto (runtime, no DB)
+  const projectsWithHealth = useMemo(() => {
+    return projects.map((p) => {
+      const execution = getExecutionStatus({
+        status: p.status,
+        startDate: p.start_date,
+        endDate: p.end_date,
+        progress: Number(p.progress) || 0,
+        inferSchedule: settings.auto_behavior.inferSchedule,
+      });
+      const financial = getFinancialHealth({
+        budget: Number(p.budget),
+        actualCost: Number(p.actual_cost),
+        targetMargin: settings.target_margin,
+      });
+      const health = getProjectHealth({ execution, financial });
+      return { project: p, execution, financial, health };
+    });
+  }, [projects, settings.auto_behavior.inferSchedule, settings.target_margin]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return projects.filter((p) => {
-      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+    return projectsWithHealth.filter(({ project: p, health }) => {
+      if (healthFilter !== "all" && health.key !== healthFilter) return false;
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
@@ -65,17 +93,19 @@ export default function ProjectsPage() {
         (p.clients?.name || "").toLowerCase().includes(q)
       );
     });
-  }, [projects, search, statusFilter]);
+  }, [projectsWithHealth, search, healthFilter]);
 
   const stats = useMemo(() => {
-    const onTrack = projects.filter((p) => p.status === "on_track").length;
-    const atRisk = projects.filter((p) => p.status === "at_risk").length;
-    const overBudget = projects.filter((p) => p.status === "over_budget").length;
+    const healthy = projectsWithHealth.filter((x) => x.health.key === "healthy").length;
+    const risk = projectsWithHealth.filter((x) => x.health.key === "risk").length;
+    const overBudget = projectsWithHealth.filter(
+      (x) => x.health.key === "over_budget" || x.health.key === "critical"
+    ).length;
     const totalBudget = projects.reduce((s, p) => s + Number(p.budget), 0);
     const totalCost = projects.reduce((s, p) => s + Number(p.actual_cost), 0);
     const profit = totalBudget - totalCost;
-    return { onTrack, atRisk, overBudget, totalBudget, totalCost, profit };
-  }, [projects]);
+    return { healthy, risk, overBudget, totalBudget, totalCost, profit };
+  }, [projectsWithHealth, projects]);
 
   return (
     <div className="space-y-4">
@@ -104,22 +134,22 @@ export default function ProjectsPage() {
         </Button>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs reales (basados en salud calculada) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="surface-card p-3 border-l-4 border-cost-positive">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🟢 En tiempo</div>
-          <div className="text-xl font-bold font-mono-data text-cost-positive">{stats.onTrack}</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🟢 Saludables</div>
+          <div className="text-xl font-bold font-mono-data text-cost-positive">{stats.healthy}</div>
         </div>
         <div className="surface-card p-3 border-l-4 border-cost-warning">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🟡 En riesgo</div>
-          <div className="text-xl font-bold font-mono-data text-cost-warning">{stats.atRisk}</div>
+          <div className="text-xl font-bold font-mono-data text-cost-warning">{stats.risk}</div>
         </div>
         <div className="surface-card p-3 border-l-4 border-cost-negative">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🔴 Sobre presupuesto</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">🔴 Sobrepresupuesto</div>
           <div className="text-xl font-bold font-mono-data text-cost-negative">{stats.overBudget}</div>
         </div>
         <div className="surface-card p-3 border-l-4 border-primary">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Ganancia estimada</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Rentabilidad actual</div>
           <div className={cn("text-xl font-bold font-mono-data", stats.profit >= 0 ? "text-cost-positive" : "text-cost-negative")}>
             {PEN.format(stats.profit)}
           </div>
@@ -133,13 +163,13 @@ export default function ProjectsPage() {
           <Input placeholder="Buscar proyecto, cliente…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-secondary/50" />
         </div>
         <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg flex-wrap">
-          {STATUS_FILTERS.map((f) => (
+          {HEALTH_FILTERS.map((f) => (
             <button
               key={f.key}
-              onClick={() => setStatusFilter(f.key)}
+              onClick={() => setHealthFilter(f.key)}
               className={cn(
                 "px-3 py-1.5 text-[12px] rounded-md transition-sf font-medium",
-                statusFilter === f.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                healthFilter === f.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
               {f.label}
@@ -174,27 +204,42 @@ export default function ProjectsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((p) => {
-            const meta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.on_track;
+          {filtered.map(({ project: p, health, execution }) => {
             const margin = Number(p.budget) - Number(p.actual_cost);
             const marginPct = Number(p.budget) > 0 ? ((margin / Number(p.budget)) * 100).toFixed(0) : "0";
             const overBudget = Number(p.actual_cost) > Number(p.budget);
+            const progressClamped = Math.max(0, Math.min(100, Number(p.progress) || 0));
             return (
               <Link
                 key={p.id}
                 to={`/projects/${p.id}`}
                 className={cn(
                   "block surface-card surface-card-hover p-4 border-l-4 group cursor-pointer",
-                  meta.border
+                  health.border
                 )}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-foreground group-hover:text-primary transition-sf">{p.name}</h3>
-                      <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded", meta.bg, meta.color)}>
-                        {meta.label}
+                      <span
+                        className={cn(
+                          "text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1",
+                          health.bg,
+                          health.color
+                        )}
+                        title={health.description}
+                      >
+                        {health.emoji} {health.label}
                       </span>
+                      {execution.key !== "not_evaluable" && execution.key !== "completed" && (
+                        <span
+                          className="text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded bg-muted/30 text-muted-foreground inline-flex items-center gap-1"
+                          title={execution.description}
+                        >
+                          📅 {execution.label}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[12px] text-muted-foreground mt-0.5">
                       {p.clients?.name}
@@ -210,12 +255,18 @@ export default function ProjectsPage() {
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-sf shrink-0 mt-1" />
                 </div>
 
-                <Progress value={p.progress} className="h-2 mb-3" />
+                {/* Barra inteligente: color según salud, NO siempre rojo */}
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden mb-3">
+                  <div
+                    className={cn("h-full rounded-full transition-sf", health.barColor)}
+                    style={{ width: `${progressClamped}%` }}
+                  />
+                </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[12px]">
                   <div>
                     <div className="text-muted-foreground text-[10px] uppercase tracking-wider">Avance</div>
-                    <div className="font-mono-data font-semibold">{p.progress}%</div>
+                    <div className="font-mono-data font-semibold">{progressClamped}%</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground text-[10px] uppercase tracking-wider">Presupuesto</div>
@@ -228,7 +279,9 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground text-[10px] uppercase tracking-wider">Ganancia</div>
+                    <div className="text-muted-foreground text-[10px] uppercase tracking-wider">
+                      {margin >= 0 ? "Rentabilidad" : "Pérdida"}
+                    </div>
                     <div className={cn("font-mono-data font-semibold", margin >= 0 ? "text-cost-positive" : "text-cost-negative")}>
                       {margin >= 0 ? "+" : ""}{PEN.format(margin)} ({marginPct}%)
                     </div>
