@@ -172,85 +172,139 @@ export default function SettingsPage() {
 
         {/* Subscriptions */}
         <TabsContent value="subscriptions">
-          <div className="space-y-4">
-            <div className="surface-card p-5">
-              <h3 className="text-sm font-semibold text-foreground mb-1">Plan Activo</h3>
-              <p className="text-[12px] text-muted-foreground mb-4">Gestiona tu suscripción y funcionalidades</p>
+          <div className="space-y-5">
+            {/* Header + Billing toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Elige el plan que se adapta a tu negocio</h3>
+                <p className="text-[13px] text-muted-foreground">
+                  Empieza gratis. Trabaja sin límites. Controla tu negocio cuando estés listo.
+                </p>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Admin Plan */}
-                <div className={cn(
-                  "surface-card p-5 rounded-lg border-2 transition-sf",
-                  activePlan === "admin" ? "border-primary" : "border-transparent hover:border-border"
-                )}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Shield className="w-5 h-5 text-primary" />
-                    <h4 className="text-[14px] font-semibold text-foreground">Plan Administrador</h4>
-                  </div>
-                  <div className="mb-4">
-                    <span className="font-mono-data text-2xl font-bold text-foreground">S/ 79</span>
-                    <span className="text-[12px] text-muted-foreground"> / mes</span>
-                  </div>
-                  <ul className="space-y-2 text-[12px] text-foreground/80 mb-4">
-                    {["Gestión de usuarios", "Gestión de recursos", "Informes avanzados", "Planificación de proyectos", "Visualización de redes de cronograma", "Análisis de utilización"].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-cost-positive" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="surface-card p-2 bg-secondary/30 rounded text-[11px] text-muted-foreground mb-3">
-                    <strong className="text-cost-warning">Limitación:</strong> No puede modificar actividades críticas ni fechas estratégicas del cronograma.
-                  </div>
-                  {activePlan === "admin" ? (
-                    <Badge className="w-full justify-center py-1.5">Plan Actual</Badge>
-                  ) : (
-                    <Button variant="outline" className="w-full h-9 text-[12px]" onClick={() => setActivePlan("admin")}>
-                      Cambiar a este plan
-                    </Button>
+              <div className="inline-flex items-center gap-1 bg-secondary border border-border rounded-lg p-1 self-start sm:self-auto">
+                <button
+                  onClick={() => setBilling("monthly")}
+                  className={cn(
+                    "px-3 h-7 rounded-md text-[12px] font-medium transition-sf",
+                    billing === "monthly"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
-                </div>
+                >
+                  Mensual
+                </button>
+                <button
+                  onClick={() => setBilling("annual")}
+                  className={cn(
+                    "px-3 h-7 rounded-md text-[12px] font-medium transition-sf flex items-center gap-1.5",
+                    billing === "annual"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Anual
+                  <span className="text-[10px] font-semibold text-cost-positive bg-cost-positive/10 px-1.5 py-0.5 rounded">
+                    -20%
+                  </span>
+                </button>
+              </div>
+            </div>
 
-                {/* Manager Plan */}
-                <div className={cn(
-                  "surface-card p-5 rounded-lg border-2 transition-sf relative overflow-hidden",
-                  activePlan === "manager" ? "border-primary" : "border-transparent hover:border-border"
-                )}>
-                  <div className="absolute top-0 right-0 scorpion-gradient text-[10px] text-white font-bold px-3 py-1 rounded-bl-lg">
-                    PRO
+            {/* Plans grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {PLANS.map((plan) => {
+                const Icon = plan.icon;
+                const isCurrent = activePlan === plan.id;
+                const pricePEN = billing === "monthly" ? plan.monthlyPEN : plan.annualPEN;
+                const priceUSD = billing === "monthly" ? plan.monthlyUSD : plan.annualUSD;
+                const isFree = plan.id === "free";
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={cn(
+                      "surface-card p-5 rounded-xl border-2 transition-sf relative flex flex-col",
+                      plan.highlight
+                        ? "border-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_8px_30px_-8px_hsl(var(--primary)/0.4)] md:scale-[1.02]"
+                        : isCurrent
+                        ? "border-primary/60"
+                        : "border-border hover:border-primary/40"
+                    )}
+                  >
+                    {plan.highlight && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 scorpion-gradient text-[10px] font-bold uppercase tracking-wider text-white px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                        <Star className="w-3 h-3 fill-current" />
+                        Más popular
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon className={cn("w-4 h-4", plan.accent)} />
+                      <h4 className="text-[14px] font-semibold text-foreground">{plan.name}</h4>
+                    </div>
+                    <p className="text-[12px] text-muted-foreground mb-4 min-h-[32px]">
+                      {plan.tagline}
+                    </p>
+
+                    <div className="mb-4 pb-4 border-b border-border">
+                      {isFree ? (
+                        <div>
+                          <span className="font-mono-data text-3xl font-bold text-foreground">Gratis</span>
+                          <p className="text-[11px] text-muted-foreground mt-1">Para siempre</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-mono-data text-3xl font-bold text-foreground">
+                              S/ {pricePEN}
+                            </span>
+                            <span className="text-[12px] text-muted-foreground">/ mes</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            ≈ ${priceUSD} USD {billing === "annual" && "· facturado anual"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <ul className="space-y-2 text-[12px] text-foreground/85 mb-5 flex-1">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2">
+                          <Check className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", plan.highlight ? "text-primary" : "text-cost-positive")} />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {isCurrent ? (
+                      <Badge variant="secondary" className="w-full justify-center py-2 text-[12px]">
+                        Plan actual
+                      </Badge>
+                    ) : (
+                      <Button
+                        variant={plan.highlight ? "default" : "outline"}
+                        className={cn(
+                          "w-full h-9 text-[12px]",
+                          plan.highlight && "scorpion-gradient text-white border-0 hover:opacity-90"
+                        )}
+                        onClick={() => setActivePlan(plan.id)}
+                      >
+                        {plan.cta}
+                      </Button>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Crown className="w-5 h-5 text-cost-warning" />
-                    <h4 className="text-[14px] font-semibold text-foreground">Plan Gerente de Proyectos</h4>
-                  </div>
-                  <div className="mb-4">
-                    <span className="font-mono-data text-2xl font-bold text-foreground">S/ 250</span>
-                    <span className="text-[12px] text-muted-foreground"> / mes</span>
-                  </div>
-                  <ul className="space-y-2 text-[12px] text-foreground/80 mb-4">
-                    {[
-                      "Todo del plan Administrador",
-                      "Toma de decisiones bajo incertidumbre",
-                      "Simulación de escenarios",
-                      "Optimización de cronogramas",
-                      "Análisis de retrasos",
-                      "Gestión avanzada de costos",
-                      "Redes de planificación CPM/PERT",
-                      "Aceleración de proyectos",
-                      "Análisis de ruta crítica",
-                    ].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-cost-positive" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {activePlan === "manager" ? (
-                    <Badge className="w-full justify-center py-1.5">Plan Actual</Badge>
-                  ) : (
-                    <Button className="w-full h-9 text-[12px]" onClick={() => setActivePlan("manager")}>
-                      Actualizar a Gerente
-                    </Button>
-                  )}
-                </div>
+                );
+              })}
+            </div>
+
+            <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-secondary/30">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="text-[12px] text-muted-foreground">
+                <span className="text-foreground font-medium">Cancela cuando quieras.</span>{" "}
+                Puedes cambiar o cancelar tu plan en cualquier momento. Sin permanencia ni costos ocultos.
               </div>
             </div>
           </div>
