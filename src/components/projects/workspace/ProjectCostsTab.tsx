@@ -251,47 +251,67 @@ export default function ProjectCostsTab({ project }: Props) {
         </div>
       )}
 
-      {/* === Big number: GANANCIA REAL con badge de salud financiera === */}
-      <div className={cn("surface-card p-6 border-l-4", financialHealth.border)}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                Ganancia real (hoy){totalContributions > 0 && " · descontando tu aporte"}
-              </span>
-              <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded inline-flex items-center gap-1", financialHealth.bg, financialHealth.color)}>
-                {financialHealth.emoji} {financialHealth.label}
-              </span>
+      {/* === SIN DATOS: estado resiliente cuando no hay presupuesto NI costos === */}
+      {Number(project.budget) === 0 && liveTotal === 0 ? (
+        <div className="surface-card p-6 border-l-4 border-muted/40 bg-muted/10">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-muted/30 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-muted-foreground" />
             </div>
-            <div className={cn("text-4xl font-bold font-mono-data", realLosing ? "text-cost-negative" : "text-cost-positive")}>
-              {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">Sin datos financieros configurados</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">
+                Define el presupuesto que cobraste al cliente y registra recursos en la pestaña <span className="text-foreground font-medium">Recursos</span> para ver tu ganancia real aquí.
+              </p>
+              <Button size="sm" variant="outline" className="mt-2" onClick={() => setOpen(true)}>
+                <Pencil className="w-3.5 h-3.5" /> Configurar presupuesto
+              </Button>
             </div>
-            <div className="text-[13px] text-muted-foreground mt-1">
-              {safeMargin.isExtreme ? (
-                <span className="text-cost-negative font-medium">{safeMargin.text}</span>
-              ) : (
-                <>
-                  Margen real: <span className={cn("font-mono-data font-semibold", liveMarginWithContrib >= 20 ? "text-cost-positive" : liveMarginWithContrib >= 0 ? "text-cost-warning" : "text-cost-negative")}>
-                    {safeMargin.text}
-                  </span>
-                  {" · "}
-                  {financialHealth.description}
-                </>
+          </div>
+        </div>
+      ) : (
+        /* === Big number: GANANCIA REAL con badge de salud financiera === */
+        <div className={cn("surface-card p-6 border-l-4", financialHealth.border)}>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  Ganancia real (hoy){totalContributions > 0 && " · descontando tu aporte"}
+                </span>
+                <span className={cn("text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded inline-flex items-center gap-1", financialHealth.bg, financialHealth.color)}>
+                  {financialHealth.emoji} {financialHealth.label}
+                </span>
+              </div>
+              <div className={cn("text-4xl font-bold font-mono-data", realLosing ? "text-cost-negative" : "text-cost-positive")}>
+                {liveProfitWithContrib >= 0 ? "+" : ""}{PEN.format(liveProfitWithContrib)}
+              </div>
+              <div className="text-[13px] text-muted-foreground mt-1">
+                {safeMargin.isExtreme ? (
+                  <span className="text-cost-negative font-medium">{safeMargin.text}</span>
+                ) : (
+                  <>
+                    Margen real: <span className={cn("font-mono-data font-semibold", liveMarginWithContrib >= 20 ? "text-cost-positive" : liveMarginWithContrib >= 0 ? "text-cost-warning" : "text-cost-negative")}>
+                      {safeMargin.text}
+                    </span>
+                    {" · "}
+                    {financialHealth.description}
+                  </>
+                )}
+              </div>
+              {totalContributions > 0 && (
+                <div className="text-[11px] text-primary mt-1 inline-flex items-center gap-1">
+                  <HandCoins className="w-3 h-3" /> Incluye {PEN.format(totalContributions)} de aporte propio descontado
+                </div>
               )}
             </div>
-            {totalContributions > 0 && (
-              <div className="text-[11px] text-primary mt-1 inline-flex items-center gap-1">
-                <HandCoins className="w-3 h-3" /> Incluye {PEN.format(totalContributions)} de aporte propio descontado
-              </div>
+            {realLosing ? (
+              <TrendingDown className="w-12 h-12 text-cost-negative" />
+            ) : (
+              <TrendingUp className="w-12 h-12 text-cost-positive fire-icon" />
             )}
           </div>
-          {realLosing ? (
-            <TrendingDown className="w-12 h-12 text-cost-negative" />
-          ) : (
-            <TrendingUp className="w-12 h-12 text-cost-positive fire-icon" />
-          )}
         </div>
-      </div>
+      )}
 
       {/* === Tarjetas simplificadas: ROI + Proyección final === */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
