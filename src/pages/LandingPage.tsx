@@ -120,6 +120,7 @@ export default function LandingPage() {
             <a href="#solucion" className="hover:text-foreground transition-colors">Solución</a>
             <a href="#colaboracion" className="hover:text-foreground transition-colors">Equipo</a>
             <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
+            <a href="#nosotros" className="hover:text-foreground transition-colors">Nosotros</a>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/auth/login">
