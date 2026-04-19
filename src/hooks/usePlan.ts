@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type PlanId = "free" | "starter" | "pro" | "business";
+export type BillingCycle = "monthly" | "annual";
 
 export type PremiumFeature =
   | "advanced_reports"
@@ -18,11 +19,15 @@ export interface PlanInfo {
   billingCycle: string;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
+  pendingDowngradePlan: PlanId | null;
+  pendingDowngradeBillingCycle: string | null;
+  stripePriceId: string | null;
   loading: boolean;
   // Helpers
   isPro: boolean;
   isBusiness: boolean;
   isPaid: boolean;
+  hasActiveStripeSub: boolean;
   canAccess: (feature: PremiumFeature) => boolean;
   refresh: () => Promise<void>;
 }
@@ -58,6 +63,10 @@ export function usePlan(): PlanInfo {
   const [billingCycle, setBillingCycle] = useState<string>("monthly");
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
+  const [pendingDowngradePlan, setPendingDowngradePlan] = useState<PlanId | null>(null);
+  const [pendingDowngradeBillingCycle, setPendingDowngradeBillingCycle] = useState<string | null>(null);
+  const [stripePriceId, setStripePriceId] = useState<string | null>(null);
+  const [hasStripeSub, setHasStripeSub] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -78,6 +87,10 @@ export function usePlan(): PlanInfo {
       setBillingCycle(data.billing_cycle ?? "monthly");
       setCancelAtPeriodEnd((data as any).cancel_at_period_end ?? false);
       setCurrentPeriodEnd((data as any).current_period_end ?? null);
+      setPendingDowngradePlan(((data as any).pending_downgrade_plan as PlanId | null) ?? null);
+      setPendingDowngradeBillingCycle((data as any).pending_downgrade_billing_cycle ?? null);
+      setStripePriceId((data as any).stripe_price_id ?? null);
+      setHasStripeSub(Boolean((data as any).stripe_subscription_id));
     }
     setLoading(false);
   }, [user]);
@@ -87,8 +100,6 @@ export function usePlan(): PlanInfo {
   }, [refresh]);
 
   // Realtime: suscribirse a cambios en mi suscripción.
-  // Canal único por instancia (StrictMode/HMR/doble montaje) para evitar
-  // "cannot add postgres_changes callbacks after subscribe()".
   useEffect(() => {
     if (!user) return;
     const channelName = `subscription-${user.id}-${Math.random().toString(36).slice(2)}`;
@@ -120,17 +131,21 @@ export function usePlan(): PlanInfo {
       billingCycle,
       cancelAtPeriodEnd,
       currentPeriodEnd,
+      pendingDowngradePlan,
+      pendingDowngradeBillingCycle,
+      stripePriceId,
       loading,
       isPro: rank >= PLAN_RANK.pro && isActive,
       isBusiness: rank >= PLAN_RANK.business && isActive,
       isPaid: rank >= PLAN_RANK.starter && isActive,
+      hasActiveStripeSub: hasStripeSub && isActive,
       canAccess: (feature: PremiumFeature) => {
         if (!isActive) return false;
         return rank >= PLAN_RANK[FEATURE_REQUIREMENTS[feature]];
       },
       refresh,
     };
-  }, [plan, status, billingCycle, cancelAtPeriodEnd, currentPeriodEnd, loading, refresh]);
+  }, [plan, status, billingCycle, cancelAtPeriodEnd, currentPeriodEnd, pendingDowngradePlan, pendingDowngradeBillingCycle, stripePriceId, hasStripeSub, loading, refresh]);
 }
 
 export function getRequiredPlan(feature: PremiumFeature): PlanId {
