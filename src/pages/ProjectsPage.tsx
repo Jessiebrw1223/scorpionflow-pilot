@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { FolderKanban, Search, Loader2, Receipt, ArrowRight, Calendar, Info } from "lucide-react";
+import { FolderKanban, Search, Receipt, ArrowRight, Calendar, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/business-intelligence";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useMoney } from "@/lib/format-money";
+import { PageLoadingState, PageEmptyState, PageErrorState } from "@/components/state/PageStates";
 
 type ProjectStatus = "on_track" | "at_risk" | "over_budget" | "completed" | "cancelled";
 
@@ -50,7 +51,7 @@ export default function ProjectsPage() {
   const PEN = useMoney();
   const { settings } = useUserSettings();
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,7 +59,7 @@ export default function ProjectsPage() {
         .select("*, clients(id, name, company), quotations(id, title)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as Project[];
+      return (data ?? []) as unknown as Project[];
     },
   });
 
@@ -180,10 +181,9 @@ export default function ProjectsPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="p-12 text-center text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-          Cargando proyectos…
-        </div>
+        <PageLoadingState title="Cargando proyectos…" />
+      ) : isError ? (
+        <PageErrorState error={error} onRetry={() => refetch()} />
       ) : projects.length === 0 ? (
         <div className="surface-card fire-border p-8 text-center space-y-3">
           <FolderKanban className="w-10 h-10 text-primary fire-icon mx-auto" />
@@ -199,9 +199,11 @@ export default function ProjectsPage() {
           </Button>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="surface-card p-6 text-center text-muted-foreground text-[13px]">
-          Sin resultados con esos filtros.
-        </div>
+        <PageEmptyState
+          icon={<Search className="w-6 h-6 text-muted-foreground" />}
+          title="Sin resultados"
+          description="Ningún proyecto coincide con esos filtros. Prueba ajustando la búsqueda."
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map(({ project: p, health, execution }) => {

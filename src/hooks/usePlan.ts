@@ -86,24 +86,26 @@ export function usePlan(): PlanInfo {
     refresh();
   }, [refresh]);
 
-  // Realtime: suscribirse a cambios en mi suscripción
+  // Realtime: suscribirse a cambios en mi suscripción.
+  // Canal único por instancia (StrictMode/HMR/doble montaje) para evitar
+  // "cannot add postgres_changes callbacks after subscribe()".
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`subscription-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "account_subscriptions",
-          filter: `owner_id=eq.${user.id}`,
-        },
-        () => {
-          refresh();
-        }
-      )
-      .subscribe();
+    const channelName = `subscription-${user.id}-${Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(channelName);
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "account_subscriptions",
+        filter: `owner_id=eq.${user.id}`,
+      },
+      () => {
+        refresh();
+      }
+    );
+    channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
     };

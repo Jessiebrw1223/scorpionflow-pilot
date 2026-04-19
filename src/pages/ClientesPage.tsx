@@ -53,6 +53,7 @@ import { CLIENT_TYPE_META, CLIENT_TYPES, daysSince, inferCommercialBadge } from 
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
 import { humanizeError } from "@/lib/humanize-error";
+import { PageLoadingState, PageEmptyState, PageErrorState } from "@/components/state/PageStates";
 import { Sparkles } from "lucide-react";
 
 type ClientType = string;
@@ -119,7 +120,7 @@ export default function ClientesPage() {
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
 
-  const { data: clients = [], isLoading } = useQuery({
+  const { data: clients = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -127,7 +128,7 @@ export default function ClientesPage() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Client[];
+      return (data ?? []) as Client[];
     },
   });
 
@@ -505,30 +506,27 @@ export default function ClientesPage() {
       {/* Table */}
       <div className="surface-card overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-            Cargando clientes…
-          </div>
+          <PageLoadingState title="Cargando clientes…" />
+        ) : isError ? (
+          <PageErrorState error={error} onRetry={() => refetch()} />
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-primary/10 mx-auto flex items-center justify-center fire-glow">
-              <Users className="w-7 h-7 text-primary fire-icon" />
-            </div>
-            <p className="text-foreground font-medium">
-              {clients.length === 0 ? "Aún no tienes clientes" : "Sin resultados"}
-            </p>
-            <p className="text-[13px] text-muted-foreground">
-              {clients.length === 0
-                ? "Empieza agregando tu primer cliente al sistema"
-                : "Prueba con otros filtros o términos de búsqueda"}
-            </p>
-            {clients.length === 0 && (
-              <Button onClick={openCreate} className="fire-button mt-2">
-                <Plus className="w-4 h-4" />
-                Agregar primer cliente
-              </Button>
-            )}
-          </div>
+          <PageEmptyState
+            icon={<Users className="w-6 h-6 text-primary fire-icon" />}
+            title={clients.length === 0 ? "Aún no tienes clientes" : "Sin resultados"}
+            description={
+              clients.length === 0
+                ? "Empieza agregando tu primer cliente al sistema."
+                : "Prueba con otros filtros o términos de búsqueda."
+            }
+            action={
+              clients.length === 0 ? (
+                <Button onClick={openCreate} className="fire-button">
+                  <Plus className="w-4 h-4" />
+                  Agregar primer cliente
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
