@@ -256,9 +256,7 @@ export default function TeamPage() {
           </div>
 
           {loading ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              Cargando…
-            </div>
+            <PageLoadingState title="Cargando equipo…" />
           ) : (
             <div className="divide-y divide-border">
               <MemberRow
@@ -282,12 +280,12 @@ export default function TeamPage() {
                 />
               ))}
               {members.length === 0 && (
-                <div className="p-8 text-center">
-                  <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Aún no hay otros miembros. Invita a tu equipo para colaborar.
-                  </p>
-                </div>
+                <PageEmptyState
+                  icon={<Users className="w-6 h-6 text-muted-foreground" />}
+                  title="Aún no hay otros miembros"
+                  description="Invita a tu equipo para colaborar en proyectos, clientes y cotizaciones."
+                  className="py-10"
+                />
               )}
             </div>
           )}
