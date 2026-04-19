@@ -95,6 +95,16 @@ serve(async (req) => {
         const billing = interval === "year" ? "annual" : "monthly";
         const status = sub.status === "active" || sub.status === "trialing" ? "active" : sub.status;
 
+        // Conversión segura de current_period_end (puede venir undefined/null en algunos eventos)
+        const periodEndUnix =
+          (sub as any).current_period_end ??
+          item?.current_period_end ??
+          null;
+        const currentPeriodEndIso =
+          typeof periodEndUnix === "number" && Number.isFinite(periodEndUnix)
+            ? new Date(periodEndUnix * 1000).toISOString()
+            : null;
+
         if (ownerId) {
           await admin
             .from("account_subscriptions")
@@ -106,7 +116,7 @@ serve(async (req) => {
                 status,
                 stripe_customer_id: sub.customer as string,
                 stripe_subscription_id: sub.id,
-                current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+                current_period_end: currentPeriodEndIso,
                 cancel_at_period_end: sub.cancel_at_period_end,
               },
               { onConflict: "owner_id" }
@@ -120,12 +130,12 @@ serve(async (req) => {
               billing_cycle: billing,
               status,
               stripe_subscription_id: sub.id,
-              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              current_period_end: currentPeriodEndIso,
               cancel_at_period_end: sub.cancel_at_period_end,
             })
             .eq("stripe_customer_id", sub.customer as string);
         }
-        console.log(`[stripe-webhook] subscription.${event.type.split(".").pop()} → ${plan}`);
+        console.log(`[stripe-webhook] subscription.${event.type.split(".").pop()} → ${plan} period_end=${currentPeriodEndIso}`);
         break;
       }
 
