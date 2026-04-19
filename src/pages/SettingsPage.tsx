@@ -115,11 +115,20 @@ export default function SettingsPage() {
     const checkout = searchParams.get("checkout");
     if (checkout === "success") {
       toast.success("¡Suscripción activada!", {
-        description: "Tu plan se actualizará en unos segundos.",
+        description: "Estamos confirmando tu pago…",
       });
-      setTimeout(() => refreshPlan(), 2000);
+      // Polling agresivo: el webhook de Stripe puede tardar 1-10s.
+      let attempts = 0;
+      const maxAttempts = 12; // 12 * 2s = 24s
+      const interval = setInterval(async () => {
+        attempts++;
+        await refreshPlan();
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }, 2000);
+      refreshPlan();
       searchParams.delete("checkout");
       setSearchParams(searchParams, { replace: true });
+      return () => clearInterval(interval);
     } else if (checkout === "cancelled") {
       toast.info("Pago cancelado", { description: "Puedes intentarlo de nuevo cuando quieras." });
       searchParams.delete("checkout");
