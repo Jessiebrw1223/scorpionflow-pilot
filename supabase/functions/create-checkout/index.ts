@@ -1,31 +1,17 @@
-// Stripe Checkout — Crea sesión para suscribirse a un plan
-// Requiere usuario autenticado
+// Stripe Checkout — Crea sesión de suscripción usando price_id reales
+// Política: usuario autenticado, plan + billing válidos, customer reusado o creado
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  getPriceConfig,
+  type Billing,
+  type PlanId,
+} from "../_shared/stripe-catalog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-type PlanId = "starter" | "pro" | "business";
-type Billing = "monthly" | "annual";
-
-// Precios en centavos USD — usamos price_data dinámico (no requiere price_id pre-creado en Stripe)
-const PRICE_TABLE: Record<PlanId, Record<Billing, { amount: number; name: string }>> = {
-  starter: {
-    monthly: { amount: 1200, name: "ScorpionFlow Starter (mensual)" },
-    annual: { amount: 10800, name: "ScorpionFlow Starter (anual)" },
-  },
-  pro: {
-    monthly: { amount: 2700, name: "ScorpionFlow Pro (mensual)" },
-    annual: { amount: 25200, name: "ScorpionFlow Pro (anual)" },
-  },
-  business: {
-    monthly: { amount: 6000, name: "ScorpionFlow Business (mensual)" },
-    annual: { amount: 57600, name: "ScorpionFlow Business (anual)" },
-  },
 };
 
 const log = (step: string, details?: unknown) => {
@@ -74,7 +60,7 @@ serve(async (req) => {
     const plan = body.plan as PlanId;
     const billing = (body.billing ?? "monthly") as Billing;
 
-    if (!PRICE_TABLE[plan]) {
+    if (plan === "free" || !["starter", "pro", "business"].includes(plan)) {
       return new Response(JSON.stringify({ error: "Plan inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -87,6 +73,8 @@ serve(async (req) => {
       });
     }
 
+    const priceCfg = getPriceConfig(plan as Exclude<PlanId, "free">, billing);
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" as never });
 
     // Buscar customer existente
@@ -96,9 +84,23 @@ serve(async (req) => {
     );
     const { data: subRow } = await admin
       .from("account_subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id, status")
       .eq("owner_id", userId)
       .maybeSingle();
+
+    // Si ya tiene una suscripción activa, debería usar change-subscription-plan en lugar de checkout
+    if (subRow?.stripe_subscription_id && (subRow.status === "active" || subRow.status === "trialing")) {
+      return new Response(
+        JSON.stringify({
+          error: "Ya tienes una suscripción activa. Usa cambiar plan en lugar de crear una nueva.",
+          code: "subscription_exists",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     let customerId: string | null = subRow?.stripe_customer_id ?? null;
     if (!customerId) {
@@ -115,32 +117,22 @@ serve(async (req) => {
       log("customer ready", { customerId });
     }
 
-    const priceCfg = PRICE_TABLE[plan][billing];
     const origin = req.headers.get("origin") ?? "https://scorpion-flow.com";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: priceCfg.name },
-            unit_amount: priceCfg.amount,
-            recurring: { interval: billing === "annual" ? "year" : "month" },
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: { owner_id: userId, plan, billing },
+      line_items: [{ price: priceCfg.priceId, quantity: 1 }],
+      metadata: { owner_id: userId, plan, billing, price_id: priceCfg.priceId },
       subscription_data: {
-        metadata: { owner_id: userId, plan, billing },
+        metadata: { owner_id: userId, plan, billing, price_id: priceCfg.priceId },
       },
       success_url: `${origin}/settings?tab=subscription&checkout=success`,
       cancel_url: `${origin}/settings?tab=subscription&checkout=cancelled`,
+      allow_promotion_codes: true,
     });
 
-    log("session created", { sessionId: session.id });
+    log("session created", { sessionId: session.id, plan, billing });
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
