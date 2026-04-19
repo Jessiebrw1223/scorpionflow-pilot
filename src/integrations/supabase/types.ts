@@ -18,39 +18,63 @@ export type Database = {
         Row: {
           billing_cycle: string
           cancel_at_period_end: boolean
+          canceled_at: string | null
           created_at: string
           current_period_end: string | null
+          ended_at: string | null
           id: string
           owner_id: string
+          pending_downgrade_billing_cycle: string | null
+          pending_downgrade_plan:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
           plan: Database["public"]["Enums"]["subscription_plan"]
+          started_at: string | null
           status: string
           stripe_customer_id: string | null
+          stripe_price_id: string | null
           stripe_subscription_id: string | null
           updated_at: string
         }
         Insert: {
           billing_cycle?: string
           cancel_at_period_end?: boolean
+          canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          ended_at?: string | null
           id?: string
           owner_id: string
+          pending_downgrade_billing_cycle?: string | null
+          pending_downgrade_plan?:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
         }
         Update: {
           billing_cycle?: string
           cancel_at_period_end?: boolean
+          canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          ended_at?: string | null
           id?: string
           owner_id?: string
+          pending_downgrade_billing_cycle?: string | null
+          pending_downgrade_plan?:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
         }
@@ -582,6 +606,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_events: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string
+          event_type: string
+          from_plan: Database["public"]["Enums"]["subscription_plan"] | null
+          id: string
+          metadata: Json | null
+          owner_id: string
+          stripe_event_id: string | null
+          stripe_subscription_id: string | null
+          to_plan: Database["public"]["Enums"]["subscription_plan"] | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string
+          event_type: string
+          from_plan?: Database["public"]["Enums"]["subscription_plan"] | null
+          id?: string
+          metadata?: Json | null
+          owner_id: string
+          stripe_event_id?: string | null
+          stripe_subscription_id?: string | null
+          to_plan?: Database["public"]["Enums"]["subscription_plan"] | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string
+          event_type?: string
+          from_plan?: Database["public"]["Enums"]["subscription_plan"] | null
+          id?: string
+          metadata?: Json | null
+          owner_id?: string
+          stripe_event_id?: string | null
+          stripe_subscription_id?: string | null
+          to_plan?: Database["public"]["Enums"]["subscription_plan"] | null
+        }
+        Relationships: []
       }
       suppressed_emails: {
         Row: {
