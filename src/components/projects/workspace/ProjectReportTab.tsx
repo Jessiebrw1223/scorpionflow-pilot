@@ -193,12 +193,24 @@ function DecisionCard({
   status,
 }: {
   question: string;
-  status: { tone: "good" | "warn" | "bad"; icon: React.ElementType; title: string; detail: string };
+  status: { tone: "good" | "warn" | "bad" | "neutral"; icon: React.ElementType; title: string; detail: string };
 }) {
   const Icon = status.icon;
-  const toneBorder = status.tone === "good" ? "border-cost-positive" : status.tone === "warn" ? "border-cost-warning" : "border-cost-negative";
-  const toneBg = status.tone === "good" ? "bg-cost-positive/5" : status.tone === "warn" ? "bg-cost-warning/5" : "bg-cost-negative/5";
-  const toneText = status.tone === "good" ? "text-cost-positive" : status.tone === "warn" ? "text-cost-warning" : "text-cost-negative";
+  const toneBorder =
+    status.tone === "good" ? "border-cost-positive" :
+    status.tone === "warn" ? "border-cost-warning" :
+    status.tone === "bad" ? "border-cost-negative" :
+    "border-border";
+  const toneBg =
+    status.tone === "good" ? "bg-cost-positive/5" :
+    status.tone === "warn" ? "bg-cost-warning/5" :
+    status.tone === "bad" ? "bg-cost-negative/5" :
+    "bg-muted/20";
+  const toneText =
+    status.tone === "good" ? "text-cost-positive" :
+    status.tone === "warn" ? "text-cost-warning" :
+    status.tone === "bad" ? "text-cost-negative" :
+    "text-muted-foreground";
 
   return (
     <div className={cn("surface-card border-l-4 p-4 flex items-start gap-3", toneBorder, toneBg)}>
@@ -207,7 +219,7 @@ function DecisionCard({
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[11px] uppercase tracking-widest text-muted-foreground">{question}</div>
-        <div className={cn("font-semibold text-sm mt-0.5", toneText)}>{status.title}</div>
+        <div className={cn("font-semibold text-sm mt-0.5", status.tone === "neutral" ? "text-foreground" : toneText)}>{status.title}</div>
         <div className="text-[12px] text-muted-foreground mt-0.5">{status.detail}</div>
       </div>
     </div>
