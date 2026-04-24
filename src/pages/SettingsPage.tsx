@@ -658,15 +658,54 @@ export default function SettingsPage() {
                           )}
                         </Badge>
                         {!isFree && (
-                          <Button
-                            variant="outline"
-                            className="w-full h-9 text-[12px] gap-1.5"
-                            onClick={handleOpenPortal}
-                            disabled={portalLoading}
-                          >
-                            {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
-                            Gestionar suscripción
-                          </Button>
+                          <div className="space-y-2">
+                            <Button
+                              variant="outline"
+                              className="w-full h-9 text-[12px] gap-1.5"
+                              onClick={handleOpenPortal}
+                              disabled={portalLoading}
+                            >
+                              {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                              Gestionar suscripción
+                            </Button>
+                            {cancelAtPeriodEnd ? (
+                              <Button
+                                variant="outline"
+                                className="w-full h-9 text-[12px] gap-1.5"
+                                onClick={() => setConfirmDialog({
+                                  title: "Reactivar tu suscripción",
+                                  description: `Tu plan está programado para terminar el ${formatDate(currentPeriodEnd)}. Si reactivas ahora, continuará renovándose normalmente.`,
+                                  confirmLabel: "Reactivar",
+                                  onConfirm: handleReactivate,
+                                })}
+                                disabled={reactivateLoading}
+                              >
+                                {reactivateLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                                Reactivar
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                className="w-full h-9 text-[12px] gap-1.5 text-muted-foreground hover:text-destructive"
+                                onClick={() => setConfirmDialog({
+                                  title: "Cancelar suscripción",
+                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá al plan Free automáticamente.`,
+                                  confirmLabel: "Sí, cancelar",
+                                  destructive: true,
+                                  onConfirm: handleCancelSubscription,
+                                })}
+                                disabled={cancelLoading}
+                              >
+                                {cancelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                                Cancelar suscripción
+                              </Button>
+                            )}
+                            {pendingDowngradePlan && (
+                              <p className="text-[10.5px] text-cost-warning text-center pt-1">
+                                Cambio programado a {planLabel(pendingDowngradePlan as PlanId)} el {formatDate(currentPeriodEnd)}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     ) : isFree ? (
