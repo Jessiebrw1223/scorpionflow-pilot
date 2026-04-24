@@ -272,21 +272,40 @@ serve(async (req) => {
               stripe_event_id: event.id,
               metadata: { invoice_id: invoice.id, attempt: invoice.attempt_count },
             });
+            // Notificación in-app: pago fallido
+            await admin.from("notifications").insert({
+              user_id: row.owner_id,
+              alert_type: "general",
+              severity: "warning",
+              title: "Tu pago no se pudo procesar",
+              message: "Stripe no pudo cobrar tu suscripción. Actualiza tu método de pago para mantener tu plan activo.",
+              link: "/settings?tab=subscription",
+            });
           }
         }
         break;
       }
 
+      case "invoice.paid":
       case "invoice.payment_succeeded": {
-        // Útil para detectar renovaciones; el subscription.updated correspondiente ya hace upsert
+        // Útil para detectar renovaciones y restaurar status si venía de past_due
         const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.customer && invoice.billing_reason === "subscription_cycle") {
+        if (invoice.customer) {
           const { data: row } = await admin
             .from("account_subscriptions")
-            .select("owner_id, plan")
+            .select("owner_id, plan, status")
             .eq("stripe_customer_id", invoice.customer as string)
             .maybeSingle();
-          if (row?.owner_id) {
+
+          // Si estaba past_due y se cobró, volver a active
+          if (row?.status === "past_due") {
+            await admin
+              .from("account_subscriptions")
+              .update({ status: "active" })
+              .eq("stripe_customer_id", invoice.customer as string);
+          }
+
+          if (row?.owner_id && invoice.billing_reason === "subscription_cycle") {
             await admin.from("subscription_events").insert({
               owner_id: row.owner_id,
               event_type: "renewal_succeeded",

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
+import { useStripePrices } from "@/hooks/useStripePrices";
+import { usdToPen, formatPEN, formatUSD, FX_USD_TO_PEN } from "@/lib/fx";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
@@ -20,14 +22,11 @@ import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
 
+// Catálogo: solo metadata visual y features. Los PRECIOS se leen de Stripe.
 const PLANS: Array<{
   id: PlanId;
   name: string;
   tagline: string;
-  monthlyPEN: number;
-  monthlyUSD: number;
-  annualPEN: number;
-  annualUSD: number;
   icon: typeof Sparkles;
   accent: string;
   features: string[];
@@ -38,7 +37,6 @@ const PLANS: Array<{
     id: "free",
     name: "Free",
     tagline: "Empieza a organizar tu trabajo",
-    monthlyPEN: 0, monthlyUSD: 0, annualPEN: 0, annualUSD: 0,
     icon: Sparkles,
     accent: "text-muted-foreground",
     features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Planificación básica", "Tareas y tablero simple", "Dashboard básico"],
@@ -48,7 +46,6 @@ const PLANS: Array<{
     id: "starter",
     name: "Starter",
     tagline: "Trabaja sin límites",
-    monthlyPEN: 35, monthlyUSD: 12, annualPEN: 28, annualUSD: 9,
     icon: Rocket,
     accent: "text-blue-400",
     features: ["Clientes ilimitados", "Proyectos ilimitados", "Planificación completa", "Calendario y vistas avanzadas", "Cotizaciones ilimitadas"],
@@ -58,7 +55,6 @@ const PLANS: Array<{
     id: "pro",
     name: "Pro",
     tagline: "Controla tu negocio y evita pérdidas",
-    monthlyPEN: 90, monthlyUSD: 27, annualPEN: 70, annualUSD: 21,
     icon: Star,
     accent: "text-primary",
     highlight: true,
@@ -69,7 +65,6 @@ const PLANS: Array<{
     id: "business",
     name: "Business",
     tagline: "Decisiones estratégicas y control total",
-    monthlyPEN: 200, monthlyUSD: 60, annualPEN: 160, annualUSD: 48,
     icon: TrendingUp,
     accent: "text-cost-warning",
     features: ["Todo lo de Pro", "Dashboard ejecutivo", "Proyección financiera", "Informes avanzados", "Control multi-proyecto", "Soporte prioritario"],
@@ -80,6 +75,7 @@ const PLANS: Array<{
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
   const { plan: realPlan, status: planStatus, billingCycle: realBilling, cancelAtPeriodEnd, currentPeriodEnd, refresh: refreshPlan } = usePlan();
+  const { getPrice, loading: pricesLoading } = useStripePrices();
   const [searchParams, setSearchParams] = useSearchParams();
   const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -415,11 +411,22 @@ export default function SettingsPage() {
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
                 const isCurrent = realPlan === plan.id;
-                const pricePEN = billing === "monthly" ? plan.monthlyPEN : plan.annualPEN;
-                const priceUSD = billing === "monthly" ? plan.monthlyUSD : plan.annualUSD;
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
                 const isLoadingThis = checkoutLoading === plan.id;
+
+                // Resolver precio real desde Stripe (si plan no es free)
+                const stripePrice = !isFree ? getPrice(plan.id, billing) : null;
+                // Mostrar precio "por mes" siempre (anual ÷ 12 para comparar)
+                const usdPerMonth = stripePrice
+                  ? billing === "annual"
+                    ? stripePrice.amountUsd / 12
+                    : stripePrice.amountUsd
+                  : 0;
+                const penPerMonth = usdToPen(usdPerMonth);
+                const totalUsd = stripePrice?.amountUsd ?? 0;
+                const totalPen = usdToPen(totalUsd);
+                const priceUnavailable = !isFree && stripePrice && !stripePrice.available;
 
                 return (
                   <div
@@ -450,16 +457,33 @@ export default function SettingsPage() {
                           <span className="font-mono-data text-3xl font-bold text-foreground">Gratis</span>
                           <p className="text-[11px] text-muted-foreground mt-1">Para siempre</p>
                         </div>
+                      ) : pricesLoading ? (
+                        <div className="h-[58px] flex items-center">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        </div>
                       ) : (
                         <div>
                           <div className="flex items-baseline gap-1">
                             <span className="font-mono-data text-3xl font-bold text-foreground">
-                              {isUSD ? `$ ${priceUSD}` : `S/ ${pricePEN}`}
+                              {isUSD ? formatUSD(usdPerMonth) : formatPEN(penPerMonth)}
                             </span>
                             <span className="text-[12px] text-muted-foreground">/ mes</span>
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-1">
-                            ≈ {isUSD ? `S/ ${pricePEN} PEN` : `$${priceUSD} USD`} {billing === "annual" && "· facturado anual"}
+                            {isUSD
+                              ? `≈ ${formatPEN(penPerMonth)} PEN`
+                              : `≈ ${formatUSD(usdPerMonth)} USD`}
+                            {billing === "annual" && (
+                              <>
+                                {" · "}
+                                <span title={`Facturado anual: ${formatUSD(totalUsd)} (${formatPEN(totalPen)})`}>
+                                  facturado anual
+                                </span>
+                              </>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                            Conversión referencial · 1 USD ≈ S/ {FX_USD_TO_PEN.toFixed(2)}
                           </p>
                         </div>
                       )}
@@ -476,8 +500,14 @@ export default function SettingsPage() {
 
                     {isCurrent ? (
                       <div className="space-y-2">
-                        <Badge variant="secondary" className="w-full justify-center py-2 text-[12px]">
-                          {cancelAtPeriodEnd ? "Cancelando al final del período" : "Plan actual"}
+                        <Badge variant="secondary" className="w-full justify-center py-2 text-[12px] flex flex-col gap-0.5">
+                          <span>{cancelAtPeriodEnd ? "Cancelando al final del período" : "Plan actual"}</span>
+                          {currentPeriodEnd && (
+                            <span className="text-[10px] font-normal text-muted-foreground">
+                              {cancelAtPeriodEnd ? "Termina el " : "Renueva el "}
+                              {new Date(currentPeriodEnd).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
+                            </span>
+                          )}
                         </Badge>
                         {!isFree && (
                           <Button
@@ -495,12 +525,21 @@ export default function SettingsPage() {
                       <Badge variant="outline" className="w-full justify-center py-2 text-[12px] text-muted-foreground">
                         Disponible al cancelar
                       </Badge>
+                    ) : priceUnavailable ? (
+                      <Button
+                        variant="outline"
+                        className="w-full h-9 text-[12px] gap-1.5"
+                        disabled
+                        title="Este plan no está disponible en este momento"
+                      >
+                        Plan no disponible
+                      </Button>
                     ) : (
                       <Button
                         variant={plan.highlight ? "default" : "outline"}
                         className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
                         onClick={() => handleCheckout(plan.id)}
-                        disabled={isLoadingThis}
+                        disabled={isLoadingThis || pricesLoading}
                       >
                         {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                         {plan.cta}
@@ -510,6 +549,23 @@ export default function SettingsPage() {
                 );
               })}
             </div>
+
+            {/* Estado del plan: past_due → mensaje específico */}
+            {planStatus === "past_due" && (
+              <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-destructive/5 border border-destructive/30">
+                <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                </div>
+                <div className="flex-1 text-[12px]">
+                  <span className="text-foreground font-medium">Tu pago no se pudo procesar.</span>{" "}
+                  <span className="text-muted-foreground">Actualiza tu método de pago en el portal para mantener tu plan activo.</span>
+                </div>
+                <Button size="sm" variant="outline" className="h-8 text-[12px]" onClick={handleOpenPortal} disabled={portalLoading}>
+                  {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Actualizar pago
+                </Button>
+              </div>
+            )}
 
             <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-secondary/30">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
