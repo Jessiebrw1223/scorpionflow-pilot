@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { humanizeFunctionError } from "@/lib/humanize-error";
 
 interface InvitationInfo {
   id: string;
@@ -58,9 +59,21 @@ export default function InviteAcceptPage() {
       );
       if (cancelled) return;
       if (fnErr || !data) {
-        setError(fnErr?.message || "No se pudo cargar la invitación");
+        setError(
+          humanizeFunctionError(
+            fnErr,
+            data,
+            "No pudimos abrir esta invitación. Verifica el enlace e intenta de nuevo.",
+          ),
+        );
       } else if ((data as any).error) {
-        setError((data as any).error);
+        setError(
+          humanizeFunctionError(
+            null,
+            data,
+            "Esta invitación no está disponible.",
+          ),
+        );
       } else {
         setInfo((data as any).invitation);
         setEmailMatches(!!(data as any).emailMatches);
@@ -82,14 +95,23 @@ export default function InviteAcceptPage() {
     );
     setAccepting(false);
     if (fnErr) {
-      const msg = /non-2xx|fetch|network|failed/i.test(fnErr.message)
-        ? "No pudimos procesar la invitación. Intenta de nuevo."
-        : fnErr.message;
-      toast.error(msg);
+      toast.error(
+        humanizeFunctionError(
+          fnErr,
+          data,
+          "No pudimos procesar la invitación. Intenta de nuevo.",
+        ),
+      );
       return;
     }
     if ((data as any)?.error) {
-      toast.error((data as any).message || "Esta invitación ya no es válida.");
+      toast.error(
+        humanizeFunctionError(
+          null,
+          data,
+          "Esta invitación ya no es válida.",
+        ),
+      );
       return;
     }
     toast.success("¡Te uniste al equipo!");

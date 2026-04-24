@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { humanizeFunctionError } from "@/lib/humanize-error";
 
 export type TeamRole = "admin" | "collaborator" | "viewer";
 export type SubscriptionPlan = "free" | "starter" | "pro" | "business";
@@ -24,6 +25,8 @@ export interface TeamInvitation {
   token: string;
   expires_at: string;
   created_at: string;
+  /** Estado del último intento de envío del correo (calculado desde email_send_log). */
+  lastEmailStatus?: "sent" | "pending" | "failed" | "suppressed" | "unknown";
 }
 
 export interface AccountSubscription {
@@ -69,6 +72,45 @@ export interface InviteResult {
   emailError?: string;
 }
 
+/**
+ * Resuelve el último estado de envío de email para una lista de invitaciones,
+ * consultando email_send_log por message_id (idempotency_key) derivado del id
+ * de la invitación. Si no hay log, queda como "unknown".
+ */
+async function enrichInvitationsWithEmailStatus(
+  invs: TeamInvitation[],
+): Promise<TeamInvitation[]> {
+  if (invs.length === 0) return invs;
+  // Filtramos por recipient_email para acotar la consulta y traemos los
+  // últimos logs por email. Las invitaciones de team usan template_name
+  // "team-invitation".
+  const emails = Array.from(new Set(invs.map((i) => i.email.toLowerCase())));
+  const { data: logs } = await supabase
+    .from("email_send_log")
+    .select("recipient_email, status, created_at, template_name")
+    .eq("template_name", "team-invitation")
+    .in("recipient_email", emails)
+    .order("created_at", { ascending: false });
+
+  const latestByEmail = new Map<string, string>();
+  for (const log of logs ?? []) {
+    const key = (log.recipient_email ?? "").toLowerCase();
+    if (!latestByEmail.has(key)) {
+      latestByEmail.set(key, log.status);
+    }
+  }
+
+  return invs.map((inv) => {
+    const status = latestByEmail.get(inv.email.toLowerCase());
+    let lastEmailStatus: TeamInvitation["lastEmailStatus"] = "unknown";
+    if (status === "sent") lastEmailStatus = "sent";
+    else if (status === "pending") lastEmailStatus = "pending";
+    else if (status === "failed" || status === "dlq") lastEmailStatus = "failed";
+    else if (status === "suppressed") lastEmailStatus = "suppressed";
+    return { ...inv, lastEmailStatus };
+  });
+}
+
 export function useTeam() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<AccountSubscription | null>(null);
@@ -100,7 +142,11 @@ export function useTeam() {
       if (created) setSubscription(created as AccountSubscription);
     }
     setMembers((memRes.data ?? []) as TeamMember[]);
-    setInvitations((invRes.data ?? []) as TeamInvitation[]);
+
+    // Enriquecer invitaciones con el último estado de envío de email
+    const rawInvitations = (invRes.data ?? []) as TeamInvitation[];
+    const enriched = await enrichInvitationsWithEmailStatus(rawInvitations);
+    setInvitations(enriched);
     setLoading(false);
   }, [user]);
 
@@ -180,16 +226,28 @@ export function useTeam() {
       if (fnErr) {
         // eslint-disable-next-line no-console
         console.error("[useTeam] send-transactional-email error", fnErr);
-        emailError = fnErr.message || "No se pudo enviar el correo";
+        emailError = humanizeFunctionError(
+          fnErr,
+          fnData,
+          "No pudimos enviar el correo. Comparte el enlace manualmente.",
+        );
       } else if (fnData && (fnData as any).success === false) {
-        emailError = (fnData as any).reason || "El correo fue rechazado";
+        emailError = humanizeFunctionError(
+          null,
+          fnData,
+          "El correo fue rechazado. Comparte el enlace manualmente.",
+        );
       } else {
         emailSent = true;
       }
     } catch (e: any) {
       // eslint-disable-next-line no-console
       console.error("[useTeam] send-transactional-email exception", e);
-      emailError = e?.message ?? "Error desconocido al enviar correo";
+      emailError = humanizeFunctionError(
+        e,
+        null,
+        "No pudimos enviar el correo. Comparte el enlace manualmente.",
+      );
     }
 
     await refresh();
@@ -225,16 +283,28 @@ export function useTeam() {
       if (fnErr) {
         // eslint-disable-next-line no-console
         console.error("[useTeam] resend send-transactional-email error", fnErr);
-        emailError = fnErr.message || "No se pudo reenviar el correo";
+        emailError = humanizeFunctionError(
+          fnErr,
+          fnData,
+          "No pudimos reenviar el correo. Comparte el enlace manualmente.",
+        );
       } else if (fnData && (fnData as any).success === false) {
-        emailError = (fnData as any).reason || "El correo fue rechazado";
+        emailError = humanizeFunctionError(
+          null,
+          fnData,
+          "El correo fue rechazado. Comparte el enlace manualmente.",
+        );
       } else {
         emailSent = true;
       }
     } catch (e: any) {
       // eslint-disable-next-line no-console
       console.error("[useTeam] resend send-transactional-email exception", e);
-      emailError = e?.message ?? "Error desconocido al reenviar correo";
+      emailError = humanizeFunctionError(
+        e,
+        null,
+        "No pudimos reenviar el correo. Comparte el enlace manualmente.",
+      );
     }
     return { error: null, invitation, inviteUrl, emailSent, emailError };
   };

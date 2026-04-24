@@ -8,6 +8,7 @@ import { Copy, CheckCircle2, AlertTriangle, Mail } from "lucide-react";
 import { toast } from "sonner";
 import type { TeamRole } from "@/hooks/useTeam";
 import type { InviteResult } from "@/hooks/useTeam";
+import { humanizeError } from "@/lib/humanize-error";
 
 interface Props {
   open: boolean;
@@ -58,11 +59,12 @@ export function InviteMemberDialog({ open, onOpenChange, onInvite }: Props) {
       return;
     }
     if (res.error) {
-      // Humanize technical errors
-      const msg = /non-2xx|fetch|network|failed/i.test(res.error)
-        ? "No pudimos procesar la invitación. Intenta de nuevo en un momento."
-        : res.error;
-      toast.error(msg);
+      toast.error(
+        humanizeError(
+          res.error,
+          "No pudimos procesar la invitación. Intenta de nuevo en un momento.",
+        ),
+      );
       return;
     }
 

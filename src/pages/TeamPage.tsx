@@ -510,7 +510,7 @@ function InvitationRow({
         </div>
         <div className="min-w-0">
           <div className="text-sm font-medium truncate">{inv.email}</div>
-          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2 items-center">
             <span>{ROLE_LABEL[inv.role]}</span>
             <span>·</span>
             <span>
@@ -525,6 +525,21 @@ function InvitationRow({
                 <span>·</span>
                 <span>{formatExpiresIn(inv.expires_at)}</span>
               </>
+            )}
+            {isPending && inv.lastEmailStatus === "sent" && (
+              <span className="text-green-600 dark:text-green-400 inline-flex items-center gap-1">
+                · <Mail className="w-3 h-3" /> Correo entregado
+              </span>
+            )}
+            {isPending && inv.lastEmailStatus === "pending" && (
+              <span className="text-yellow-600 dark:text-yellow-400 inline-flex items-center gap-1">
+                · <Clock className="w-3 h-3" /> Enviando correo…
+              </span>
+            )}
+            {isPending && (inv.lastEmailStatus === "failed" || inv.lastEmailStatus === "suppressed") && (
+              <span className="text-orange-600 dark:text-orange-400 inline-flex items-center gap-1">
+                · <CircleAlert className="w-3 h-3" /> Correo no entregado — comparte el enlace
+              </span>
             )}
           </div>
         </div>

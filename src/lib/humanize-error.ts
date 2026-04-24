@@ -15,41 +15,62 @@ const TECHNICAL_PATTERNS: Array<{ match: RegExp; friendly: string }> = [
   { match: /FunctionsFetchError/i,             friendly: "No pudimos contactar al servicio. Revisa tu conexión e intenta de nuevo." },
   { match: /Failed to (fetch|send) a request/i,friendly: "No pudimos contactar al servicio. Revisa tu conexión e intenta de nuevo." },
   { match: /Failed to fetch/i,                 friendly: "No pudimos contactar al servicio. Revisa tu conexión e intenta de nuevo." },
+  { match: /Load failed/i,                     friendly: "No pudimos contactar al servicio. Revisa tu conexión e intenta de nuevo." },
+  { match: /AbortError|signal is aborted/i,    friendly: "La operación se canceló. Intenta de nuevo." },
+  { match: /Server configuration error/i,      friendly: "El servicio está en mantenimiento. Vuelve a intentarlo en unos minutos." },
 
   // Stripe
   { match: /STRIPE_SECRET_KEY no configurada/i,friendly: "Los pagos no están activos en tu cuenta. Contacta al soporte." },
   { match: /STRIPE_WEBHOOK_SECRET/i,           friendly: "La sincronización de pagos no está lista. Contacta al soporte." },
-  { match: /portal.*no.*activado|No configuration provided/i, friendly: "El portal de facturación no está activado en Stripe. Actívalo en Stripe → Settings → Billing → Customer portal." },
+  { match: /portal.*no.*activado|No configuration provided/i, friendly: "El portal de facturación no está activado. Contacta al soporte." },
   { match: /No such customer/i,                friendly: "No encontramos tu suscripción activa." },
   { match: /No such subscription/i,            friendly: "No encontramos una suscripción activa para gestionar." },
   { match: /No tienes una suscripción activa/i,friendly: "Aún no tienes una suscripción activa. Suscríbete primero a un plan." },
   { match: /resource_missing/i,                friendly: "No encontramos el recurso solicitado." },
-  { match: /Plan inválido/i,                   friendly: "El plan seleccionado no es válido." },
-  { match: /No autenticado|Sesión inválida/i,  friendly: "Tu sesión expiró. Vuelve a iniciar sesión." },
+  { match: /Plan inválido|Invalid plan/i,      friendly: "El plan seleccionado no es válido." },
+  { match: /price.*not.*found|No such price/i, friendly: "El plan no está disponible en este momento. Contacta al soporte." },
+  { match: /card.*declined|payment.*failed/i,  friendly: "Tu tarjeta fue rechazada. Verifica los datos o usa otra tarjeta." },
+  { match: /insufficient.?funds/i,             friendly: "Fondos insuficientes en la tarjeta. Usa otro método de pago." },
+  { match: /No autenticado|Sesión inválida|Unauthorized/i, friendly: "Tu sesión expiró. Vuelve a iniciar sesión." },
+
+  // Invitaciones / equipo
+  { match: /already_member/i,                  friendly: "Este usuario ya forma parte de tu equipo." },
+  { match: /already_invited/i,                 friendly: "Ya enviaste una invitación a este email." },
+  { match: /limit_reached/i,                   friendly: "Has alcanzado el límite de tu plan." },
+  { match: /email_mismatch/i,                  friendly: "Esta invitación es para otro correo. Inicia sesión con la cuenta correcta." },
+  { match: /Invitación no encontrada/i,        friendly: "Esta invitación no existe o el enlace es inválido." },
+  { match: /La invitación ha expirado/i,       friendly: "Esta invitación ha expirado. Pide una nueva." },
+  { match: /Esta invitación ya no está disponible/i, friendly: "Esta invitación ya fue usada o cancelada." },
+  { match: /No se pudo unir al equipo/i,       friendly: "No pudimos unirte al equipo. Intenta de nuevo en un momento." },
 
   // Supabase / DB
-  { match: /JWT expired/i,                     friendly: "Tu sesión expiró. Vuelve a iniciar sesión." },
+  { match: /JWT expired|Auth session missing/i,friendly: "Tu sesión expiró. Vuelve a iniciar sesión." },
   { match: /permission denied/i,               friendly: "No tienes permisos para esta acción." },
   { match: /violates row-level security/i,     friendly: "No tienes permisos para esta acción." },
-  { match: /duplicate key/i,                   friendly: "Este registro ya existe." },
+  { match: /duplicate key|already exists/i,    friendly: "Este registro ya existe." },
   { match: /violates not-null/i,               friendly: "Falta completar campos obligatorios." },
   { match: /violates foreign key/i,            friendly: "Este registro está vinculado a otros datos. Revisa antes de continuar." },
+  { match: /violates check constraint/i,       friendly: "Algunos datos no son válidos. Revísalos e intenta de nuevo." },
   { match: /timeout|timed out/i,               friendly: "La operación tardó demasiado. Intenta de nuevo." },
+  { match: /rate limit|too many requests/i,    friendly: "Demasiadas solicitudes. Espera un momento e intenta de nuevo." },
 
   // Realtime
   { match: /cannot add.*postgres_changes.*subscribe/i, friendly: "Hubo un problema sincronizando datos en tiempo real. Recarga la página." },
+  { match: /channel error|subscribe.*callback/i, friendly: "Conexión en tiempo real interrumpida. Recarga la página." },
 
   // Errores típicos de tipos / runtime
   { match: /Cannot read propert.*of (undefined|null)/i, friendly: "No pudimos cargar esta información. Recarga la página." },
-  { match: /trim is not a function/i,          friendly: "Algunos datos están incompletos. Recarga e intenta de nuevo." },
+  { match: /(\w+) is not a function/i,         friendly: "Algunos datos están incompletos. Recarga e intenta de nuevo." },
+  { match: /Unexpected token.*JSON|JSON\.parse/i, friendly: "Recibimos una respuesta inesperada del servidor. Reintenta en un momento." },
 
   // Network
-  { match: /NetworkError|ERR_NETWORK/i,        friendly: "Sin conexión. Revisa tu internet." },
+  { match: /NetworkError|ERR_NETWORK|net::ERR/i, friendly: "Sin conexión. Revisa tu internet." },
+  { match: /CORS|blocked by CORS/i,            friendly: "Error de conexión con el servicio. Recarga la página." },
 ];
 
 export function humanizeError(err: unknown, fallback = "Algo salió mal. Intenta de nuevo."): string {
   if (!err) return fallback;
-  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : JSON.stringify(err);
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : safeStringify(err);
   if (!raw) return fallback;
 
   for (const { match, friendly } of TECHNICAL_PATTERNS) {
@@ -57,11 +78,49 @@ export function humanizeError(err: unknown, fallback = "Algo salió mal. Intenta
   }
 
   // Si el mensaje tiene pinta técnica (códigos, stacks), usa fallback
-  const looksTechnical = /[{}\[\]<>]|0x[0-9a-f]+|at \w+\(|line \d+/i.test(raw);
+  const looksTechnical = /[{}\[\]<>]|0x[0-9a-f]+|at \w+\(|line \d+|stack:/i.test(raw);
   if (looksTechnical) return fallback;
 
   // Si es corto y legible, devuélvelo
   if (raw.length < 140) return raw;
 
+  return fallback;
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/**
+ * Humaniza el resultado de `supabase.functions.invoke(...)`.
+ * Considera tanto el error de transporte como el body de respuesta
+ * (que muchas edge functions usan para devolver `{ error, message }`).
+ */
+export function humanizeFunctionError(
+  fnError: unknown,
+  fnData?: unknown,
+  fallback = "No pudimos completar esta acción. Intenta de nuevo en un momento.",
+): string {
+  // Algunas edge functions devuelven 4xx/5xx como error de transporte,
+  // pero el detalle viene en fnData. Lo intentamos primero.
+  const data = fnData as any;
+  if (data && typeof data === "object") {
+    if (typeof data.message === "string" && data.message.length > 0) {
+      return humanizeError(data.message, fallback);
+    }
+    if (typeof data.error === "string" && data.error.length > 0) {
+      return humanizeError(data.error, fallback);
+    }
+    if (typeof data.reason === "string" && data.reason.length > 0) {
+      return humanizeError(data.reason, fallback);
+    }
+  }
+  if (fnError) {
+    return humanizeError(fnError, fallback);
+  }
   return fallback;
 }
