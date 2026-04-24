@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.reactivate-subscription]
 verify_jwt = false
+
+[functions.get-stripe-prices]
+verify_jwt = false
