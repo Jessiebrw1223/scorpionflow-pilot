@@ -109,12 +109,23 @@ serve(async (req) => {
     const priceCfg = getPriceConfig(targetPlan as Exclude<PlanId, "free">, targetBilling);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" as never });
 
-    // Cambio de ciclo de facturación se trata como upgrade si sube de mensual→anual (ahorro), pero
-    // en ranking de planes es igual. Lo simplificamos: si el plan sube → upgrade inmediato.
-    // Si el plan baja → downgrade al final del período.
-    // Si el plan es el mismo y solo cambia billing → tratar como upgrade inmediato (cobro prorrateado).
-    const upgrade = isUpgrade(currentPlan, targetPlan) || (currentPlan === targetPlan && currentBilling !== targetBilling);
-    const downgrade = isDowngrade(currentPlan, targetPlan);
+    // Verificar el price actual real en Stripe (puede estar huérfano/inactivo si fue creado
+    // antes de migrar el catálogo). Si lo está, forzamos un upgrade limpio al nuevo price.
+    const liveSub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+    const currentItem = liveSub.items.data[0];
+    const currentPriceId = currentItem?.price?.id ?? null;
+    const currentPriceInCatalog = currentPriceId ? lookupPlanFromPriceId(currentPriceId) : null;
+    const orphanPrice = currentPriceId !== null && !currentPriceInCatalog;
+
+    if (orphanPrice) {
+      log("orphan price detected — forcing clean upgrade", { currentPriceId, targetPriceId: priceCfg.priceId });
+    }
+
+    const upgrade =
+      orphanPrice ||
+      isUpgrade(currentPlan, targetPlan) ||
+      (currentPlan === targetPlan && currentBilling !== targetBilling);
+    const downgrade = !orphanPrice && isDowngrade(currentPlan, targetPlan);
 
     if (upgrade) {
       // Upgrade: aplicar inmediatamente con prorrateo y facturar
