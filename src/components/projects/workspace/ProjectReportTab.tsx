@@ -27,9 +27,11 @@ export default function ProjectReportTab({ project }: Props) {
   });
 
   const meta = PROJECT_STATUS_META[project.status] || PROJECT_STATUS_META.on_track;
-  const profit = Number(project.budget) - Number(project.actual_cost);
-  const margin = Number(project.budget) > 0 ? (profit / Number(project.budget)) * 100 : 0;
-  const usedPct = Number(project.budget) > 0 ? Math.min(100, (Number(project.actual_cost) / Number(project.budget)) * 100) : 0;
+  const budget = Number(project.budget) || 0;
+  const actualCost = Number(project.actual_cost) || 0;
+  const profit = budget - actualCost;
+  const margin = budget > 0 ? (profit / budget) * 100 : 0;
+  const usedPct = budget > 0 ? Math.min(100, (actualCost / budget) * 100) : 0;
 
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
@@ -40,21 +42,32 @@ export default function ProjectReportTab({ project }: Props) {
   );
   const blockedTasks = tasks.filter((t: any) => t.status === "blocked");
   const criticalImpactCost = tasks.filter((t: any) => t.impact === "cost" && t.status !== "done");
+  const tasksWithDueDate = tasks.filter((t: any) => !!t.due_date).length;
+
+  // F8 — Métricas creíbles: solo evaluamos si hay datos suficientes.
+  const hasFinancialData = budget > 0 || actualCost > 0;
+  const hasScheduleData = tasksWithDueDate > 0 || project.start_date || project.end_date;
 
   // Determinar respuestas a las 3 preguntas estratégicas
-  const earningStatus = profit < 0
+  const earningStatus = !hasFinancialData
+    ? { tone: "neutral" as const, icon: AlertTriangle, title: "Sin información suficiente aún", detail: "Define el presupuesto del proyecto y registra costos para evaluar la rentabilidad." }
+    : profit < 0
     ? { tone: "bad" as const, icon: TrendingDown, title: "Estás perdiendo dinero", detail: `Tienes ${PEN.format(Math.abs(profit))} de pérdida. Margen ${margin.toFixed(1)}%.` }
     : margin >= 30
     ? { tone: "good" as const, icon: TrendingUp, title: "Vas ganando bien", detail: `Ganancia de ${PEN.format(profit)} (margen ${margin.toFixed(1)}%).` }
     : { tone: "warn" as const, icon: TrendingUp, title: "Margen ajustado", detail: `Ganas ${PEN.format(profit)} (margen ${margin.toFixed(1)}%). Vigila los costos.` };
 
-  const scheduleStatus = overdueTasks.length === 0 && blockingTasks.length === 0
+  const scheduleStatus = !hasScheduleData
+    ? { tone: "neutral" as const, icon: AlertTriangle, title: "Sin fechas definidas", detail: "Asigna fechas a tus tareas o al proyecto para evaluar el cronograma." }
+    : overdueTasks.length === 0 && blockingTasks.length === 0
     ? { tone: "good" as const, icon: CheckCircle2, title: "Vas en tiempo", detail: "Sin tareas vencidas ni que retrasen la entrega." }
     : blockingTasks.length > 0
     ? { tone: "bad" as const, icon: AlertTriangle, title: "Hay retrasos críticos", detail: `${blockingTasks.length} tarea(s) están retrasando la entrega del proyecto.` }
     : { tone: "warn" as const, icon: Clock, title: "Hay tareas vencidas", detail: `${overdueTasks.length} tarea(s) ya pasaron su fecha límite.` };
 
-  const blockersStatus = blockedTasks.length === 0 && blockingTasks.length === 0
+  const blockersStatus = totalTasks === 0
+    ? { tone: "neutral" as const, icon: AlertTriangle, title: "Aún no hay tareas", detail: "Crea tareas en Planificación para detectar bloqueos." }
+    : blockedTasks.length === 0 && blockingTasks.length === 0
     ? { tone: "good" as const, icon: CheckCircle2, title: "Sin bloqueos", detail: "Nada está deteniendo el avance." }
     : { tone: "bad" as const, icon: AlertTriangle, title: `${blockedTasks.length + blockingTasks.length} bloqueo(s)`, detail: `${blockedTasks.length} bloqueada(s) · ${blockingTasks.length} retrasan entrega.` };
 
