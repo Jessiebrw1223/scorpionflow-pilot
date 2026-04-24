@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   CreditCard, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
-  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink,
+  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink, X,
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
@@ -18,6 +18,10 @@ import { usdToPen, formatPEN, formatUSD, FX_USD_TO_PEN } from "@/lib/fx";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
