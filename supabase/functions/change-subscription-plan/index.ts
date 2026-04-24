@@ -128,14 +128,32 @@ serve(async (req) => {
     const downgrade = !orphanPrice && isDowngrade(currentPlan, targetPlan);
 
     if (upgrade) {
-      // Upgrade: aplicar inmediatamente con prorrateo y facturar
-      const sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
-      const itemId = sub.items.data[0]?.id;
-      if (!itemId) throw new Error("Subscription item not found");
+      // Upgrade (o limpieza de price huérfano): aplicar inmediatamente con prorrateo y facturar
+      const itemId = currentItem?.id;
+      if (!itemId) {
+        return new Response(
+          JSON.stringify({
+            error: "No encontramos el producto activo en tu suscripción. Abre el portal y vuelve a intentarlo.",
+            code: "subscription_item_missing",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Si existe un schedule colgado de un downgrade previo, liberarlo antes del upgrade
+      if (liveSub.schedule) {
+        const scheduleId = typeof liveSub.schedule === "string" ? liveSub.schedule : liveSub.schedule.id;
+        try {
+          await stripe.subscriptionSchedules.release(scheduleId);
+          log("schedule released before upgrade", { scheduleId });
+        } catch (err) {
+          log("schedule release failed (non-fatal)", { err: err instanceof Error ? err.message : String(err) });
+        }
+      }
 
       const updated = await stripe.subscriptions.update(subRow.stripe_subscription_id, {
         items: [{ id: itemId, price: priceCfg.priceId }],
-        proration_behavior: "always_invoice",
+        proration_behavior: orphanPrice ? "create_prorations" : "always_invoice",
         metadata: {
           owner_id: userId,
           plan: targetPlan,
@@ -156,20 +174,26 @@ serve(async (req) => {
 
       await admin.from("subscription_events").insert({
         owner_id: userId,
-        event_type: "upgraded",
+        event_type: orphanPrice ? "price_remediated" : "upgraded",
         from_plan: currentPlan,
         to_plan: targetPlan,
         billing_cycle: targetBilling,
         stripe_subscription_id: updated.id,
-        metadata: { price_id: priceCfg.priceId, proration: "always_invoice" },
+        metadata: {
+          price_id: priceCfg.priceId,
+          previous_price_id: currentPriceId,
+          orphan_remediated: orphanPrice,
+        },
       });
 
-      log("upgraded", { from: currentPlan, to: targetPlan });
+      log("upgraded", { from: currentPlan, to: targetPlan, orphan: orphanPrice });
       return new Response(
         JSON.stringify({
           success: true,
           mode: "upgrade",
-          message: "Plan actualizado inmediatamente. Recibirás una factura prorrateada.",
+          message: orphanPrice
+            ? "Plan actualizado. Tu suscripción ahora usa el catálogo vigente."
+            : "Plan actualizado inmediatamente. Recibirás una factura prorrateada.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
