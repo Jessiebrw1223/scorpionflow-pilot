@@ -72,6 +72,45 @@ export interface InviteResult {
   emailError?: string;
 }
 
+/**
+ * Resuelve el último estado de envío de email para una lista de invitaciones,
+ * consultando email_send_log por message_id (idempotency_key) derivado del id
+ * de la invitación. Si no hay log, queda como "unknown".
+ */
+async function enrichInvitationsWithEmailStatus(
+  invs: TeamInvitation[],
+): Promise<TeamInvitation[]> {
+  if (invs.length === 0) return invs;
+  // Filtramos por recipient_email para acotar la consulta y traemos los
+  // últimos logs por email. Las invitaciones de team usan template_name
+  // "team-invitation".
+  const emails = Array.from(new Set(invs.map((i) => i.email.toLowerCase())));
+  const { data: logs } = await supabase
+    .from("email_send_log")
+    .select("recipient_email, status, created_at, template_name")
+    .eq("template_name", "team-invitation")
+    .in("recipient_email", emails)
+    .order("created_at", { ascending: false });
+
+  const latestByEmail = new Map<string, string>();
+  for (const log of logs ?? []) {
+    const key = (log.recipient_email ?? "").toLowerCase();
+    if (!latestByEmail.has(key)) {
+      latestByEmail.set(key, log.status);
+    }
+  }
+
+  return invs.map((inv) => {
+    const status = latestByEmail.get(inv.email.toLowerCase());
+    let lastEmailStatus: TeamInvitation["lastEmailStatus"] = "unknown";
+    if (status === "sent") lastEmailStatus = "sent";
+    else if (status === "pending") lastEmailStatus = "pending";
+    else if (status === "failed" || status === "dlq") lastEmailStatus = "failed";
+    else if (status === "suppressed") lastEmailStatus = "suppressed";
+    return { ...inv, lastEmailStatus };
+  });
+}
+
 export function useTeam() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<AccountSubscription | null>(null);
