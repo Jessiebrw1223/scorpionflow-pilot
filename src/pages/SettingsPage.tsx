@@ -561,7 +561,7 @@ export default function SettingsPage() {
                 const isCurrent = realPlan === plan.id;
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
-                const isLoadingThis = checkoutLoading === plan.id;
+                const isLoadingThis = actionLoading === plan.id;
 
                 // Resolver precio real desde Stripe (si plan no es free)
                 const stripePrice = !isFree ? getPrice(plan.id, billing) : null;
@@ -682,17 +682,30 @@ export default function SettingsPage() {
                       >
                         Plan no disponible
                       </Button>
-                    ) : (
-                      <Button
-                        variant={plan.highlight ? "default" : "outline"}
-                        className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
-                        onClick={() => handleCheckout(plan.id)}
-                        disabled={isLoadingThis || pricesLoading}
-                      >
-                        {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                        {plan.cta}
-                      </Button>
-                    )}
+                    ) : (() => {
+                      const isUp = !isFree && PLAN_RANK_LOCAL[plan.id] > PLAN_RANK_LOCAL[realPlan];
+                      const isDown = !isFree && PLAN_RANK_LOCAL[plan.id] < PLAN_RANK_LOCAL[realPlan];
+                      const ctaLabel = !hasActiveStripeSub
+                        ? plan.cta
+                        : cancelAtPeriodEnd
+                          ? "Reactivar y elegir"
+                          : isUp
+                            ? `Actualizar a ${planLabel(plan.id)}`
+                            : isDown
+                              ? `Bajar a ${planLabel(plan.id)} al cierre`
+                              : plan.cta;
+                      return (
+                        <Button
+                          variant={plan.highlight ? "default" : "outline"}
+                          className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
+                          onClick={() => handlePlanAction(plan.id)}
+                          disabled={isLoadingThis || pricesLoading}
+                        >
+                          {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                          {ctaLabel}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 );
               })}
