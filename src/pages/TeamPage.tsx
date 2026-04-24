@@ -528,7 +528,7 @@ function InvitationRow({
             )}
             {isPending && inv.lastEmailStatus === "sent" && (
               <span className="text-green-600 dark:text-green-400 inline-flex items-center gap-1">
-                · <Mail className="w-3 h-3" /> Correo entregado
+                · <CheckCircle2 className="w-3 h-3" /> Correo entregado
               </span>
             )}
             {isPending && inv.lastEmailStatus === "pending" && (
@@ -536,9 +536,48 @@ function InvitationRow({
                 · <Clock className="w-3 h-3" /> Enviando correo…
               </span>
             )}
-            {isPending && (inv.lastEmailStatus === "failed" || inv.lastEmailStatus === "suppressed") && (
+            {isPending && inv.lastEmailStatus === "bounced" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-red-600 dark:text-red-400 inline-flex items-center gap-1 cursor-help">
+                    · <CircleAlert className="w-3 h-3" /> Rebotado — comparte el enlace
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  El dominio receptor rechazó el mensaje (dirección inválida o
+                  bloqueada). Copia el enlace y compártelo por otro medio.
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {isPending && inv.lastEmailStatus === "complained" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-red-600 dark:text-red-400 inline-flex items-center gap-1 cursor-help">
+                    · <CircleAlert className="w-3 h-3" /> Marcado como spam
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Este destinatario marcó tus correos como spam. Comparte el
+                  enlace manualmente.
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {isPending && inv.lastEmailStatus === "suppressed" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-orange-600 dark:text-orange-400 inline-flex items-center gap-1 cursor-help">
+                    · <CircleAlert className="w-3 h-3" /> Correo bloqueado
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Esta dirección está en la lista de no entregables. Comparte
+                  el enlace manualmente.
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {isPending && inv.lastEmailStatus === "failed" && (
               <span className="text-orange-600 dark:text-orange-400 inline-flex items-center gap-1">
-                · <CircleAlert className="w-3 h-3" /> Correo no entregado — comparte el enlace
+                · <CircleAlert className="w-3 h-3" /> No entregado — comparte el enlace
               </span>
             )}
           </div>
