@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, X, Check, Loader2 } from "lucide-react";
+import { Sparkles, X, Check, Loader2, Lock } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,24 @@ const PLAN_PRICES: Record<Exclude<PlanId, "free">, { monthly: string; annual: st
   business: { monthly: "$60", annual: "$576" },
 };
 
+const FEATURE_HEADLINES: Record<PremiumFeature, string> = {
+  advanced_reports: "Los informes avanzados requieren PRO",
+  resources_management: "La gestión de recursos requiere PRO",
+  cost_intelligence: "La inteligencia de costos requiere PRO",
+  smart_alerts: "Las alertas inteligentes requieren PRO",
+  executive_dashboard: "El dashboard ejecutivo requiere BUSINESS",
+  financial_projection: "La proyección financiera requiere BUSINESS",
+};
+
+const FEATURE_PITCHES: Record<PremiumFeature, string> = {
+  advanced_reports: "Mide rentabilidad real, márgenes y desempeño por proyecto.",
+  resources_management: "Controla personal, maquinaria y costos por recurso.",
+  cost_intelligence: "Calcula automáticamente ganancia, ROI y margen por proyecto.",
+  smart_alerts: "Recibe avisos cuando un proyecto pierde dinero o entra en riesgo.",
+  executive_dashboard: "Visión consolidada multi-proyecto con KPIs estratégicos.",
+  financial_projection: "Proyecta ingresos, costos y rentabilidad a futuro.",
+};
+
 export function UpsellDialog({
   open,
   onOpenChange,
@@ -72,6 +90,13 @@ export function UpsellDialog({
 
   const benefits = PLAN_BENEFITS[targetPlan];
   const price = PLAN_PRICES[targetPlan];
+
+  const headline = feature
+    ? FEATURE_HEADLINES[feature]
+    : `Desbloquea ScorpionFlow ${PLAN_LABELS[targetPlan]}`;
+  const pitch = feature
+    ? FEATURE_PITCHES[feature]
+    : "Lleva tu negocio al siguiente nivel con control financiero real.";
 
   const handleCheckout = async () => {
     setLoading(true);
@@ -102,12 +127,22 @@ export function UpsellDialog({
           <button
             onClick={() => onOpenChange(false)}
             className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-sf"
+            aria-label="Cerrar"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="w-12 h-12 rounded-xl scorpion-gradient flex items-center justify-center fire-glow mb-4">
-            <Sparkles className="w-6 h-6 text-primary-foreground" />
+          {/* Lock + sparkles */}
+          <div className="relative w-14 h-14 mb-4">
+            <div className="absolute inset-0 rounded-2xl scorpion-gradient flex items-center justify-center fire-glow shadow-lg">
+              <Lock className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-primary animate-pulse" />
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3 h-3" />
+            Plan {PLAN_LABELS[targetPlan]}
           </div>
 
           {reason && (
@@ -116,11 +151,11 @@ export function UpsellDialog({
             </div>
           )}
 
-          <h2 className="text-xl font-bold text-foreground mb-1">
-            Desbloquea ScorpionFlow {PLAN_LABELS[targetPlan]}
+          <h2 className="text-xl font-bold text-foreground mb-1 leading-tight">
+            {headline}
           </h2>
           <p className="text-[13px] text-muted-foreground mb-5">
-            Lleva tu negocio al siguiente nivel con control financiero real y herramientas profesionales.
+            {pitch}
           </p>
 
           {/* Toggle mensual / anual */}
@@ -175,7 +210,7 @@ export function UpsellDialog({
                 navigate("/settings?tab=subscription");
               }}
             >
-              Ver todos los planes
+              Ver planes
             </Button>
             <Button
               className="flex-1 fire-button border-0 text-white h-10 font-semibold"
@@ -185,7 +220,7 @@ export function UpsellDialog({
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                `Actualizar a ${PLAN_LABELS[targetPlan]}`
+                "Actualizar ahora"
               )}
             </Button>
           </div>
