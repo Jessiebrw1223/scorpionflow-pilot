@@ -22,14 +22,11 @@ import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
 
+// Catálogo: solo metadata visual y features. Los PRECIOS se leen de Stripe.
 const PLANS: Array<{
   id: PlanId;
   name: string;
   tagline: string;
-  monthlyPEN: number;
-  monthlyUSD: number;
-  annualPEN: number;
-  annualUSD: number;
   icon: typeof Sparkles;
   accent: string;
   features: string[];
@@ -40,7 +37,6 @@ const PLANS: Array<{
     id: "free",
     name: "Free",
     tagline: "Empieza a organizar tu trabajo",
-    monthlyPEN: 0, monthlyUSD: 0, annualPEN: 0, annualUSD: 0,
     icon: Sparkles,
     accent: "text-muted-foreground",
     features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Planificación básica", "Tareas y tablero simple", "Dashboard básico"],
@@ -50,7 +46,6 @@ const PLANS: Array<{
     id: "starter",
     name: "Starter",
     tagline: "Trabaja sin límites",
-    monthlyPEN: 35, monthlyUSD: 12, annualPEN: 28, annualUSD: 9,
     icon: Rocket,
     accent: "text-blue-400",
     features: ["Clientes ilimitados", "Proyectos ilimitados", "Planificación completa", "Calendario y vistas avanzadas", "Cotizaciones ilimitadas"],
@@ -60,7 +55,6 @@ const PLANS: Array<{
     id: "pro",
     name: "Pro",
     tagline: "Controla tu negocio y evita pérdidas",
-    monthlyPEN: 90, monthlyUSD: 27, annualPEN: 70, annualUSD: 21,
     icon: Star,
     accent: "text-primary",
     highlight: true,
@@ -71,7 +65,6 @@ const PLANS: Array<{
     id: "business",
     name: "Business",
     tagline: "Decisiones estratégicas y control total",
-    monthlyPEN: 200, monthlyUSD: 60, annualPEN: 160, annualUSD: 48,
     icon: TrendingUp,
     accent: "text-cost-warning",
     features: ["Todo lo de Pro", "Dashboard ejecutivo", "Proyección financiera", "Informes avanzados", "Control multi-proyecto", "Soporte prioritario"],
