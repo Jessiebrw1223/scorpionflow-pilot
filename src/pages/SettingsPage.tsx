@@ -149,35 +149,166 @@ export default function SettingsPage() {
     }
   }, [searchParams, setSearchParams, refreshPlan]);
 
-  const handleCheckout = async (planId: PlanId) => {
-    if (planId === "free") return;
-    setCheckoutLoading(planId);
+  const PLAN_RANK_LOCAL: Record<PlanId, number> = { free: 0, starter: 1, pro: 2, business: 3 };
+
+  const formatDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" }) : "—";
+
+  const planLabel = (id: PlanId) => id.charAt(0).toUpperCase() + id.slice(1);
+
+  // Decide la acción correcta según el estado actual del usuario
+  const handlePlanAction = async (planId: PlanId) => {
+    if (planId === "free" || planId === realPlan && billing === realBilling) return;
+
+    // Caso 1: NO tiene sub activa en Stripe → checkout nuevo
+    if (!hasActiveStripeSub) {
+      return openCheckout(planId);
+    }
+
+    // Caso 2: tiene sub pero está cancelando al final del período
+    if (cancelAtPeriodEnd) {
+      setConfirmDialog({
+        title: "Reactivar tu suscripción",
+        description: `Tu plan ${planLabel(realPlan)} está programado para terminar el ${formatDate(currentPeriodEnd)}. Reactivamos tu suscripción y continuarás con tu plan actual sin interrupciones.`,
+        confirmLabel: "Reactivar",
+        onConfirm: handleReactivate,
+      });
+      return;
+    }
+
+    // Caso 3: cambio de plan en sub activa → upgrade o downgrade
+    const isUp = PLAN_RANK_LOCAL[planId] > PLAN_RANK_LOCAL[realPlan];
+    const isDown = PLAN_RANK_LOCAL[planId] < PLAN_RANK_LOCAL[realPlan];
+    const isBillingOnly = planId === realPlan && billing !== realBilling;
+
+    if (isUp || (isBillingOnly && billing === "annual")) {
+      setConfirmDialog({
+        title: `Actualizar a ${planLabel(planId)}`,
+        description: isBillingOnly
+          ? `Cambiarás tu facturación a ${billing === "annual" ? "anual" : "mensual"}. Se aplicará un cobro prorrateado por la diferencia y obtendrás los beneficios de inmediato.`
+          : `Subes de ${planLabel(realPlan)} a ${planLabel(planId)}. Se aplicará inmediatamente con un cobro prorrateado por los días restantes del ciclo.`,
+        confirmLabel: "Confirmar y pagar",
+        onConfirm: () => invokeChangePlan(planId, "upgrade"),
+      });
+      return;
+    }
+
+    if (isDown || (isBillingOnly && billing === "monthly")) {
+      setConfirmDialog({
+        title: `Programar cambio a ${planLabel(planId)}`,
+        description: `Tu cambio se aplicará al cierre del período el ${formatDate(currentPeriodEnd)}. Hasta entonces conservas tu plan ${planLabel(realPlan)} sin interrupciones.`,
+        confirmLabel: "Programar cambio",
+        onConfirm: () => invokeChangePlan(planId, "downgrade"),
+      });
+      return;
+    }
+  };
+
+  const openCheckout = async (planId: PlanId) => {
+    setActionLoading(planId);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: planId, billing },
       });
       if (error || (data && (data as any).error)) {
-        const msg = humanizeFunctionError(
-          error,
-          data,
-          "Intenta nuevamente en unos segundos.",
-        );
-        toast.error("No pudimos abrir el pago", { description: msg });
+        toast.error("No pudimos abrir el pago", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
         return;
       }
       if (data?.url) {
         window.open(data.url, "_blank");
       } else {
-        toast.error("No pudimos abrir el pago", {
-          description: "Intenta nuevamente en unos segundos.",
-        });
+        toast.error("No pudimos abrir el pago", { description: "Intenta nuevamente en unos segundos." });
       }
     } catch (e: any) {
       toast.error("No pudimos abrir el pago", {
         description: humanizeError(e, "Intenta nuevamente en unos segundos."),
       });
     } finally {
-      setCheckoutLoading(null);
+      setActionLoading(null);
+    }
+  };
+
+  const invokeChangePlan = async (planId: PlanId, intent: "upgrade" | "downgrade") => {
+    setActionLoading(planId);
+    try {
+      const { data, error } = await supabase.functions.invoke("change-subscription-plan", {
+        body: { plan: planId, billing },
+      });
+      if (error || (data && (data as any).error)) {
+        const title = intent === "upgrade" ? "No pudimos actualizar tu plan" : "No pudimos programar el cambio";
+        toast.error(title, {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
+        return;
+      }
+      const message = (data as any)?.message ?? (intent === "upgrade"
+        ? "Plan actualizado."
+        : "Cambio programado al cierre del período.");
+      toast.success(intent === "upgrade" ? "Plan actualizado" : "Cambio programado", { description: message });
+      // Polling para reflejar el cambio (webhook puede tardar segundos)
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        attempts++;
+        await refreshPlan();
+        if (attempts >= 6) clearInterval(interval);
+      }, 1500);
+    } catch (e: any) {
+      toast.error("No pudimos completar el cambio", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", { body: {} });
+      if (error || (data && (data as any).error)) {
+        toast.error("No pudimos cancelar tu suscripción", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
+        return;
+      }
+      const eff = (data as any)?.effective_at ? formatDate((data as any).effective_at) : null;
+      toast.success("Cancelación programada", {
+        description: eff
+          ? `Conservas tu plan hasta el ${eff}. Después volverás a Free.`
+          : "Conservas tu plan hasta el final del período pagado.",
+      });
+      await refreshPlan();
+    } catch (e: any) {
+      toast.error("No pudimos cancelar tu suscripción", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setReactivateLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription", { body: {} });
+      if (error || (data && (data as any).error)) {
+        toast.error("No pudimos reactivar tu suscripción", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
+        return;
+      }
+      toast.success("Suscripción reactivada", {
+        description: "Tu plan continuará renovándose normalmente.",
+      });
+      await refreshPlan();
+    } catch (e: any) {
+      toast.error("No pudimos reactivar tu suscripción", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
+    } finally {
+      setReactivateLoading(false);
     }
   };
 
