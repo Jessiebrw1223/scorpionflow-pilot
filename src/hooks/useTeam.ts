@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { humanizeFunctionError } from "@/lib/humanize-error";
 
 export type TeamRole = "admin" | "collaborator" | "viewer";
 export type SubscriptionPlan = "free" | "starter" | "pro" | "business";
@@ -180,16 +181,28 @@ export function useTeam() {
       if (fnErr) {
         // eslint-disable-next-line no-console
         console.error("[useTeam] send-transactional-email error", fnErr);
-        emailError = fnErr.message || "No se pudo enviar el correo";
+        emailError = humanizeFunctionError(
+          fnErr,
+          fnData,
+          "No pudimos enviar el correo. Comparte el enlace manualmente.",
+        );
       } else if (fnData && (fnData as any).success === false) {
-        emailError = (fnData as any).reason || "El correo fue rechazado";
+        emailError = humanizeFunctionError(
+          null,
+          fnData,
+          "El correo fue rechazado. Comparte el enlace manualmente.",
+        );
       } else {
         emailSent = true;
       }
     } catch (e: any) {
       // eslint-disable-next-line no-console
       console.error("[useTeam] send-transactional-email exception", e);
-      emailError = e?.message ?? "Error desconocido al enviar correo";
+      emailError = humanizeFunctionError(
+        e,
+        null,
+        "No pudimos enviar el correo. Comparte el enlace manualmente.",
+      );
     }
 
     await refresh();
@@ -225,16 +238,28 @@ export function useTeam() {
       if (fnErr) {
         // eslint-disable-next-line no-console
         console.error("[useTeam] resend send-transactional-email error", fnErr);
-        emailError = fnErr.message || "No se pudo reenviar el correo";
+        emailError = humanizeFunctionError(
+          fnErr,
+          fnData,
+          "No pudimos reenviar el correo. Comparte el enlace manualmente.",
+        );
       } else if (fnData && (fnData as any).success === false) {
-        emailError = (fnData as any).reason || "El correo fue rechazado";
+        emailError = humanizeFunctionError(
+          null,
+          fnData,
+          "El correo fue rechazado. Comparte el enlace manualmente.",
+        );
       } else {
         emailSent = true;
       }
     } catch (e: any) {
       // eslint-disable-next-line no-console
       console.error("[useTeam] resend send-transactional-email exception", e);
-      emailError = e?.message ?? "Error desconocido al reenviar correo";
+      emailError = humanizeFunctionError(
+        e,
+        null,
+        "No pudimos reenviar el correo. Comparte el enlace manualmente.",
+      );
     }
     return { error: null, invitation, inviteUrl, emailSent, emailError };
   };
