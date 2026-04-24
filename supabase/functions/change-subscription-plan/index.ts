@@ -10,6 +10,7 @@ import {
   getPriceConfig,
   isDowngrade,
   isUpgrade,
+  lookupPlanFromPriceId,
   type Billing,
   type PlanId,
 } from "../_shared/stripe-catalog.ts";
