@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { PROJECT_STATUS_META, TASK_PRIORITY_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
 import { useMoney } from "@/lib/format-money";
+import { NoDataMetric } from "@/components/state/NoDataMetric";
 
 interface Props {
   project: any;
@@ -26,9 +27,11 @@ export default function ProjectReportTab({ project }: Props) {
   });
 
   const meta = PROJECT_STATUS_META[project.status] || PROJECT_STATUS_META.on_track;
-  const profit = Number(project.budget) - Number(project.actual_cost);
-  const margin = Number(project.budget) > 0 ? (profit / Number(project.budget)) * 100 : 0;
-  const usedPct = Number(project.budget) > 0 ? Math.min(100, (Number(project.actual_cost) / Number(project.budget)) * 100) : 0;
+  const budget = Number(project.budget) || 0;
+  const actualCost = Number(project.actual_cost) || 0;
+  const profit = budget - actualCost;
+  const margin = budget > 0 ? (profit / budget) * 100 : 0;
+  const usedPct = budget > 0 ? Math.min(100, (actualCost / budget) * 100) : 0;
 
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
@@ -39,21 +42,32 @@ export default function ProjectReportTab({ project }: Props) {
   );
   const blockedTasks = tasks.filter((t: any) => t.status === "blocked");
   const criticalImpactCost = tasks.filter((t: any) => t.impact === "cost" && t.status !== "done");
+  const tasksWithDueDate = tasks.filter((t: any) => !!t.due_date).length;
+
+  // F8 — Métricas creíbles: solo evaluamos si hay datos suficientes.
+  const hasFinancialData = budget > 0 || actualCost > 0;
+  const hasScheduleData = tasksWithDueDate > 0 || project.start_date || project.end_date;
 
   // Determinar respuestas a las 3 preguntas estratégicas
-  const earningStatus = profit < 0
+  const earningStatus = !hasFinancialData
+    ? { tone: "neutral" as const, icon: AlertTriangle, title: "Sin información suficiente aún", detail: "Define el presupuesto del proyecto y registra costos para evaluar la rentabilidad." }
+    : profit < 0
     ? { tone: "bad" as const, icon: TrendingDown, title: "Estás perdiendo dinero", detail: `Tienes ${PEN.format(Math.abs(profit))} de pérdida. Margen ${margin.toFixed(1)}%.` }
     : margin >= 30
     ? { tone: "good" as const, icon: TrendingUp, title: "Vas ganando bien", detail: `Ganancia de ${PEN.format(profit)} (margen ${margin.toFixed(1)}%).` }
     : { tone: "warn" as const, icon: TrendingUp, title: "Margen ajustado", detail: `Ganas ${PEN.format(profit)} (margen ${margin.toFixed(1)}%). Vigila los costos.` };
 
-  const scheduleStatus = overdueTasks.length === 0 && blockingTasks.length === 0
+  const scheduleStatus = !hasScheduleData
+    ? { tone: "neutral" as const, icon: AlertTriangle, title: "Sin fechas definidas", detail: "Asigna fechas a tus tareas o al proyecto para evaluar el cronograma." }
+    : overdueTasks.length === 0 && blockingTasks.length === 0
     ? { tone: "good" as const, icon: CheckCircle2, title: "Vas en tiempo", detail: "Sin tareas vencidas ni que retrasen la entrega." }
     : blockingTasks.length > 0
     ? { tone: "bad" as const, icon: AlertTriangle, title: "Hay retrasos críticos", detail: `${blockingTasks.length} tarea(s) están retrasando la entrega del proyecto.` }
     : { tone: "warn" as const, icon: Clock, title: "Hay tareas vencidas", detail: `${overdueTasks.length} tarea(s) ya pasaron su fecha límite.` };
 
-  const blockersStatus = blockedTasks.length === 0 && blockingTasks.length === 0
+  const blockersStatus = totalTasks === 0
+    ? { tone: "neutral" as const, icon: AlertTriangle, title: "Aún no hay tareas", detail: "Crea tareas en Planificación para detectar bloqueos." }
+    : blockedTasks.length === 0 && blockingTasks.length === 0
     ? { tone: "good" as const, icon: CheckCircle2, title: "Sin bloqueos", detail: "Nada está deteniendo el avance." }
     : { tone: "bad" as const, icon: AlertTriangle, title: `${blockedTasks.length + blockingTasks.length} bloqueo(s)`, detail: `${blockedTasks.length} bloqueada(s) · ${blockingTasks.length} retrasan entrega.` };
 
@@ -121,21 +135,40 @@ export default function ProjectReportTab({ project }: Props) {
       {/* === Detalle financiero === */}
       <div className="surface-card p-4">
         <h3 className="section-header mb-3">Detalle financiero</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Metric label="Presupuesto" value={PEN.format(Number(project.budget))} />
-          <Metric label="Gastado" value={PEN.format(Number(project.actual_cost))} tone={profit < 0 ? "bad" : undefined} />
-          <Metric label="Ganancia" value={PEN.format(profit)} tone={profit < 0 ? "bad" : margin >= 20 ? "good" : "warn"} />
-          <Metric label="Margen" value={`${margin.toFixed(1)}%`} tone={margin >= 20 ? "good" : margin >= 0 ? "warn" : "bad"} />
-        </div>
-        <div className="mt-3 space-y-1">
-          <div className="flex justify-between text-[12px]">
-            <span className="text-muted-foreground">Uso del presupuesto</span>
-            <span className={cn("font-mono-data font-semibold", profit < 0 && "text-cost-negative")}>
-              {usedPct.toFixed(0)}%
-            </span>
-          </div>
-          <Progress value={usedPct} className={cn("h-2", profit < 0 && "[&>div]:bg-cost-negative")} />
-        </div>
+        {!hasFinancialData ? (
+          <NoDataMetric
+            message="Sin información financiera aún."
+            hint="Configura el presupuesto del cliente y registra recursos para ver ganancia, margen y uso del presupuesto."
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Metric label="Presupuesto" value={budget > 0 ? PEN.format(budget) : "Sin definir"} />
+              <Metric label="Gastado" value={PEN.format(actualCost)} tone={budget > 0 && profit < 0 ? "bad" : undefined} />
+              <Metric
+                label="Ganancia"
+                value={budget > 0 ? PEN.format(profit) : "Define presupuesto"}
+                tone={budget > 0 ? (profit < 0 ? "bad" : margin >= 20 ? "good" : "warn") : undefined}
+              />
+              <Metric
+                label="Margen"
+                value={budget > 0 ? `${margin.toFixed(1)}%` : "—"}
+                tone={budget > 0 ? (margin >= 20 ? "good" : margin >= 0 ? "warn" : "bad") : undefined}
+              />
+            </div>
+            {budget > 0 && (
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-muted-foreground">Uso del presupuesto</span>
+                  <span className={cn("font-mono-data font-semibold", profit < 0 && "text-cost-negative")}>
+                    {usedPct.toFixed(0)}%
+                  </span>
+                </div>
+                <Progress value={usedPct} className={cn("h-2", profit < 0 && "[&>div]:bg-cost-negative")} />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Tareas críticas o que retrasan la entrega */}
@@ -179,12 +212,24 @@ function DecisionCard({
   status,
 }: {
   question: string;
-  status: { tone: "good" | "warn" | "bad"; icon: React.ElementType; title: string; detail: string };
+  status: { tone: "good" | "warn" | "bad" | "neutral"; icon: React.ElementType; title: string; detail: string };
 }) {
   const Icon = status.icon;
-  const toneBorder = status.tone === "good" ? "border-cost-positive" : status.tone === "warn" ? "border-cost-warning" : "border-cost-negative";
-  const toneBg = status.tone === "good" ? "bg-cost-positive/5" : status.tone === "warn" ? "bg-cost-warning/5" : "bg-cost-negative/5";
-  const toneText = status.tone === "good" ? "text-cost-positive" : status.tone === "warn" ? "text-cost-warning" : "text-cost-negative";
+  const toneBorder =
+    status.tone === "good" ? "border-cost-positive" :
+    status.tone === "warn" ? "border-cost-warning" :
+    status.tone === "bad" ? "border-cost-negative" :
+    "border-border";
+  const toneBg =
+    status.tone === "good" ? "bg-cost-positive/5" :
+    status.tone === "warn" ? "bg-cost-warning/5" :
+    status.tone === "bad" ? "bg-cost-negative/5" :
+    "bg-muted/20";
+  const toneText =
+    status.tone === "good" ? "text-cost-positive" :
+    status.tone === "warn" ? "text-cost-warning" :
+    status.tone === "bad" ? "text-cost-negative" :
+    "text-muted-foreground";
 
   return (
     <div className={cn("surface-card border-l-4 p-4 flex items-start gap-3", toneBorder, toneBg)}>
@@ -193,7 +238,7 @@ function DecisionCard({
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[11px] uppercase tracking-widest text-muted-foreground">{question}</div>
-        <div className={cn("font-semibold text-sm mt-0.5", toneText)}>{status.title}</div>
+        <div className={cn("font-semibold text-sm mt-0.5", status.tone === "neutral" ? "text-foreground" : toneText)}>{status.title}</div>
         <div className="text-[12px] text-muted-foreground mt-0.5">{status.detail}</div>
       </div>
     </div>

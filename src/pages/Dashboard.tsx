@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Zap, TrendingUp, TrendingDown, Lock } from "lucide-react";
+import { Activity, Zap, TrendingUp, TrendingDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ActivityFeed } from "@/components/ActivityFeed";
@@ -9,6 +9,8 @@ import { RecommendedActionsPanel } from "@/components/dashboard/RecommendedActio
 import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
 import { usePremiumGate } from "@/hooks/usePremiumGate";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { PremiumBlur } from "@/components/billing/PremiumBlur";
+import { NoDataMetric } from "@/components/state/NoDataMetric";
 import {
   getBusinessSnapshot,
   getRecommendedActions,
@@ -160,6 +162,7 @@ export default function Dashboard() {
     .reduce((s, q) => s + Number(q.total), 0);
   const totalProfit = snapshot.estimatedProfit;
   const profitPositive = totalProfit >= 0;
+  const hasFinancialData = projects.length > 0 && projects.some((p) => Number(p.budget) > 0 || Number(p.actual_cost) > 0);
 
   return (
     <div className="space-y-6">
@@ -176,22 +179,33 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-3">
           {profitLocked ? (
-            <button
-              type="button"
-              onClick={() => gate.open("cost_intelligence")}
-              className="surface-card px-3 py-1.5 flex items-center gap-2 border-primary/40 hover:border-primary/60 transition-sf group text-left"
-              title="Requiere PRO"
-            >
-              <div className="w-7 h-7 rounded-lg scorpion-gradient flex items-center justify-center fire-glow shrink-0">
-                <Lock className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-primary leading-none font-semibold">Ganancia real</div>
-                <div className="text-sm font-bold leading-tight text-foreground/90 group-hover:text-primary transition-sf">
-                  Desbloquear PRO
+            // F7 — Experiencia premium: blur elegante sobre la métrica real con CTA
+            <div className="w-[260px]">
+              <PremiumBlur
+                feature="cost_intelligence"
+                size="sm"
+                message="Controla dinero real con PRO"
+              >
+                <div className="surface-card px-3 py-1.5 flex items-center gap-2 border-cost-positive/40">
+                  <TrendingUp className="w-4 h-4 text-cost-positive" />
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Ganancia estimada</div>
+                    <div className="text-sm font-bold font-mono-data leading-tight text-cost-positive">
+                      S/ ••••••
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </PremiumBlur>
+            </div>
+          ) : !hasFinancialData ? (
+            // F8 — Métricas creíbles: no mostrar 0 fake si no hay datos
+            <NoDataMetric
+              size="sm"
+              label="Ganancia estimada"
+              message="Sin información suficiente aún."
+              hint="Crea proyectos con presupuesto y costos para verla aquí."
+              className="max-w-[280px]"
+            />
           ) : (
             <div className={cn(
               "surface-card px-3 py-1.5 flex items-center gap-2",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FolderKanban, LayoutDashboard, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange, Clock, Lock } from "lucide-react";
@@ -109,6 +109,18 @@ export default function ProjectWorkspacePage() {
     }
     setTab(nextTab);
   };
+
+  /**
+   * F6 — Estabilidad: si el plan cambia (downgrade, expiración) mientras el
+   * usuario está parado en un tab premium, lo regresamos a "planning" para no
+   * mostrar contenido al que ya no tiene acceso.
+   */
+  useEffect(() => {
+    const required = PREMIUM_TABS[tab];
+    if (required && gate.locked(required)) {
+      setTab("planning");
+    }
+  }, [tab, gate]);
 
   const renderTrigger = (value: WorkspaceTab, Icon: React.ElementType, label: string) => {
     const required = PREMIUM_TABS[value];
