@@ -200,18 +200,19 @@ serve(async (req) => {
     }
 
     if (downgrade) {
-      // Downgrade: marcar en DB para aplicar al final del período. NO tocar Stripe ahora.
-      // El webhook procesará el cambio cuando llegue invoice.payment_succeeded del próximo ciclo,
-      // o lo aplicaremos cuando expire el período actual (vía cron o invoice).
-      // Para simplicidad: usamos cancel_at_period_end=true + schedule? No.
-      // Mejor: dejamos la suscripción intacta, guardamos intent, y al final del período el webhook
-      // (customer.subscription.updated con period rollover) o un job cambia el price.
-      // Solución pragmática: programar el cambio con una Subscription Schedule.
-      const sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+      // Downgrade: programar el cambio para el final del período actual con Subscription Schedule.
+      const sub = liveSub;
       const itemId = sub.items.data[0]?.id;
-      if (!itemId) throw new Error("Subscription item not found");
+      if (!itemId) {
+        return new Response(
+          JSON.stringify({
+            error: "No encontramos el producto activo en tu suscripción.",
+            code: "subscription_item_missing",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
-      // Crear schedule a partir de la subscription actual y agregar fase futura con el nuevo price
       let scheduleId: string;
       if (sub.schedule) {
         scheduleId = typeof sub.schedule === "string" ? sub.schedule : sub.schedule.id;
@@ -252,6 +253,10 @@ serve(async (req) => {
         ],
       });
 
+      const periodEndIso = currentPhase.end_date
+        ? new Date(currentPhase.end_date * 1000).toISOString()
+        : null;
+
       await admin
         .from("account_subscriptions")
         .update({
@@ -267,8 +272,20 @@ serve(async (req) => {
         to_plan: targetPlan,
         billing_cycle: targetBilling,
         stripe_subscription_id: sub.id,
-        metadata: { price_id: priceCfg.priceId, schedule_id: scheduleId },
+        metadata: { price_id: priceCfg.priceId, schedule_id: scheduleId, effective_at: periodEndIso },
       });
+
+      log("downgrade scheduled", { from: currentPlan, to: targetPlan, effective_at: periodEndIso });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mode: "downgrade_scheduled",
+          effective_at: periodEndIso,
+          message: "Tu cambio se aplicará al cierre del período actual. Hasta entonces conservas tu plan vigente.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
       log("downgrade scheduled", { from: currentPlan, to: targetPlan });
       return new Response(
