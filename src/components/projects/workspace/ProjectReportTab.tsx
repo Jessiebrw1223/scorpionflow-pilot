@@ -135,21 +135,40 @@ export default function ProjectReportTab({ project }: Props) {
       {/* === Detalle financiero === */}
       <div className="surface-card p-4">
         <h3 className="section-header mb-3">Detalle financiero</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Metric label="Presupuesto" value={PEN.format(Number(project.budget))} />
-          <Metric label="Gastado" value={PEN.format(Number(project.actual_cost))} tone={profit < 0 ? "bad" : undefined} />
-          <Metric label="Ganancia" value={PEN.format(profit)} tone={profit < 0 ? "bad" : margin >= 20 ? "good" : "warn"} />
-          <Metric label="Margen" value={`${margin.toFixed(1)}%`} tone={margin >= 20 ? "good" : margin >= 0 ? "warn" : "bad"} />
-        </div>
-        <div className="mt-3 space-y-1">
-          <div className="flex justify-between text-[12px]">
-            <span className="text-muted-foreground">Uso del presupuesto</span>
-            <span className={cn("font-mono-data font-semibold", profit < 0 && "text-cost-negative")}>
-              {usedPct.toFixed(0)}%
-            </span>
-          </div>
-          <Progress value={usedPct} className={cn("h-2", profit < 0 && "[&>div]:bg-cost-negative")} />
-        </div>
+        {!hasFinancialData ? (
+          <NoDataMetric
+            message="Sin información financiera aún."
+            hint="Configura el presupuesto del cliente y registra recursos para ver ganancia, margen y uso del presupuesto."
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Metric label="Presupuesto" value={budget > 0 ? PEN.format(budget) : "Sin definir"} />
+              <Metric label="Gastado" value={PEN.format(actualCost)} tone={budget > 0 && profit < 0 ? "bad" : undefined} />
+              <Metric
+                label="Ganancia"
+                value={budget > 0 ? PEN.format(profit) : "Define presupuesto"}
+                tone={budget > 0 ? (profit < 0 ? "bad" : margin >= 20 ? "good" : "warn") : undefined}
+              />
+              <Metric
+                label="Margen"
+                value={budget > 0 ? `${margin.toFixed(1)}%` : "—"}
+                tone={budget > 0 ? (margin >= 20 ? "good" : margin >= 0 ? "warn" : "bad") : undefined}
+              />
+            </div>
+            {budget > 0 && (
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-muted-foreground">Uso del presupuesto</span>
+                  <span className={cn("font-mono-data font-semibold", profit < 0 && "text-cost-negative")}>
+                    {usedPct.toFixed(0)}%
+                  </span>
+                </div>
+                <Progress value={usedPct} className={cn("h-2", profit < 0 && "[&>div]:bg-cost-negative")} />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Tareas críticas o que retrasan la entrega */}
