@@ -143,11 +143,21 @@ export default function SettingsPage() {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: planId, billing },
       });
-      if (error) throw error;
+      if (error || (data && (data as any).error)) {
+        const msg = humanizeFunctionError(
+          error,
+          data,
+          "Intenta nuevamente en unos segundos.",
+        );
+        toast.error("No pudimos abrir el pago", { description: msg });
+        return;
+      }
       if (data?.url) {
         window.open(data.url, "_blank");
       } else {
-        throw new Error("No se generó la URL de pago");
+        toast.error("No pudimos abrir el pago", {
+          description: "Intenta nuevamente en unos segundos.",
+        });
       }
     } catch (e: any) {
       toast.error("No pudimos abrir el pago", {
@@ -162,11 +172,21 @@ export default function SettingsPage() {
     setPortalLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal", { body: {} });
-      if (error) throw error;
+      if (error || (data && (data as any).error)) {
+        const msg = humanizeFunctionError(
+          error,
+          data,
+          "Intenta nuevamente en unos segundos.",
+        );
+        toast.error("No pudimos abrir el portal", { description: msg });
+        return;
+      }
       if (data?.url) {
         window.open(data.url, "_blank");
       } else {
-        throw new Error("No se pudo abrir el portal");
+        toast.error("No pudimos abrir el portal", {
+          description: "Intenta nuevamente en unos segundos.",
+        });
       }
     } catch (e: any) {
       toast.error("No pudimos abrir el portal", {

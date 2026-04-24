@@ -104,12 +104,23 @@ export function UpsellDialog({
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: targetPlan, billing },
       });
-      if (error) throw error;
+      if (error || (data && (data as any).error)) {
+        toast.error("No pudimos abrir el pago", {
+          description: humanizeFunctionError(
+            error,
+            data,
+            "Intenta nuevamente en unos segundos.",
+          ),
+        });
+        return;
+      }
       if (data?.url) {
         window.open(data.url, "_blank");
         onOpenChange(false);
       } else {
-        throw new Error("No se generó la URL de pago");
+        toast.error("No pudimos abrir el pago", {
+          description: "Intenta nuevamente en unos segundos.",
+        });
       }
     } catch (e) {
       toast.error("No pudimos abrir el pago", {
