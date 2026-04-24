@@ -287,16 +287,7 @@ serve(async (req) => {
       );
     }
 
-      log("downgrade scheduled", { from: currentPlan, to: targetPlan });
-      return new Response(
-        JSON.stringify({
-          success: true,
-          mode: "downgrade_scheduled",
-          message: "El cambio se aplicará al final del período actual. Hasta entonces conservas el plan vigente.",
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+
 
     return new Response(JSON.stringify({ error: "Cambio no soportado" }), {
       status: 400,
