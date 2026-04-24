@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Zap, TrendingUp, TrendingDown } from "lucide-react";
+import { Activity, Zap, TrendingUp, TrendingDown, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { BusinessStatusBlock } from "@/components/dashboard/BusinessStatusBlock";
 import { RecommendedActionsPanel } from "@/components/dashboard/RecommendedActionsPanel";
 import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
+import { usePremiumGate } from "@/hooks/usePremiumGate";
+import { UpsellDialog } from "@/components/billing/UpsellDialog";
 import {
   getBusinessSnapshot,
   getRecommendedActions,
@@ -25,6 +27,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const PEN = useMoney();
   const { settings } = useUserSettings();
+  const gate = usePremiumGate();
+  const profitLocked = gate.locked("cost_intelligence");
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min-dash"],
@@ -171,31 +175,56 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "surface-card px-3 py-1.5 flex items-center gap-2",
-            profitPositive ? "border-cost-positive/40" : "border-cost-negative/40"
-          )}>
-            {profitPositive ? (
-              <TrendingUp className="w-4 h-4 text-cost-positive" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-cost-negative" />
-            )}
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Ganancia estimada</div>
-              <div className={cn(
-                "text-sm font-bold font-mono-data leading-tight",
-                profitPositive ? "text-cost-positive" : "text-cost-negative"
-              )}>
-                {PEN.format(totalProfit)}
+          {profitLocked ? (
+            <button
+              type="button"
+              onClick={() => gate.open("cost_intelligence")}
+              className="surface-card px-3 py-1.5 flex items-center gap-2 border-primary/40 hover:border-primary/60 transition-sf group text-left"
+              title="Requiere PRO"
+            >
+              <div className="w-7 h-7 rounded-lg scorpion-gradient flex items-center justify-center fire-glow shrink-0">
+                <Lock className="w-3.5 h-3.5 text-primary-foreground" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-primary leading-none font-semibold">Ganancia real</div>
+                <div className="text-sm font-bold leading-tight text-foreground/90 group-hover:text-primary transition-sf">
+                  Desbloquear PRO
+                </div>
+              </div>
+            </button>
+          ) : (
+            <div className={cn(
+              "surface-card px-3 py-1.5 flex items-center gap-2",
+              profitPositive ? "border-cost-positive/40" : "border-cost-negative/40"
+            )}>
+              {profitPositive ? (
+                <TrendingUp className="w-4 h-4 text-cost-positive" />
+              ) : (
+                <TrendingDown className="w-4 h-4 text-cost-negative" />
+              )}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Ganancia estimada</div>
+                <div className={cn(
+                  "text-sm font-bold font-mono-data leading-tight",
+                  profitPositive ? "text-cost-positive" : "text-cost-negative"
+                )}>
+                  {PEN.format(totalProfit)}
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <div className="flex items-center gap-2 text-[12px]">
             <Activity className="w-3.5 h-3.5 text-cost-positive" />
             <span className="text-cost-positive font-medium">Sistema operativo</span>
           </div>
         </div>
       </div>
+
+      <UpsellDialog
+        open={gate.dialog.open}
+        onOpenChange={gate.close}
+        feature={gate.dialog.feature}
+      />
 
       {/* Critical Alerts Banner */}
       <AlertsBanner />
