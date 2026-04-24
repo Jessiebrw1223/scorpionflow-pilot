@@ -15,7 +15,7 @@ import { useUserSettings, type Currency, type CostModel, type Channel } from "@/
 import { usePlan } from "@/hooks/usePlan";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
-import { humanizeError } from "@/lib/humanize-error";
+import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
 
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";

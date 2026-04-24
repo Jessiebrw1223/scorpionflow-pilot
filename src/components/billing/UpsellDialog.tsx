@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { usePlan, getRequiredPlan, PLAN_LABELS, type PremiumFeature, type PlanId } from "@/hooks/usePlan";
-import { humanizeError } from "@/lib/humanize-error";
+import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
 
 interface UpsellDialogProps {
   open: boolean;
