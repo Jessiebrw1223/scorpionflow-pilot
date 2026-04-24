@@ -25,6 +25,8 @@ export interface TeamInvitation {
   token: string;
   expires_at: string;
   created_at: string;
+  /** Estado del último intento de envío del correo (calculado desde email_send_log). */
+  lastEmailStatus?: "sent" | "pending" | "failed" | "suppressed" | "unknown";
 }
 
 export interface AccountSubscription {
@@ -101,7 +103,11 @@ export function useTeam() {
       if (created) setSubscription(created as AccountSubscription);
     }
     setMembers((memRes.data ?? []) as TeamMember[]);
-    setInvitations((invRes.data ?? []) as TeamInvitation[]);
+
+    // Enriquecer invitaciones con el último estado de envío de email
+    const rawInvitations = (invRes.data ?? []) as TeamInvitation[];
+    const enriched = await enrichInvitationsWithEmailStatus(rawInvitations);
+    setInvitations(enriched);
     setLoading(false);
   }, [user]);
 
