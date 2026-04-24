@@ -26,7 +26,16 @@ export interface TeamInvitation {
   expires_at: string;
   created_at: string;
   /** Estado del último intento de envío del correo (calculado desde email_send_log). */
-  lastEmailStatus?: "sent" | "pending" | "failed" | "suppressed" | "unknown";
+  lastEmailStatus?:
+    | "sent"
+    | "pending"
+    | "failed"
+    | "suppressed"
+    | "bounced"
+    | "complained"
+    | "unknown";
+  /** Detalle del último error/rebote, si aplica. */
+  lastEmailError?: string | null;
 }
 
 export interface AccountSubscription {
@@ -85,29 +94,39 @@ async function enrichInvitationsWithEmailStatus(
   // últimos logs por email. Las invitaciones de team usan template_name
   // "team-invitation".
   const emails = Array.from(new Set(invs.map((i) => i.email.toLowerCase())));
+  // Traemos también logs de "system" (suppression handler) para detectar bounces
+  // y complaints reportados después del envío exitoso.
   const { data: logs } = await supabase
     .from("email_send_log")
-    .select("recipient_email, status, created_at, template_name")
-    .eq("template_name", "team-invitation")
+    .select("recipient_email, status, error_message, created_at, template_name")
+    .in("template_name", ["team-invitation", "system"])
     .in("recipient_email", emails)
     .order("created_at", { ascending: false });
 
-  const latestByEmail = new Map<string, string>();
+  // Por email, capturamos el último log relevante. Los estados de suppression
+  // (bounced/complained/suppressed) tienen prioridad sobre sent/pending.
+  const latestByEmail = new Map<string, { status: string; error: string | null }>();
   for (const log of logs ?? []) {
     const key = (log.recipient_email ?? "").toLowerCase();
     if (!latestByEmail.has(key)) {
-      latestByEmail.set(key, log.status);
+      latestByEmail.set(key, {
+        status: log.status,
+        error: log.error_message ?? null,
+      });
     }
   }
 
   return invs.map((inv) => {
-    const status = latestByEmail.get(inv.email.toLowerCase());
+    const entry = latestByEmail.get(inv.email.toLowerCase());
+    const status = entry?.status;
     let lastEmailStatus: TeamInvitation["lastEmailStatus"] = "unknown";
     if (status === "sent") lastEmailStatus = "sent";
     else if (status === "pending") lastEmailStatus = "pending";
     else if (status === "failed" || status === "dlq") lastEmailStatus = "failed";
+    else if (status === "bounced") lastEmailStatus = "bounced";
+    else if (status === "complained") lastEmailStatus = "complained";
     else if (status === "suppressed") lastEmailStatus = "suppressed";
-    return { ...inv, lastEmailStatus };
+    return { ...inv, lastEmailStatus, lastEmailError: entry?.error ?? null };
   });
 }
 
