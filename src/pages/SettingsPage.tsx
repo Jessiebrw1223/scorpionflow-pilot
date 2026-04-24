@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
+import { useStripePrices } from "@/hooks/useStripePrices";
+import { usdToPen, formatPEN, formatUSD, FX_USD_TO_PEN } from "@/lib/fx";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
