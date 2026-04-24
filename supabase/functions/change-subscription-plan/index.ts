@@ -10,6 +10,7 @@ import {
   getPriceConfig,
   isDowngrade,
   isUpgrade,
+  lookupPlanFromPriceId,
   type Billing,
   type PlanId,
 } from "../_shared/stripe-catalog.ts";
@@ -108,22 +109,51 @@ serve(async (req) => {
     const priceCfg = getPriceConfig(targetPlan as Exclude<PlanId, "free">, targetBilling);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" as never });
 
-    // Cambio de ciclo de facturación se trata como upgrade si sube de mensual→anual (ahorro), pero
-    // en ranking de planes es igual. Lo simplificamos: si el plan sube → upgrade inmediato.
-    // Si el plan baja → downgrade al final del período.
-    // Si el plan es el mismo y solo cambia billing → tratar como upgrade inmediato (cobro prorrateado).
-    const upgrade = isUpgrade(currentPlan, targetPlan) || (currentPlan === targetPlan && currentBilling !== targetBilling);
-    const downgrade = isDowngrade(currentPlan, targetPlan);
+    // Verificar el price actual real en Stripe (puede estar huérfano/inactivo si fue creado
+    // antes de migrar el catálogo). Si lo está, forzamos un upgrade limpio al nuevo price.
+    const liveSub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+    const currentItem = liveSub.items.data[0];
+    const currentPriceId = currentItem?.price?.id ?? null;
+    const currentPriceInCatalog = currentPriceId ? lookupPlanFromPriceId(currentPriceId) : null;
+    const orphanPrice = currentPriceId !== null && !currentPriceInCatalog;
+
+    if (orphanPrice) {
+      log("orphan price detected — forcing clean upgrade", { currentPriceId, targetPriceId: priceCfg.priceId });
+    }
+
+    const upgrade =
+      orphanPrice ||
+      isUpgrade(currentPlan, targetPlan) ||
+      (currentPlan === targetPlan && currentBilling !== targetBilling);
+    const downgrade = !orphanPrice && isDowngrade(currentPlan, targetPlan);
 
     if (upgrade) {
-      // Upgrade: aplicar inmediatamente con prorrateo y facturar
-      const sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
-      const itemId = sub.items.data[0]?.id;
-      if (!itemId) throw new Error("Subscription item not found");
+      // Upgrade (o limpieza de price huérfano): aplicar inmediatamente con prorrateo y facturar
+      const itemId = currentItem?.id;
+      if (!itemId) {
+        return new Response(
+          JSON.stringify({
+            error: "No encontramos el producto activo en tu suscripción. Abre el portal y vuelve a intentarlo.",
+            code: "subscription_item_missing",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Si existe un schedule colgado de un downgrade previo, liberarlo antes del upgrade
+      if (liveSub.schedule) {
+        const scheduleId = typeof liveSub.schedule === "string" ? liveSub.schedule : liveSub.schedule.id;
+        try {
+          await stripe.subscriptionSchedules.release(scheduleId);
+          log("schedule released before upgrade", { scheduleId });
+        } catch (err) {
+          log("schedule release failed (non-fatal)", { err: err instanceof Error ? err.message : String(err) });
+        }
+      }
 
       const updated = await stripe.subscriptions.update(subRow.stripe_subscription_id, {
         items: [{ id: itemId, price: priceCfg.priceId }],
-        proration_behavior: "always_invoice",
+        proration_behavior: orphanPrice ? "create_prorations" : "always_invoice",
         metadata: {
           owner_id: userId,
           plan: targetPlan,
@@ -144,38 +174,45 @@ serve(async (req) => {
 
       await admin.from("subscription_events").insert({
         owner_id: userId,
-        event_type: "upgraded",
+        event_type: orphanPrice ? "price_remediated" : "upgraded",
         from_plan: currentPlan,
         to_plan: targetPlan,
         billing_cycle: targetBilling,
         stripe_subscription_id: updated.id,
-        metadata: { price_id: priceCfg.priceId, proration: "always_invoice" },
+        metadata: {
+          price_id: priceCfg.priceId,
+          previous_price_id: currentPriceId,
+          orphan_remediated: orphanPrice,
+        },
       });
 
-      log("upgraded", { from: currentPlan, to: targetPlan });
+      log("upgraded", { from: currentPlan, to: targetPlan, orphan: orphanPrice });
       return new Response(
         JSON.stringify({
           success: true,
           mode: "upgrade",
-          message: "Plan actualizado inmediatamente. Recibirás una factura prorrateada.",
+          message: orphanPrice
+            ? "Plan actualizado. Tu suscripción ahora usa el catálogo vigente."
+            : "Plan actualizado inmediatamente. Recibirás una factura prorrateada.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     if (downgrade) {
-      // Downgrade: marcar en DB para aplicar al final del período. NO tocar Stripe ahora.
-      // El webhook procesará el cambio cuando llegue invoice.payment_succeeded del próximo ciclo,
-      // o lo aplicaremos cuando expire el período actual (vía cron o invoice).
-      // Para simplicidad: usamos cancel_at_period_end=true + schedule? No.
-      // Mejor: dejamos la suscripción intacta, guardamos intent, y al final del período el webhook
-      // (customer.subscription.updated con period rollover) o un job cambia el price.
-      // Solución pragmática: programar el cambio con una Subscription Schedule.
-      const sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+      // Downgrade: programar el cambio para el final del período actual con Subscription Schedule.
+      const sub = liveSub;
       const itemId = sub.items.data[0]?.id;
-      if (!itemId) throw new Error("Subscription item not found");
+      if (!itemId) {
+        return new Response(
+          JSON.stringify({
+            error: "No encontramos el producto activo en tu suscripción.",
+            code: "subscription_item_missing",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
-      // Crear schedule a partir de la subscription actual y agregar fase futura con el nuevo price
       let scheduleId: string;
       if (sub.schedule) {
         scheduleId = typeof sub.schedule === "string" ? sub.schedule : sub.schedule.id;
@@ -216,6 +253,10 @@ serve(async (req) => {
         ],
       });
 
+      const periodEndIso = currentPhase.end_date
+        ? new Date(currentPhase.end_date * 1000).toISOString()
+        : null;
+
       await admin
         .from("account_subscriptions")
         .update({
@@ -231,19 +272,22 @@ serve(async (req) => {
         to_plan: targetPlan,
         billing_cycle: targetBilling,
         stripe_subscription_id: sub.id,
-        metadata: { price_id: priceCfg.priceId, schedule_id: scheduleId },
+        metadata: { price_id: priceCfg.priceId, schedule_id: scheduleId, effective_at: periodEndIso },
       });
 
-      log("downgrade scheduled", { from: currentPlan, to: targetPlan });
+      log("downgrade scheduled", { from: currentPlan, to: targetPlan, effective_at: periodEndIso });
       return new Response(
         JSON.stringify({
           success: true,
           mode: "downgrade_scheduled",
-          message: "El cambio se aplicará al final del período actual. Hasta entonces conservas el plan vigente.",
+          effective_at: periodEndIso,
+          message: "Tu cambio se aplicará al cierre del período actual. Hasta entonces conservas tu plan vigente.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+
 
     return new Response(JSON.stringify({ error: "Cambio no soportado" }), {
       status: 400,

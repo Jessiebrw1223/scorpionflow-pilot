@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   CreditCard, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
-  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink,
+  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink, X,
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
@@ -18,6 +18,10 @@ import { usdToPen, formatPEN, formatUSD, FX_USD_TO_PEN } from "@/lib/fx";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
@@ -74,11 +78,24 @@ const PLANS: Array<{
 
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
-  const { plan: realPlan, status: planStatus, billingCycle: realBilling, cancelAtPeriodEnd, currentPeriodEnd, refresh: refreshPlan } = usePlan();
+  const {
+    plan: realPlan, status: planStatus, billingCycle: realBilling,
+    cancelAtPeriodEnd, currentPeriodEnd, hasActiveStripeSub,
+    pendingDowngradePlan, refresh: refreshPlan,
+  } = usePlan();
   const { getPrice, loading: pricesLoading } = useStripePrices();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null);
+  const [actionLoading, setActionLoading] = useState<PlanId | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [reactivateLoading, setReactivateLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    onConfirm: () => Promise<void> | void;
+    destructive?: boolean;
+  } | null>(null);
 
   // Estado local controlado, sincronizado con settings de la BD
   const [currency, setCurrency] = useState<Currency>(settings.currency);
@@ -132,35 +149,166 @@ export default function SettingsPage() {
     }
   }, [searchParams, setSearchParams, refreshPlan]);
 
-  const handleCheckout = async (planId: PlanId) => {
-    if (planId === "free") return;
-    setCheckoutLoading(planId);
+  const PLAN_RANK_LOCAL: Record<PlanId, number> = { free: 0, starter: 1, pro: 2, business: 3 };
+
+  const formatDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" }) : "—";
+
+  const planLabel = (id: PlanId) => id.charAt(0).toUpperCase() + id.slice(1);
+
+  // Decide la acción correcta según el estado actual del usuario
+  const handlePlanAction = async (planId: PlanId) => {
+    if (planId === "free" || planId === realPlan && billing === realBilling) return;
+
+    // Caso 1: NO tiene sub activa en Stripe → checkout nuevo
+    if (!hasActiveStripeSub) {
+      return openCheckout(planId);
+    }
+
+    // Caso 2: tiene sub pero está cancelando al final del período
+    if (cancelAtPeriodEnd) {
+      setConfirmDialog({
+        title: "Reactivar tu suscripción",
+        description: `Tu plan ${planLabel(realPlan)} está programado para terminar el ${formatDate(currentPeriodEnd)}. Reactivamos tu suscripción y continuarás con tu plan actual sin interrupciones.`,
+        confirmLabel: "Reactivar",
+        onConfirm: handleReactivate,
+      });
+      return;
+    }
+
+    // Caso 3: cambio de plan en sub activa → upgrade o downgrade
+    const isUp = PLAN_RANK_LOCAL[planId] > PLAN_RANK_LOCAL[realPlan];
+    const isDown = PLAN_RANK_LOCAL[planId] < PLAN_RANK_LOCAL[realPlan];
+    const isBillingOnly = planId === realPlan && billing !== realBilling;
+
+    if (isUp || (isBillingOnly && billing === "annual")) {
+      setConfirmDialog({
+        title: `Actualizar a ${planLabel(planId)}`,
+        description: isBillingOnly
+          ? `Cambiarás tu facturación a ${billing === "annual" ? "anual" : "mensual"}. Se aplicará un cobro prorrateado por la diferencia y obtendrás los beneficios de inmediato.`
+          : `Subes de ${planLabel(realPlan)} a ${planLabel(planId)}. Se aplicará inmediatamente con un cobro prorrateado por los días restantes del ciclo.`,
+        confirmLabel: "Confirmar y pagar",
+        onConfirm: () => invokeChangePlan(planId, "upgrade"),
+      });
+      return;
+    }
+
+    if (isDown || (isBillingOnly && billing === "monthly")) {
+      setConfirmDialog({
+        title: `Programar cambio a ${planLabel(planId)}`,
+        description: `Tu cambio se aplicará al cierre del período el ${formatDate(currentPeriodEnd)}. Hasta entonces conservas tu plan ${planLabel(realPlan)} sin interrupciones.`,
+        confirmLabel: "Programar cambio",
+        onConfirm: () => invokeChangePlan(planId, "downgrade"),
+      });
+      return;
+    }
+  };
+
+  const openCheckout = async (planId: PlanId) => {
+    setActionLoading(planId);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: planId, billing },
       });
       if (error || (data && (data as any).error)) {
-        const msg = humanizeFunctionError(
-          error,
-          data,
-          "Intenta nuevamente en unos segundos.",
-        );
-        toast.error("No pudimos abrir el pago", { description: msg });
+        toast.error("No pudimos abrir el pago", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
         return;
       }
       if (data?.url) {
         window.open(data.url, "_blank");
       } else {
-        toast.error("No pudimos abrir el pago", {
-          description: "Intenta nuevamente en unos segundos.",
-        });
+        toast.error("No pudimos abrir el pago", { description: "Intenta nuevamente en unos segundos." });
       }
     } catch (e: any) {
       toast.error("No pudimos abrir el pago", {
         description: humanizeError(e, "Intenta nuevamente en unos segundos."),
       });
     } finally {
-      setCheckoutLoading(null);
+      setActionLoading(null);
+    }
+  };
+
+  const invokeChangePlan = async (planId: PlanId, intent: "upgrade" | "downgrade") => {
+    setActionLoading(planId);
+    try {
+      const { data, error } = await supabase.functions.invoke("change-subscription-plan", {
+        body: { plan: planId, billing },
+      });
+      if (error || (data && (data as any).error)) {
+        const title = intent === "upgrade" ? "No pudimos actualizar tu plan" : "No pudimos programar el cambio";
+        toast.error(title, {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
+        return;
+      }
+      const message = (data as any)?.message ?? (intent === "upgrade"
+        ? "Plan actualizado."
+        : "Cambio programado al cierre del período.");
+      toast.success(intent === "upgrade" ? "Plan actualizado" : "Cambio programado", { description: message });
+      // Polling para reflejar el cambio (webhook puede tardar segundos)
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        attempts++;
+        await refreshPlan();
+        if (attempts >= 6) clearInterval(interval);
+      }, 1500);
+    } catch (e: any) {
+      toast.error("No pudimos completar el cambio", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", { body: {} });
+      if (error || (data && (data as any).error)) {
+        toast.error("No pudimos cancelar tu suscripción", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
+        return;
+      }
+      const eff = (data as any)?.effective_at ? formatDate((data as any).effective_at) : null;
+      toast.success("Cancelación programada", {
+        description: eff
+          ? `Conservas tu plan hasta el ${eff}. Después volverás a Free.`
+          : "Conservas tu plan hasta el final del período pagado.",
+      });
+      await refreshPlan();
+    } catch (e: any) {
+      toast.error("No pudimos cancelar tu suscripción", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setReactivateLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription", { body: {} });
+      if (error || (data && (data as any).error)) {
+        toast.error("No pudimos reactivar tu suscripción", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        });
+        return;
+      }
+      toast.success("Suscripción reactivada", {
+        description: "Tu plan continuará renovándose normalmente.",
+      });
+      await refreshPlan();
+    } catch (e: any) {
+      toast.error("No pudimos reactivar tu suscripción", {
+        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+      });
+    } finally {
+      setReactivateLoading(false);
     }
   };
 
@@ -413,7 +561,7 @@ export default function SettingsPage() {
                 const isCurrent = realPlan === plan.id;
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
-                const isLoadingThis = checkoutLoading === plan.id;
+                const isLoadingThis = actionLoading === plan.id;
 
                 // Resolver precio real desde Stripe (si plan no es free)
                 const stripePrice = !isFree ? getPrice(plan.id, billing) : null;
@@ -510,15 +658,54 @@ export default function SettingsPage() {
                           )}
                         </Badge>
                         {!isFree && (
-                          <Button
-                            variant="outline"
-                            className="w-full h-9 text-[12px] gap-1.5"
-                            onClick={handleOpenPortal}
-                            disabled={portalLoading}
-                          >
-                            {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
-                            Gestionar suscripción
-                          </Button>
+                          <div className="space-y-2">
+                            <Button
+                              variant="outline"
+                              className="w-full h-9 text-[12px] gap-1.5"
+                              onClick={handleOpenPortal}
+                              disabled={portalLoading}
+                            >
+                              {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                              Gestionar suscripción
+                            </Button>
+                            {cancelAtPeriodEnd ? (
+                              <Button
+                                variant="outline"
+                                className="w-full h-9 text-[12px] gap-1.5"
+                                onClick={() => setConfirmDialog({
+                                  title: "Reactivar tu suscripción",
+                                  description: `Tu plan está programado para terminar el ${formatDate(currentPeriodEnd)}. Si reactivas ahora, continuará renovándose normalmente.`,
+                                  confirmLabel: "Reactivar",
+                                  onConfirm: handleReactivate,
+                                })}
+                                disabled={reactivateLoading}
+                              >
+                                {reactivateLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                                Reactivar
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                className="w-full h-9 text-[12px] gap-1.5 text-muted-foreground hover:text-destructive"
+                                onClick={() => setConfirmDialog({
+                                  title: "Cancelar suscripción",
+                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá al plan Free automáticamente.`,
+                                  confirmLabel: "Sí, cancelar",
+                                  destructive: true,
+                                  onConfirm: handleCancelSubscription,
+                                })}
+                                disabled={cancelLoading}
+                              >
+                                {cancelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                                Cancelar suscripción
+                              </Button>
+                            )}
+                            {pendingDowngradePlan && (
+                              <p className="text-[10.5px] text-cost-warning text-center pt-1">
+                                Cambio programado a {planLabel(pendingDowngradePlan as PlanId)} el {formatDate(currentPeriodEnd)}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     ) : isFree ? (
@@ -534,17 +721,30 @@ export default function SettingsPage() {
                       >
                         Plan no disponible
                       </Button>
-                    ) : (
-                      <Button
-                        variant={plan.highlight ? "default" : "outline"}
-                        className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
-                        onClick={() => handleCheckout(plan.id)}
-                        disabled={isLoadingThis || pricesLoading}
-                      >
-                        {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                        {plan.cta}
-                      </Button>
-                    )}
+                    ) : (() => {
+                      const isUp = !isFree && PLAN_RANK_LOCAL[plan.id] > PLAN_RANK_LOCAL[realPlan];
+                      const isDown = !isFree && PLAN_RANK_LOCAL[plan.id] < PLAN_RANK_LOCAL[realPlan];
+                      const ctaLabel = !hasActiveStripeSub
+                        ? plan.cta
+                        : cancelAtPeriodEnd
+                          ? "Reactivar y elegir"
+                          : isUp
+                            ? `Actualizar a ${planLabel(plan.id)}`
+                            : isDown
+                              ? `Bajar a ${planLabel(plan.id)} al cierre`
+                              : plan.cta;
+                      return (
+                        <Button
+                          variant={plan.highlight ? "default" : "outline"}
+                          className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
+                          onClick={() => handlePlanAction(plan.id)}
+                          disabled={isLoadingThis || pricesLoading}
+                        >
+                          {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                          {ctaLabel}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 );
               })}
