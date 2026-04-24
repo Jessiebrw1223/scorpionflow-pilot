@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FolderKanban, LayoutDashboard, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange, Clock } from "lucide-react";
+import { ArrowLeft, FolderKanban, LayoutDashboard, DollarSign, FileBarChart2, Receipt, Loader2, Users, CalendarRange, Clock, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,23 @@ import ProjectCostsTab from "@/components/projects/workspace/ProjectCostsTab";
 import ProjectReportTab from "@/components/projects/workspace/ProjectReportTab";
 import ProjectResourcesTab from "@/components/projects/workspace/ProjectResourcesTab";
 import ProjectScheduleTab from "@/components/projects/workspace/ProjectScheduleTab";
-import { PremiumGate } from "@/components/billing/PremiumGate";
+import { usePremiumGate, type PremiumFeature } from "@/hooks/usePremiumGate";
+import { UpsellDialog } from "@/components/billing/UpsellDialog";
+
+type WorkspaceTab = "summary" | "planning" | "schedule" | "resources" | "costs" | "report";
+
+const PREMIUM_TABS: Partial<Record<WorkspaceTab, PremiumFeature>> = {
+  resources: "resources_management",
+  costs: "cost_intelligence",
+  report: "advanced_reports",
+};
 
 export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("planning");
+  const [tab, setTab] = useState<WorkspaceTab>("planning");
   const { settings } = useUserSettings();
+  const gate = usePremiumGate();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", id],
@@ -67,7 +77,6 @@ export default function ProjectWorkspacePage() {
     );
   }
 
-  // Estados duales: ejecución (tiempo) y salud financiera (dinero) — NUNCA mezclar
   const today = new Date();
   const overdueCount = tasks.filter(
     (t: any) => t.status !== "done" && t.due_date && new Date(t.due_date) < today
@@ -86,6 +95,38 @@ export default function ProjectWorkspacePage() {
     actualCost: Number(project.actual_cost),
     targetMargin: settings.target_margin,
   });
+
+  /**
+   * Intercepta el cambio de tab: si el destino es premium y el usuario no
+   * tiene acceso, abrimos el upsell SIN cambiar el tab actual (no rompemos vista).
+   */
+  const handleTabChange = (next: string) => {
+    const nextTab = next as WorkspaceTab;
+    const required = PREMIUM_TABS[nextTab];
+    if (required && gate.locked(required)) {
+      gate.open(required);
+      return;
+    }
+    setTab(nextTab);
+  };
+
+  const renderTrigger = (value: WorkspaceTab, Icon: React.ElementType, label: string) => {
+    const required = PREMIUM_TABS[value];
+    const isLocked = required ? gate.locked(required) : false;
+    return (
+      <TabsTrigger
+        value={value}
+        className={cn(
+          "gap-1.5 text-[12px] data-[state=active]:bg-card",
+          isLocked && "opacity-80"
+        )}
+        title={isLocked ? `${label} · Requiere PRO` : label}
+      >
+        <Icon className="w-3.5 h-3.5" /> {label}
+        {isLocked && <Lock className="w-3 h-3 text-primary/70 ml-0.5" />}
+      </TabsTrigger>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -127,30 +168,18 @@ export default function ProjectWorkspacePage() {
       </div>
 
       {/* Workspace tabs */}
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <Tabs value={tab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="bg-secondary border border-border w-full justify-start overflow-x-auto">
-          <TabsTrigger value="summary" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <LayoutDashboard className="w-3.5 h-3.5" /> Resumen
-          </TabsTrigger>
-          <TabsTrigger value="planning" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <CalendarRange className="w-3.5 h-3.5" /> Planificación
-          </TabsTrigger>
-          <TabsTrigger value="schedule" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <Clock className="w-3.5 h-3.5" /> Cronograma
-          </TabsTrigger>
-          <TabsTrigger value="resources" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <Users className="w-3.5 h-3.5" /> Recursos
-          </TabsTrigger>
-          <TabsTrigger value="costs" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <DollarSign className="w-3.5 h-3.5" /> Costos
-          </TabsTrigger>
-          <TabsTrigger value="report" className="gap-1.5 text-[12px] data-[state=active]:bg-card">
-            <FileBarChart2 className="w-3.5 h-3.5" /> Informe
-          </TabsTrigger>
+          {renderTrigger("summary", LayoutDashboard, "Resumen")}
+          {renderTrigger("planning", CalendarRange, "Planificación")}
+          {renderTrigger("schedule", Clock, "Cronograma")}
+          {renderTrigger("resources", Users, "Recursos")}
+          {renderTrigger("costs", DollarSign, "Costos")}
+          {renderTrigger("report", FileBarChart2, "Informe")}
         </TabsList>
 
         <TabsContent value="summary">
-          <ProjectSummaryTab project={project} tasks={tasks} onTabChange={setTab} />
+          <ProjectSummaryTab project={project} tasks={tasks} onTabChange={(t) => handleTabChange(t)} />
         </TabsContent>
         <TabsContent value="planning">
           <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} />
@@ -158,22 +187,24 @@ export default function ProjectWorkspacePage() {
         <TabsContent value="schedule">
           <ProjectScheduleTab project={project} />
         </TabsContent>
+        {/* Los tabs premium ya no se renderizan para Free porque handleTabChange impide
+            que el usuario llegue a ellos. Pro+ los ve de forma normal. */}
         <TabsContent value="resources">
-          <PremiumGate feature="resources_management">
-            <ProjectResourcesTab project={project} />
-          </PremiumGate>
+          <ProjectResourcesTab project={project} />
         </TabsContent>
         <TabsContent value="costs">
-          <PremiumGate feature="cost_intelligence">
-            <ProjectCostsTab project={project} />
-          </PremiumGate>
+          <ProjectCostsTab project={project} />
         </TabsContent>
         <TabsContent value="report">
-          <PremiumGate feature="advanced_reports">
-            <ProjectReportTab project={project} />
-          </PremiumGate>
+          <ProjectReportTab project={project} />
         </TabsContent>
       </Tabs>
+
+      <UpsellDialog
+        open={gate.dialog.open}
+        onOpenChange={gate.close}
+        feature={gate.dialog.feature}
+      />
     </div>
   );
 }
