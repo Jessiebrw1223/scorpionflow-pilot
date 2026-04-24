@@ -51,6 +51,13 @@ const TECHNICAL_PATTERNS: Array<{ match: RegExp; friendly: string }> = [
   { match: /Esta invitación ya no está disponible/i, friendly: "Esta invitación ya fue usada o cancelada." },
   { match: /No se pudo unir al equipo/i,       friendly: "No pudimos unirte al equipo. Intenta de nuevo en un momento." },
 
+  // Correo de invitación / entregabilidad
+  { match: /email_suppressed/i,                friendly: "Este correo fue marcado como no entregable (rebote o queja previa). Comparte el enlace manualmente con la persona invitada." },
+  { match: /bounced|permanent bounce/i,        friendly: "El correo rebotó porque la dirección no existe o el dominio rechazó el mensaje. Verifica el email o comparte el enlace manualmente." },
+  { match: /complained|spam complaint/i,       friendly: "Este destinatario marcó tus correos como spam. Comparte el enlace manualmente." },
+  { match: /Template .* not found/i,           friendly: "La plantilla del correo no está disponible. Contacta al soporte." },
+  { match: /No email domain record found/i,    friendly: "El servicio de correo está configurándose. Reintenta en unos minutos o comparte el enlace manualmente." },
+
   // Supabase / DB
   { match: /JWT expired|Auth session missing/i,friendly: "Tu sesión expiró. Vuelve a iniciar sesión." },
   { match: /permission denied/i,               friendly: "No tienes permisos para esta acción." },
