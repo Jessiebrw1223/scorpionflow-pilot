@@ -193,7 +193,7 @@ serve(async (req) => {
         end_behavior: "release",
         phases: [
           {
-            items: currentPhase.items.map((i) => ({
+            items: currentPhase.items.map((i: any) => ({
               price: typeof i.price === "string" ? i.price : i.price.id,
               quantity: i.quantity ?? 1,
             })),
