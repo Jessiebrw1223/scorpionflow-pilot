@@ -75,6 +75,7 @@ const PLANS: Array<{
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
   const { plan: realPlan, status: planStatus, billingCycle: realBilling, cancelAtPeriodEnd, currentPeriodEnd, refresh: refreshPlan } = usePlan();
+  const { getPrice, loading: pricesLoading } = useStripePrices();
   const [searchParams, setSearchParams] = useSearchParams();
   const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
