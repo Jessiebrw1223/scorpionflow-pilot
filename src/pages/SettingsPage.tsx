@@ -779,6 +779,42 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog
+        open={!!confirmDialog}
+        onOpenChange={(open) => { if (!open) setConfirmDialog(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog?.title}</AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-line">
+              {confirmDialog?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading !== null || reactivateLoading}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={cn(
+                confirmDialog?.destructive && "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              )}
+              disabled={actionLoading !== null || reactivateLoading}
+              onClick={async (e) => {
+                e.preventDefault();
+                const action = confirmDialog?.onConfirm;
+                setConfirmDialog(null);
+                if (action) await action();
+              }}
+            >
+              {(actionLoading !== null || reactivateLoading) && (
+                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+              )}
+              {confirmDialog?.confirmLabel ?? "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
