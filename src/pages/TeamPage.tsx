@@ -307,10 +307,8 @@ export default function TeamPage() {
                   email={m.email}
                   role={m.role}
                   joinedAt={m.joined_at}
-                  onRemove={async () => {
-                    await removeMember(m.id);
-                    toast.success("Miembro removido del equipo");
-                  }}
+                  assignedProjectsCount={projectCounts[m.user_id] ?? 0}
+                  onManage={() => setManageMember(m)}
                 />
               ))}
               {members.length === 0 && (
