@@ -226,11 +226,12 @@ export default function CotizacionesPage() {
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       const { data: q, error } = await supabase
         .from("quotations")
         .insert({
-          owner_id: userData.user.id,
+          owner_id: ownerId,
           client_id: parsed.data.client_id,
           title: parsed.data.title,
           description: parsed.data.description || null,
@@ -293,12 +294,13 @@ export default function CotizacionesPage() {
     mutationFn: async (q: Quotation) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       // 1. Crear proyecto real heredando datos de la cotización
       const { data: newProject, error: projErr } = await supabase
         .from("projects")
         .insert({
-          owner_id: userData.user.id,
+          owner_id: ownerId,
           client_id: q.client_id,
           quotation_id: q.id,
           name: q.title,
