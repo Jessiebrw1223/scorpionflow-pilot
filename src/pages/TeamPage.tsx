@@ -119,10 +119,39 @@ export default function TeamPage() {
     resendInvitation,
     cancelInvitation,
     removeMember,
+    updateMemberRole,
+    setMemberProjectAccess,
   } = useTeam();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [upsellOpen, setUpsellOpen] = useState(false);
+  const [manageMember, setManageMember] = useState<TeamMember | null>(null);
+
+  // Conteo de proyectos asignados por miembro (para badges en la lista)
+  const [projectCounts, setProjectCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const userIds = members.map((m) => m.user_id).filter(Boolean);
+      if (userIds.length === 0) {
+        setProjectCounts({});
+        return;
+      }
+      const { data } = await supabase
+        .from("project_members")
+        .select("user_id")
+        .in("user_id", userIds);
+      if (cancelled) return;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((r: { user_id: string }) => {
+        counts[r.user_id] = (counts[r.user_id] ?? 0) + 1;
+      });
+      setProjectCounts(counts);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [members, manageMember]);
 
   const handleInviteClick = () => {
     if (!canInvite) {
