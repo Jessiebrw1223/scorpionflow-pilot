@@ -175,16 +175,19 @@ export default function ProjectWorkspacePage() {
               </span>
             </div>
             <p className="text-[13px] text-muted-foreground mt-1 ml-7">
-              Cliente: <span className="text-foreground font-medium">{project.clients?.name || "—"}</span>
-              {project.clients?.company && <> · {project.clients.company}</>}
-              {project.quotations && (
-                <>
+              <span>Cliente: </span>
+              <span className="text-foreground font-medium">{project.clients?.name || "—"}</span>
+              {project.clients?.company ? (
+                <span> · {project.clients.company}</span>
+              ) : null}
+              {project.quotations ? (
+                <span>
                   {" · "}
                   <Link to="/cotizaciones" className="text-primary hover:underline inline-flex items-center gap-1">
                     <Receipt className="w-3 h-3" /> Origen: {project.quotations.title}
                   </Link>
-                </>
-              )}
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
