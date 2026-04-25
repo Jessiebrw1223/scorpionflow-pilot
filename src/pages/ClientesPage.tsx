@@ -439,8 +439,10 @@ export default function ClientesPage() {
                 </Button>
               </DialogFooter>
             </form>
+            </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* KPI strip */}
