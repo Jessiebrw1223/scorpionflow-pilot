@@ -787,6 +787,7 @@ export type Database = {
       team_invitations: {
         Row: {
           accepted_at: string | null
+          assigned_project_ids: string[]
           created_at: string
           email: string
           expires_at: string
@@ -794,12 +795,14 @@ export type Database = {
           invited_by_name: string | null
           owner_id: string
           role: Database["public"]["Enums"]["team_role"]
+          scope: string
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
           updated_at: string
         }
         Insert: {
           accepted_at?: string | null
+          assigned_project_ids?: string[]
           created_at?: string
           email: string
           expires_at?: string
@@ -807,12 +810,14 @@ export type Database = {
           invited_by_name?: string | null
           owner_id: string
           role?: Database["public"]["Enums"]["team_role"]
+          scope?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
           updated_at?: string
         }
         Update: {
           accepted_at?: string | null
+          assigned_project_ids?: string[]
           created_at?: string
           email?: string
           expires_at?: string
@@ -820,6 +825,7 @@ export type Database = {
           invited_by_name?: string | null
           owner_id?: string
           role?: Database["public"]["Enums"]["team_role"]
+          scope?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
           updated_at?: string
