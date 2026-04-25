@@ -304,13 +304,14 @@ export default function ClientesPage() {
           )}
         </div>
 
-        <Dialog open={openForm} onOpenChange={setOpenForm}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="fire-button font-semibold">
-              <Plus className="w-4 h-4" />
-              Nuevo cliente
-            </Button>
-          </DialogTrigger>
+        {canWrite && (
+          <Dialog open={openForm} onOpenChange={setOpenForm}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="fire-button font-semibold">
+                <Plus className="w-4 h-4" />
+                Nuevo cliente
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="fire-text">
