@@ -46,9 +46,12 @@ export default function ProjectContributionsSection({ projectId, budget, actualC
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("No autenticado");
+      const { data: proj } = await supabase
+        .from("projects").select("owner_id").eq("id", projectId).maybeSingle();
+      const ownerId = proj?.owner_id ?? u.user.id;
       const { error } = await supabase.from("project_contributions").insert({
         project_id: projectId,
-        owner_id: u.user.id,
+        owner_id: ownerId,
         amount,
         reason: reason.trim() || null,
       });
