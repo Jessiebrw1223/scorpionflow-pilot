@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   UserPlus,
@@ -16,6 +16,8 @@ import {
   Clock,
   CircleAlert,
   Sparkle,
+  Settings2,
+  FolderKanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,7 @@ import {
 import {
   useTeam,
   type TeamRole,
+  type TeamMember,
   type TeamInvitation,
   type InvitationStatus,
   buildInviteUrl,
@@ -36,9 +39,11 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/team/InviteMemberDialog";
 import { UpgradePlanDialog } from "@/components/team/UpgradePlanDialog";
+import { ManageAccessDialog } from "@/components/team/ManageAccessDialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { PageLoadingState, PageEmptyState } from "@/components/state/PageStates";
+import { supabase } from "@/integrations/supabase/client";
 
 const ROLE_LABEL: Record<TeamRole, string> = {
   admin: "Admin",
