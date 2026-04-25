@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
 import TaskDetailPanel from "./TaskDetailPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { canCreateProjectWork, canEditAssignedTask, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
 type TaskPriority = "low" | "medium" | "high" | "critical";
@@ -29,6 +31,7 @@ interface Task {
   impact: TaskImpact;
   node_type: string;
   assignee_name: string | null;
+  assignee_id?: string | null;
   due_date: string | null;
   blocks_project: boolean;
   blocked_since: string | null;
@@ -72,6 +75,8 @@ interface Props {
   defaultView?: "kanban" | "list";
   /** Filtra por tipo de nodo (epic/story/task/phase/subphase/activity). */
   nodeTypeFilter?: string | null;
+  role?: WorkspaceRole;
+  ownerId?: string | null;
 }
 
 function getInitials(name: string | null): string {
@@ -79,8 +84,10 @@ function getInitials(name: string | null): string {
   return name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
 }
 
-export default function ProjectTasksTab({ projectId, defaultView = "kanban", nodeTypeFilter }: Props) {
+export default function ProjectTasksTab({ projectId, defaultView = "kanban", nodeTypeFilter, role = null, ownerId = null }: Props) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const canCreate = canCreateProjectWork(role);
   const [view, setView] = useState<"kanban" | "list">(defaultView);
   const [openForm, setOpenForm] = useState(false);
   const [form, setForm] = useState<FormValues>(emptyForm);
