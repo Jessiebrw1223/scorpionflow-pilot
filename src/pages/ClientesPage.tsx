@@ -18,6 +18,7 @@ import {
   Target,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -165,9 +166,10 @@ export default function ClientesPage() {
     mutationFn: async (values: FormValues) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       const payload = {
-        owner_id: userData.user.id,
+        owner_id: ownerId,
         name: values.name,
         company: values.company || null,
         client_type: values.client_type as any,
