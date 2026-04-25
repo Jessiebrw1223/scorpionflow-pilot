@@ -525,7 +525,7 @@ export default function ClientesPage() {
                 : "Prueba con otros filtros o términos de búsqueda."
             }
             action={
-              clients.length === 0 ? (
+              clients.length === 0 && canWrite ? (
                 <Button onClick={openCreate} className="fire-button">
                   <Plus className="w-4 h-4" />
                   Agregar primer cliente
