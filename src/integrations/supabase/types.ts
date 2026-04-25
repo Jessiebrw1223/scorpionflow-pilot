@@ -370,6 +370,33 @@ export type Database = {
         }
         Relationships: []
       }
+      project_members: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          role: Database["public"]["Enums"]["team_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          role?: Database["public"]["Enums"]["team_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       project_resources: {
         Row: {
           created_at: string
@@ -906,6 +933,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_admin_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_admin_workspace: {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
@@ -930,6 +961,10 @@ export type Database = {
       get_workspace_role: {
         Args: { _owner_id: string; _user_id: string }
         Returns: string
+      }
+      has_project_access: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
