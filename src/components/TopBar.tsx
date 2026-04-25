@@ -1,8 +1,10 @@
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home, Users, Eye, Shield, Crown } from "lucide-react";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace, WORKSPACE_ROLE_LABEL } from "@/hooks/useWorkspace";
+import { Badge } from "@/components/ui/badge";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Centro de Control",
