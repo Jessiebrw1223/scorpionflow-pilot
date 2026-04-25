@@ -21,11 +21,13 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projectId: string;
+  ownerId?: string | null;
   parentId: string | null;
   nodeType: string;
+  canCreate?: boolean;
 }
 
-export default function QuickCreateNodeDialog({ open, onOpenChange, projectId, parentId, nodeType }: Props) {
+export default function QuickCreateNodeDialog({ open, onOpenChange, projectId, ownerId, parentId, nodeType, canCreate = true }: Props) {
   const qc = useQueryClient();
   const meta = NODE_TYPE_META[nodeType] || NODE_TYPE_META.task;
   const isLeaf = meta.level === 2; // tarea / actividad → necesita más detalle
@@ -56,12 +58,9 @@ export default function QuickCreateNodeDialog({ open, onOpenChange, projectId, p
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!canCreate) throw new Error("No tienes permiso para editar esta sección.");
       if (!title.trim()) throw new Error("El nombre es obligatorio");
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("No autenticado");
-      const { data: proj } = await supabase
-        .from("projects").select("owner_id").eq("id", projectId).maybeSingle();
-      const ownerId = proj?.owner_id ?? u.user.id;
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       const { error } = await supabase.from("tasks").insert({
         project_id: projectId,
@@ -195,7 +194,7 @@ export default function QuickCreateNodeDialog({ open, onOpenChange, projectId, p
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => create.mutate()} disabled={create.isPending} className="fire-button">
+            <Button onClick={() => create.mutate()} disabled={create.isPending || !canCreate} className="fire-button">
             {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Crear {meta.label}
           </Button>
