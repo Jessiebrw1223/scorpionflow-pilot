@@ -1,8 +1,10 @@
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home, Users, Eye, Shield, Crown } from "lucide-react";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace, WORKSPACE_ROLE_LABEL } from "@/hooks/useWorkspace";
+import { Badge } from "@/components/ui/badge";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Centro de Control",
@@ -63,6 +65,13 @@ function useBreadcrumbs(): Crumb[] {
 
 export function TopBar() {
   const crumbs = useBreadcrumbs();
+  const { isGuest, role, ownerName } = useWorkspace();
+
+  const RoleIcon =
+    role === "owner" ? Crown
+    : role === "admin" ? Shield
+    : role === "viewer" ? Eye
+    : Users;
 
   return (
     <div className="flex items-center justify-between mb-4 sticky top-0 z-30 -mx-6 px-6 py-3 bg-background/80 backdrop-blur-xl border-b border-border/50">
@@ -90,6 +99,21 @@ export function TopBar() {
         })}
       </nav>
       <div className="flex items-center gap-2">
+        {isGuest && role && (
+          <Badge
+            variant="outline"
+            className="hidden sm:inline-flex items-center gap-1.5 border-primary/30 bg-primary/5 text-foreground text-[10px] uppercase tracking-wider font-semibold px-2 py-1"
+            title={ownerName ? `Workspace de ${ownerName}` : undefined}
+          >
+            <RoleIcon className="w-3 h-3 text-primary" />
+            {WORKSPACE_ROLE_LABEL[role]}
+            {ownerName && (
+              <span className="text-muted-foreground normal-case tracking-normal font-normal">
+                · {ownerName}
+              </span>
+            )}
+          </Badge>
+        )}
         <NotificationsBell />
       </div>
     </div>

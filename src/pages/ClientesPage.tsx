@@ -18,6 +18,7 @@ import {
   Target,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,6 +110,8 @@ const emptyForm: FormValues = {
 
 export default function ClientesPage() {
   const qc = useQueryClient();
+  const { ownerId, role } = useWorkspace();
+  const canWrite = role === "owner" || role === "admin";
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CommercialStatus>("all");
@@ -163,9 +166,10 @@ export default function ClientesPage() {
     mutationFn: async (values: FormValues) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       const payload = {
-        owner_id: userData.user.id,
+        owner_id: ownerId,
         name: values.name,
         company: values.company || null,
         client_type: values.client_type as any,
@@ -300,13 +304,14 @@ export default function ClientesPage() {
           )}
         </div>
 
-        <Dialog open={openForm} onOpenChange={setOpenForm}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="fire-button font-semibold">
-              <Plus className="w-4 h-4" />
-              Nuevo cliente
-            </Button>
-          </DialogTrigger>
+        {canWrite && (
+          <Dialog open={openForm} onOpenChange={setOpenForm}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="fire-button font-semibold">
+                <Plus className="w-4 h-4" />
+                Nuevo cliente
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="fire-text">
@@ -436,6 +441,7 @@ export default function ClientesPage() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* KPI strip */}
@@ -519,7 +525,7 @@ export default function ClientesPage() {
                 : "Prueba con otros filtros o términos de búsqueda."
             }
             action={
-              clients.length === 0 ? (
+              clients.length === 0 && canWrite ? (
                 <Button onClick={openCreate} className="fire-button">
                   <Plus className="w-4 h-4" />
                   Agregar primer cliente
@@ -639,22 +645,26 @@ export default function ClientesPage() {
                             <PhoneCall className="w-3 h-3" />
                             Contactar
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openEdit(c)}
-                            className="h-8 w-8 hover:text-primary"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeleting(c)}
-                            className="h-8 w-8 hover:text-destructive"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          {canWrite && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openEdit(c)}
+                                className="h-8 w-8 hover:text-primary"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setDeleting(c)}
+                                className="h-8 w-8 hover:text-destructive"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

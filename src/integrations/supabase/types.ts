@@ -906,6 +906,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_admin_workspace: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_write_workspace: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
       count_team_usage: { Args: { _owner_id: string }; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -919,11 +927,19 @@ export type Database = {
         Args: { _plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: number
       }
+      get_workspace_role: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_workspace_member: {
+        Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
       move_to_dlq: {

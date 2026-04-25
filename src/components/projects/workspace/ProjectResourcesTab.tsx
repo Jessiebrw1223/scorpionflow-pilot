@@ -154,7 +154,7 @@ export default function ProjectResourcesTab({ project }: Props) {
       } else {
         const { error } = await supabase.from("project_resources" as any).insert({
           project_id: project.id,
-          owner_id: user.id,
+          owner_id: project.owner_id ?? user.id,
           kind: payload.kind,
           name: payload.name,
           role_or_type: payload.role_or_type,

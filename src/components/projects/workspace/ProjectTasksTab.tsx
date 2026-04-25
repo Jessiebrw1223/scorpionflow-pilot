@@ -111,8 +111,11 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
     mutationFn: async (values: FormValues) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      const { data: proj } = await supabase
+        .from("projects").select("owner_id").eq("id", projectId).maybeSingle();
+      const ownerId = proj?.owner_id ?? userData.user.id;
       const payload = {
-        owner_id: userData.user.id,
+        owner_id: ownerId,
         project_id: projectId,
         title: values.title,
         description: values.description || null,

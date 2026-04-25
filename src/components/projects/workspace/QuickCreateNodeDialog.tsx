@@ -59,10 +59,13 @@ export default function QuickCreateNodeDialog({ open, onOpenChange, projectId, p
       if (!title.trim()) throw new Error("El nombre es obligatorio");
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("No autenticado");
+      const { data: proj } = await supabase
+        .from("projects").select("owner_id").eq("id", projectId).maybeSingle();
+      const ownerId = proj?.owner_id ?? u.user.id;
 
       const { error } = await supabase.from("tasks").insert({
         project_id: projectId,
-        owner_id: u.user.id,
+        owner_id: ownerId,
         parent_id: parentId,
         node_type: nodeType as any,
         title: title.trim(),

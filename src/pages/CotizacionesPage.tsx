@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,6 +135,8 @@ export default function CotizacionesPage() {
   const qc = useQueryClient();
   const PEN = useMoney();
   const navigate = useNavigate();
+  const { ownerId, role } = useWorkspace();
+  const canWrite = role === "owner" || role === "admin";
   const [searchParams, setSearchParams] = useSearchParams();
   const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
@@ -223,11 +226,12 @@ export default function CotizacionesPage() {
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       const { data: q, error } = await supabase
         .from("quotations")
         .insert({
-          owner_id: userData.user.id,
+          owner_id: ownerId,
           client_id: parsed.data.client_id,
           title: parsed.data.title,
           description: parsed.data.description || null,
@@ -290,12 +294,13 @@ export default function CotizacionesPage() {
     mutationFn: async (q: Quotation) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       // 1. Crear proyecto real heredando datos de la cotización
       const { data: newProject, error: projErr } = await supabase
         .from("projects")
         .insert({
-          owner_id: userData.user.id,
+          owner_id: ownerId,
           client_id: q.client_id,
           quotation_id: q.id,
           name: q.title,
@@ -351,6 +356,7 @@ export default function CotizacionesPage() {
     mutationFn: async (q: Quotation) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       // Traer items originales
       const { data: origItems, error: itemsErr } = await supabase
@@ -362,7 +368,7 @@ export default function CotizacionesPage() {
       const { data: newQ, error } = await supabase
         .from("quotations")
         .insert({
-          owner_id: userData.user.id,
+          owner_id: ownerId,
           client_id: q.client_id,
           title: `${q.title} (copia)`,
           description: q.description,

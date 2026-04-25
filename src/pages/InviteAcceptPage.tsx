@@ -114,6 +114,16 @@ export default function InviteAcceptPage() {
       );
       return;
     }
+    // Marca bienvenida para que el Dashboard muestre el banner.
+    try {
+      const ownerName = info?.invited_by_name ?? "tu equipo";
+      sessionStorage.setItem(
+        "scorpion.justJoinedTeam",
+        JSON.stringify({ ownerName, at: Date.now() }),
+      );
+    } catch {
+      /* sessionStorage puede no estar disponible */
+    }
     toast.success("¡Te uniste al equipo!");
     navigate("/", { replace: true });
   };
