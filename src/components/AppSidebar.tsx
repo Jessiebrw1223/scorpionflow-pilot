@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { usePremiumGate, type PremiumFeature } from "@/hooks/usePremiumGate";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
 
 interface NavItem {
   label: string;
@@ -28,19 +29,23 @@ interface NavItem {
   group?: string;
   /** Si está definido, el item requiere esa feature; si el usuario no tiene acceso, abre el upsell. */
   feature?: PremiumFeature;
+  /** Roles que pueden ver este item. Si no se define, lo ven todos. */
+  visibleFor?: WorkspaceRole[];
 }
 
-// Free: Dashboard, Clientes, Cotizaciones, Proyectos, Equipo
-// Pro+: Recursos, Costos, Informes (estos aparecen en sidebar con candado para Free)
+// Acceso comercial / financiero solo para owner y admin del workspace.
+// Colaboradores y visualizadores no ven Clientes, Cotizaciones, Recursos, Costos ni Informes.
+const ADMIN_ONLY: WorkspaceRole[] = ["owner", "admin"];
+
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/", group: "Visión" },
-  { label: "Clientes", icon: Contact2, path: "/clientes", group: "Comercial" },
-  { label: "Cotizaciones", icon: Receipt, path: "/cotizaciones", group: "Comercial" },
+  { label: "Clientes", icon: Contact2, path: "/clientes", group: "Comercial", visibleFor: ADMIN_ONLY },
+  { label: "Cotizaciones", icon: Receipt, path: "/cotizaciones", group: "Comercial", visibleFor: ADMIN_ONLY },
   { label: "Proyectos", icon: FolderKanban, path: "/projects", group: "Ejecución" },
   { label: "Equipo", icon: Users, path: "/team", group: "Ejecución" },
-  { label: "Recursos", icon: Users, path: "/resources", group: "Finanzas", feature: "resources_management" },
-  { label: "Costos", icon: DollarSign, path: "/costs", group: "Finanzas", feature: "cost_intelligence" },
-  { label: "Informes", icon: FileBarChart2, path: "/reports", group: "Finanzas", feature: "advanced_reports" },
+  { label: "Recursos", icon: Users, path: "/resources", group: "Finanzas", feature: "resources_management", visibleFor: ADMIN_ONLY },
+  { label: "Costos", icon: DollarSign, path: "/costs", group: "Finanzas", feature: "cost_intelligence", visibleFor: ADMIN_ONLY },
+  { label: "Informes", icon: FileBarChart2, path: "/reports", group: "Finanzas", feature: "advanced_reports", visibleFor: ADMIN_ONLY },
 ];
 
 export function AppSidebar() {
@@ -49,6 +54,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const gate = usePremiumGate();
+  const { role } = useWorkspace();
 
   const handleLogout = async () => {
     await signOut();
@@ -56,7 +62,12 @@ export function AppSidebar() {
     navigate("/", { replace: true });
   };
 
-  const groups = navItems.reduce<Record<string, NavItem[]>>((acc, it) => {
+  // Filtrar nav items según rol del workspace activo.
+  const visibleNavItems = navItems.filter(
+    (it) => !it.visibleFor || (role && it.visibleFor.includes(role)),
+  );
+
+  const groups = visibleNavItems.reduce<Record<string, NavItem[]>>((acc, it) => {
     const g = it.group || "General";
     (acc[g] = acc[g] || []).push(it);
     return acc;

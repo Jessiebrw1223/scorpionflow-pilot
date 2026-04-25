@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   UserPlus,
@@ -16,6 +16,8 @@ import {
   Clock,
   CircleAlert,
   Sparkle,
+  Settings2,
+  FolderKanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,7 @@ import {
 import {
   useTeam,
   type TeamRole,
+  type TeamMember,
   type TeamInvitation,
   type InvitationStatus,
   buildInviteUrl,
@@ -36,9 +39,11 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/team/InviteMemberDialog";
 import { UpgradePlanDialog } from "@/components/team/UpgradePlanDialog";
+import { ManageAccessDialog } from "@/components/team/ManageAccessDialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { PageLoadingState, PageEmptyState } from "@/components/state/PageStates";
+import { supabase } from "@/integrations/supabase/client";
 
 const ROLE_LABEL: Record<TeamRole, string> = {
   admin: "Admin",
@@ -114,10 +119,39 @@ export default function TeamPage() {
     resendInvitation,
     cancelInvitation,
     removeMember,
+    updateMemberRole,
+    setMemberProjectAccess,
   } = useTeam();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [upsellOpen, setUpsellOpen] = useState(false);
+  const [manageMember, setManageMember] = useState<TeamMember | null>(null);
+
+  // Conteo de proyectos asignados por miembro (para badges en la lista)
+  const [projectCounts, setProjectCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const userIds = members.map((m) => m.user_id).filter(Boolean);
+      if (userIds.length === 0) {
+        setProjectCounts({});
+        return;
+      }
+      const { data } = await supabase
+        .from("project_members")
+        .select("user_id")
+        .in("user_id", userIds);
+      if (cancelled) return;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((r: { user_id: string }) => {
+        counts[r.user_id] = (counts[r.user_id] ?? 0) + 1;
+      });
+      setProjectCounts(counts);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [members, manageMember]);
 
   const handleInviteClick = () => {
     if (!canInvite) {
@@ -273,10 +307,8 @@ export default function TeamPage() {
                   email={m.email}
                   role={m.role}
                   joinedAt={m.joined_at}
-                  onRemove={async () => {
-                    await removeMember(m.id);
-                    toast.success("Miembro removido del equipo");
-                  }}
+                  assignedProjectsCount={projectCounts[m.user_id] ?? 0}
+                  onManage={() => setManageMember(m)}
                 />
               ))}
               {members.length === 0 && (
@@ -403,6 +435,14 @@ export default function TeamPage() {
           used={used}
           limit={limit}
         />
+        <ManageAccessDialog
+          open={!!manageMember}
+          onOpenChange={(o) => !o && setManageMember(null)}
+          member={manageMember}
+          onUpdateRole={updateMemberRole}
+          onSetProjectAccess={setMemberProjectAccess}
+          onRemove={removeMember}
+        />
       </div>
     </TooltipProvider>
   );
@@ -414,26 +454,40 @@ function MemberRow({
   role,
   isOwner,
   joinedAt,
-  onRemove,
+  assignedProjectsCount,
+  onManage,
 }: {
   name: string;
   email: string;
   role: TeamRole;
   isOwner?: boolean;
   joinedAt?: string | null;
-  onRemove?: () => void;
+  assignedProjectsCount?: number;
+  onManage?: () => void;
 }) {
   const initial = (name || email || "?").charAt(0).toUpperCase();
   const RoleIcon = ROLE_ICON[role];
+
+  // Badge contextual por rol
+  const roleBadge = isOwner
+    ? null
+    : role === "admin"
+    ? { label: "Acceso total", className: "border-primary/40 text-primary bg-primary/10" }
+    : role === "viewer"
+    ? { label: "Solo lectura", className: "border-muted-foreground/30 text-muted-foreground bg-muted/30" }
+    : (assignedProjectsCount ?? 0) === 0
+    ? { label: "Sin proyectos", className: "border-destructive/40 text-destructive bg-destructive/10" }
+    : { label: `${assignedProjectsCount} proyecto${assignedProjectsCount === 1 ? "" : "s"}`, className: "border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-500/10" };
+
   return (
-    <div className="px-5 py-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="w-9 h-9 rounded-full scorpion-gradient flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
           {initial}
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-medium truncate flex items-center gap-2">
-            {name}
+          <div className="text-sm font-medium truncate flex items-center gap-2 flex-wrap">
+            <span className="truncate">{name}</span>
             {isOwner && (
               <Badge
                 variant="outline"
@@ -441,6 +495,17 @@ function MemberRow({
               >
                 <Crown className="w-2.5 h-2.5 mr-1" />
                 Propietario
+              </Badge>
+            )}
+            {roleBadge && (
+              <Badge
+                variant="outline"
+                className={`text-[9px] uppercase tracking-wider ${roleBadge.className}`}
+              >
+                {role === "collaborator" && (assignedProjectsCount ?? 0) > 0 && (
+                  <FolderKanban className="w-2.5 h-2.5 mr-1" />
+                )}
+                {roleBadge.label}
               </Badge>
             )}
           </div>
@@ -464,19 +529,17 @@ function MemberRow({
           <RoleIcon className="w-3.5 h-3.5" />
           {ROLE_LABEL[role]}
         </div>
-        {!isOwner && onRemove && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onRemove}
-                className="text-muted-foreground hover:text-destructive p-1 rounded-md"
-                aria-label="Remover miembro"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Remover del equipo</TooltipContent>
-          </Tooltip>
+        {!isOwner && onManage && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onManage}
+            className="h-8"
+          >
+            <Settings2 className="w-3.5 h-3.5 mr-1.5" />
+            <span className="hidden sm:inline">Gestionar acceso</span>
+            <span className="sm:hidden">Gestionar</span>
+          </Button>
         )}
       </div>
     </div>

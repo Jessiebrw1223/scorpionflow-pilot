@@ -703,7 +703,29 @@ export default function CotizacionesPage() {
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Cargando pipeline…
         </div>
-      ) : quotes.length === 0 ? null : (
+      ) : quotes.length === 0 ? (
+        <div className="surface-card p-12 text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-secondary mx-auto flex items-center justify-center">
+            <DollarSign className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div className="text-base font-semibold">
+            {canWrite
+              ? "Aún no tienes cotizaciones"
+              : "No tienes cotizaciones disponibles"}
+          </div>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            {canWrite
+              ? "Crea tu primera cotización para empezar a gestionar tu pipeline comercial."
+              : "Solo verás cotizaciones vinculadas a los proyectos que tienes asignados."}
+          </p>
+          {canWrite && clients.length > 0 && (
+            <Button onClick={tryOpenForm} className="fire-button">
+              <Plus className="w-4 h-4" />
+              Nueva cotización
+            </Button>
+          )}
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           {STAGE_ORDER.map((stage) => {
             const meta = STATUS_META[stage];
