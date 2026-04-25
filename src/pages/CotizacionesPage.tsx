@@ -356,6 +356,7 @@ export default function CotizacionesPage() {
     mutationFn: async (q: Quotation) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No autenticado");
+      if (!ownerId) throw new Error("Workspace no disponible");
 
       // Traer items originales
       const { data: origItems, error: itemsErr } = await supabase
@@ -367,7 +368,7 @@ export default function CotizacionesPage() {
       const { data: newQ, error } = await supabase
         .from("quotations")
         .insert({
-          owner_id: userData.user.id,
+          owner_id: ownerId,
           client_id: q.client_id,
           title: `${q.title} (copia)`,
           description: q.description,
