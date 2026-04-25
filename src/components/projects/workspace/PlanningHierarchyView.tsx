@@ -227,9 +227,10 @@ interface NodeProps {
   onCreateChild: (parent: TaskRow) => void;
   mode: "agile" | "traditional";
   isOrphan?: boolean;
+  canCreate?: boolean;
 }
 
-function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCreateChild, mode, isOrphan }: NodeProps) {
+function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCreateChild, mode, isOrphan, canCreate = true }: NodeProps) {
   const kids = childrenOf(node.id);
   const isOpen = expanded.has(node.id);
   const meta = NODE_TYPE_META[node.node_type] || NODE_TYPE_META.task;
@@ -359,7 +360,7 @@ function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCr
 
         {/* Acciones */}
         <div className="col-span-1 text-right">
-          {!isOrphan && meta.level < 2 && (
+          {!isOrphan && meta.level < 2 && canCreate && (
             <button
               onClick={() => onCreateChild(node)}
               className="opacity-0 group-hover:opacity-100 text-[11px] inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-sf"
@@ -383,6 +384,7 @@ function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCr
           onOpen={onOpen}
           onCreateChild={onCreateChild}
           mode={mode}
+          canCreate={canCreate}
         />
       ))}
     </>
