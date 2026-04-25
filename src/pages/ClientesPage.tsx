@@ -645,22 +645,26 @@ export default function ClientesPage() {
                             <PhoneCall className="w-3 h-3" />
                             Contactar
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openEdit(c)}
-                            className="h-8 w-8 hover:text-primary"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeleting(c)}
-                            className="h-8 w-8 hover:text-destructive"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          {canWrite && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openEdit(c)}
+                                className="h-8 w-8 hover:text-primary"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setDeleting(c)}
+                                className="h-8 w-8 hover:text-destructive"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
