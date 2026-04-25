@@ -219,12 +219,32 @@ export function useTeam() {
         email: normalized,
         role,
         invited_by_name: inviterName,
+        scope,
+        assigned_project_ids: scope === "assigned" ? projectIds : [],
       })
       .select()
       .single();
 
     if (error || !created) {
       return { error: error?.message ?? "No se pudo crear la invitación" };
+    }
+
+    // Si el invitado YA es miembro del workspace y se asignaron proyectos,
+    // materializar de inmediato en project_members (idempotente).
+    if (scope === "assigned" && projectIds.length > 0) {
+      const existingMember = members.find(
+        (m) => m.email.toLowerCase() === normalized && m.user_id,
+      );
+      if (existingMember) {
+        await supabase.from("project_members").upsert(
+          projectIds.map((pid) => ({
+            project_id: pid,
+            user_id: existingMember.user_id,
+            role,
+          })),
+          { onConflict: "project_id,user_id" },
+        );
+      }
     }
 
     const invitation = created as TeamInvitation;
