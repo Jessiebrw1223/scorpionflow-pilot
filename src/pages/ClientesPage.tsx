@@ -109,6 +109,8 @@ const emptyForm: FormValues = {
 
 export default function ClientesPage() {
   const qc = useQueryClient();
+  const { ownerId, role } = useWorkspace();
+  const canWrite = role === "owner" || role === "admin";
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CommercialStatus>("all");
