@@ -133,18 +133,6 @@ export default function ProjectWorkspacePage() {
     setTab(nextTab);
   };
 
-  /**
-   * F6 — Estabilidad: si el plan cambia (downgrade, expiración) mientras el
-   * usuario está parado en un tab premium, lo regresamos a "planning" para no
-   * mostrar contenido al que ya no tiene acceso.
-   */
-  useEffect(() => {
-    const required = PREMIUM_TABS[tab];
-    if (required && gate.locked(required)) {
-      setTab("planning");
-    }
-  }, [tab, gate]);
-
   const renderTrigger = (value: WorkspaceTab, Icon: React.ElementType, label: string) => {
     const required = PREMIUM_TABS[value];
     const isLocked = required ? gate.locked(required) : false;
@@ -217,18 +205,18 @@ export default function ProjectWorkspacePage() {
           <ProjectSummaryTab project={project} tasks={tasks} onTabChange={(t) => handleTabChange(t)} />
         </TabsContent>
         <TabsContent value="planning">
-          <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} />
+          <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} role={role} ownerId={ownerId} />
         </TabsContent>
         <TabsContent value="schedule">
-          <ProjectScheduleTab project={project} />
+          <ProjectScheduleTab project={project} role={role} />
         </TabsContent>
         {/* Los tabs premium ya no se renderizan para Free porque handleTabChange impide
             que el usuario llegue a ellos. Pro+ los ve de forma normal. */}
         <TabsContent value="resources">
-          <ProjectResourcesTab project={project} />
+          <ProjectResourcesTab project={project} role={role} />
         </TabsContent>
         <TabsContent value="costs">
-          <ProjectCostsTab project={project} />
+          <ProjectCostsTab project={project} role={role} />
         </TabsContent>
         <TabsContent value="report">
           <ProjectReportTab project={project} />
