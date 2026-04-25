@@ -116,11 +116,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
 
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("No autenticado");
-      const { data: proj } = await supabase
-        .from("projects").select("owner_id").eq("id", projectId).maybeSingle();
-      const ownerId = proj?.owner_id ?? userData.user.id;
+      if (!ownerId) throw new Error("Workspace no disponible");
       const payload = {
         owner_id: ownerId,
         project_id: projectId,
@@ -151,6 +147,8 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
 
   const move = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
+      const task = allTasks.find((t) => t.id === id);
+      if (!canEditAssignedTask(role, task, user?.id)) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
       if (error) throw error;
     },
