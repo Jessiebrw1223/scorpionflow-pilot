@@ -91,11 +91,26 @@ export default function ProjectWorkspacePage() {
   }
 
   if (!project) {
+    // RLS oculta el proyecto si el usuario no tiene acceso (collaborator sin
+    // membership). También cubre el caso de un id inexistente. En ambos
+    // mostramos un mensaje claro en lugar de un error técnico.
+    const isCollaborator = role === "collaborator";
     return (
-      <div className="surface-card p-8 text-center space-y-3">
-        <FolderKanban className="w-10 h-10 text-muted-foreground mx-auto" />
-        <p className="font-semibold">Proyecto no encontrado</p>
-        <Button asChild variant="outline"><Link to="/projects"><ArrowLeft className="w-4 h-4" /> Volver a proyectos</Link></Button>
+      <div className="surface-card p-8 text-center space-y-3 max-w-lg mx-auto">
+        <Lock className="w-10 h-10 text-muted-foreground mx-auto" />
+        <div>
+          <p className="font-semibold text-foreground">
+            {isCollaborator ? "No tienes acceso a este proyecto" : "Proyecto no encontrado"}
+          </p>
+          <p className="text-[13px] text-muted-foreground mt-1">
+            {isCollaborator
+              ? "Tu rol no incluye este proyecto. Pide al propietario del workspace que te asigne acceso."
+              : "Es posible que el proyecto haya sido eliminado o que no pertenezca a tu workspace actual."}
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link to="/projects"><ArrowLeft className="w-4 h-4" /> Volver a proyectos</Link>
+        </Button>
       </div>
     );
   }
