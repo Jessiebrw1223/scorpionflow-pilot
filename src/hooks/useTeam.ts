@@ -185,7 +185,11 @@ export function useTeam() {
   const canInvite = isUnlimited || used < limit;
   const remaining = isUnlimited ? Infinity : Math.max(0, limit - used);
 
-  const inviteUser = async (email: string, role: TeamRole): Promise<InviteResult> => {
+  const inviteUser = async (
+    email: string,
+    role: TeamRole,
+    options?: { scope?: "workspace" | "assigned"; projectIds?: string[] },
+  ): Promise<InviteResult> => {
     if (!user) return { error: "No user" };
     if (!canInvite) {
       return { error: "limit_reached" };
@@ -197,6 +201,9 @@ export function useTeam() {
       (i) => i.email.toLowerCase() === normalized && i.status === "pending"
     );
     if (dupInv) return { error: "already_invited" };
+
+    const scope = options?.scope ?? "workspace";
+    const projectIds = options?.projectIds ?? [];
 
     const inviterName =
       (user.user_metadata as any)?.full_name ||
