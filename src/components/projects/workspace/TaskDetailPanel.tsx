@@ -28,6 +28,7 @@ interface Task {
   priority: TaskPriority;
   impact: TaskImpact;
   assignee_name: string | null;
+  assignee_id?: string | null;
   due_date: string | null;
   blocks_project: boolean;
   estimated_cost?: number;
