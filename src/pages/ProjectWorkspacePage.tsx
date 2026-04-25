@@ -213,10 +213,10 @@ export default function ProjectWorkspacePage() {
         {/* Los tabs premium ya no se renderizan para Free porque handleTabChange impide
             que el usuario llegue a ellos. Pro+ los ve de forma normal. */}
         <TabsContent value="resources">
-          <ProjectResourcesTab project={project} role={role} />
+          <ProjectResourcesTab project={project} />
         </TabsContent>
         <TabsContent value="costs">
-          <ProjectCostsTab project={project} role={role} />
+          <ProjectCostsTab project={project} />
         </TabsContent>
         <TabsContent value="report">
           <ProjectReportTab project={project} />
