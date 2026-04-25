@@ -16,6 +16,8 @@ import ProjectResourcesTab from "@/components/projects/workspace/ProjectResource
 import ProjectScheduleTab from "@/components/projects/workspace/ProjectScheduleTab";
 import { usePremiumGate, type PremiumFeature } from "@/hooks/usePremiumGate";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { PageErrorState } from "@/components/state/PageStates";
 
 type WorkspaceTab = "summary" | "planning" | "schedule" | "resources" | "costs" | "report";
 
@@ -31,15 +33,17 @@ export default function ProjectWorkspacePage() {
   const [tab, setTab] = useState<WorkspaceTab>("planning");
   const { settings } = useUserSettings();
   const gate = usePremiumGate();
+  const { ownerId, role, loading: workspaceLoading } = useWorkspace();
 
-  const { data: project, isLoading } = useQuery({
-    queryKey: ["project", id],
-    enabled: !!id,
+  const { data: project, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["project", id, ownerId],
+    enabled: !!id && !!ownerId && !workspaceLoading,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
         .select("*, clients(id, name, company), quotations(id, title)")
         .eq("id", id)
+        .eq("owner_id", ownerId!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -47,23 +51,42 @@ export default function ProjectWorkspacePage() {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["project-tasks-summary", id],
-    enabled: !!id,
+    queryKey: ["project-tasks-summary", id, ownerId],
+    enabled: !!id && !!ownerId && !workspaceLoading && !!project,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("id, status, due_date, blocks_project")
-        .eq("project_id", id!);
+        .eq("project_id", id!)
+        .eq("owner_id", ownerId!);
       if (error) throw error;
       return data;
     },
   });
 
-  if (isLoading) {
+  useEffect(() => {
+    const required = PREMIUM_TABS[tab];
+    if (required && gate.locked(required)) {
+      setTab("planning");
+    }
+  }, [tab, gate]);
+
+  if (workspaceLoading || isLoading) {
     return (
       <div className="p-12 text-center text-muted-foreground">
         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" /> Abriendo workspace del proyecto…
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <PageErrorState
+        error={error}
+        title="No pudimos cargar el proyecto"
+        description="Verifica que sigas activo en este workspace o intenta recargar."
+        onRetry={() => refetch()}
+      />
     );
   }
 
