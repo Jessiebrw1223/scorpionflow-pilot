@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,6 +135,8 @@ export default function CotizacionesPage() {
   const qc = useQueryClient();
   const PEN = useMoney();
   const navigate = useNavigate();
+  const { ownerId, role } = useWorkspace();
+  const canWrite = role === "owner" || role === "admin";
   const [searchParams, setSearchParams] = useSearchParams();
   const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
