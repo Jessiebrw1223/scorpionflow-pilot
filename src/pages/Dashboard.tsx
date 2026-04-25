@@ -24,6 +24,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useMoney } from "@/lib/format-money";
+import { WelcomeToTeamBanner } from "@/components/team/WelcomeToTeamBanner";
 
 export default function Dashboard() {
   const { user } = useAuth();
