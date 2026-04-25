@@ -208,7 +208,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
           </div>
           <Dialog open={openForm} onOpenChange={setOpenForm}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} className="fire-button font-semibold">
+              <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} disabled={!canCreate} title={!canCreate ? NO_EDIT_PERMISSION_MESSAGE : undefined} className="fire-button font-semibold">
                 <Plus className="w-4 h-4" /> Nueva tarea
               </Button>
             </DialogTrigger>
@@ -304,7 +304,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
               Empieza desglosando lo que vendiste en pequeños bloques de trabajo.
             </p>
           </div>
-          <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} className="fire-button">
+          <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} disabled={!canCreate} title={!canCreate ? NO_EDIT_PERMISSION_MESSAGE : undefined} className="fire-button">
             <Plus className="w-4 h-4" /> Crear primera tarea
           </Button>
         </div>
@@ -329,6 +329,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
                       task={t}
                       onOpen={openTaskPanel}
                       onMove={(s) => move.mutate({ id: t.id, status: s })}
+                      canMove={canEditAssignedTask(role, t, user?.id)}
                     />
                   ))
                 )}
@@ -345,12 +346,14 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
         open={panelOpen}
         onOpenChange={setPanelOpen}
         projectId={projectId}
+        role={role}
+        userId={user?.id ?? null}
       />
     </div>
   );
 }
 
-function TaskCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task) => void; onMove: (s: TaskStatus) => void; }) {
+function TaskCard({ task, onOpen, onMove, canMove }: { task: Task; onOpen: (t: Task) => void; onMove: (s: TaskStatus) => void; canMove: boolean; }) {
   const pr = TASK_PRIORITY_META[task.priority];
   const im = TASK_IMPACT_META[task.impact || "delivery"];
   const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
@@ -393,7 +396,7 @@ function TaskCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task) => v
         )}
       </div>
       <div className="flex items-center gap-1 pt-1 border-t border-border" onClick={(e) => e.stopPropagation()}>
-        <Select value={task.status} onValueChange={(v: TaskStatus) => onMove(v)}>
+        <Select value={task.status} onValueChange={(v: TaskStatus) => onMove(v)} disabled={!canMove}>
           <SelectTrigger className="h-7 text-[11px] flex-1"><SelectValue /></SelectTrigger>
           <SelectContent>
             {Object.entries(TASK_STATUS_META).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label}</SelectItem>))}
