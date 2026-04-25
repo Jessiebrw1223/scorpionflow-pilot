@@ -370,6 +370,48 @@ export function useTeam() {
     await refresh();
   };
 
+  /**
+   * Reemplaza la lista de proyectos asignados de un miembro (project_members).
+   * - Inserta los nuevos proyectos.
+   * - Elimina los que el usuario ya no debe tener.
+   * Owner/Admin del workspace no necesitan project_members (aditivo); aún así
+   * podemos asignarle proyectos sin efecto adverso para registro explícito.
+   */
+  const setMemberProjectAccess = async (
+    userId: string,
+    projectIds: string[],
+    role: TeamRole = "collaborator",
+  ) => {
+    if (!user) return;
+    // 1) Traer proyectos del owner (workspace activo del invitador) para acotar borrado
+    const { data: ownedProjects } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id);
+    const ownedIds = (ownedProjects ?? []).map((p) => p.id);
+
+    // 2) Borrar membresías de este usuario que ya no estén en la nueva lista,
+    //    limitadas a proyectos del owner actual (no tocar otros workspaces).
+    if (ownedIds.length > 0) {
+      const toKeep = projectIds.filter((id) => ownedIds.includes(id));
+      const toDelete = ownedIds.filter((id) => !toKeep.includes(id));
+      if (toDelete.length > 0) {
+        await supabase
+          .from("project_members")
+          .delete()
+          .eq("user_id", userId)
+          .in("project_id", toDelete);
+      }
+      if (toKeep.length > 0) {
+        await supabase.from("project_members").upsert(
+          toKeep.map((pid) => ({ project_id: pid, user_id: userId, role })),
+          { onConflict: "project_id,user_id" },
+        );
+      }
+    }
+    await refresh();
+  };
+
   return {
     loading,
     plan,
@@ -390,6 +432,7 @@ export function useTeam() {
     cancelInvitation,
     removeMember,
     updateMemberRole,
+    setMemberProjectAccess,
     refresh,
   };
 }
