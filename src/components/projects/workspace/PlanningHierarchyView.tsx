@@ -20,6 +20,7 @@ interface Props {
   onCreate: (parentId: string | null, nodeType: string) => void;
   /** Si está definido, solo muestra nodos de ese tipo (y sus padres si aplica). */
   nodeTypeFilter?: string | null;
+  canCreate?: boolean;
 }
 
 interface TaskRow {
@@ -44,7 +45,7 @@ function getInitials(name: string | null): string {
   return name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 }
 
-export default function PlanningHierarchyView({ projectId, mode, onCreate, nodeTypeFilter }: Props) {
+export default function PlanningHierarchyView({ projectId, mode, onCreate, nodeTypeFilter, canCreate = true }: Props) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [panelTask, setPanelTask] = useState<TaskRow | null>(null);
@@ -114,7 +115,7 @@ export default function PlanningHierarchyView({ projectId, mode, onCreate, nodeT
         <p className="text-[13px] text-muted-foreground max-w-sm mx-auto">
           Empieza creando una <strong>{rootMeta.label}</strong> para organizar el trabajo del proyecto.
         </p>
-        <Button onClick={() => onCreate(null, rootType)} size="sm" className="fire-button mt-2">
+        <Button onClick={() => onCreate(null, rootType)} disabled={!canCreate} size="sm" className="fire-button mt-2">
           <Plus className="w-4 h-4" /> Nueva {rootMeta.label}
         </Button>
       </div>
@@ -142,7 +143,7 @@ export default function PlanningHierarchyView({ projectId, mode, onCreate, nodeT
           <button onClick={collapseAll} className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted/40 transition-sf">
             Contraer
           </button>
-          <Button size="sm" variant="outline" onClick={() => onCreate(null, rootType)} className="ml-2">
+          <Button size="sm" variant="outline" onClick={() => onCreate(null, rootType)} disabled={!canCreate} className="ml-2">
             <Plus className="w-3.5 h-3.5" /> Nueva {NODE_TYPE_META[rootType].label}
           </Button>
         </div>
@@ -179,6 +180,7 @@ export default function PlanningHierarchyView({ projectId, mode, onCreate, nodeT
                 onCreate(parent.id, childType);
               }}
               mode={mode}
+              canCreate={canCreate}
             />
           ))}
 
@@ -225,9 +227,10 @@ interface NodeProps {
   onCreateChild: (parent: TaskRow) => void;
   mode: "agile" | "traditional";
   isOrphan?: boolean;
+  canCreate?: boolean;
 }
 
-function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCreateChild, mode, isOrphan }: NodeProps) {
+function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCreateChild, mode, isOrphan, canCreate = true }: NodeProps) {
   const kids = childrenOf(node.id);
   const isOpen = expanded.has(node.id);
   const meta = NODE_TYPE_META[node.node_type] || NODE_TYPE_META.task;
@@ -357,7 +360,7 @@ function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCr
 
         {/* Acciones */}
         <div className="col-span-1 text-right">
-          {!isOrphan && meta.level < 2 && (
+          {!isOrphan && meta.level < 2 && canCreate && (
             <button
               onClick={() => onCreateChild(node)}
               className="opacity-0 group-hover:opacity-100 text-[11px] inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-sf"
@@ -381,6 +384,7 @@ function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCr
           onOpen={onOpen}
           onCreateChild={onCreateChild}
           mode={mode}
+          canCreate={canCreate}
         />
       ))}
     </>

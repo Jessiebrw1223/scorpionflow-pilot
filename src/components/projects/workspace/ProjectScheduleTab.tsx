@@ -9,9 +9,11 @@ import { cn } from "@/lib/utils";
 import { getExecutionStatus } from "@/lib/business-intelligence";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { toast } from "@/hooks/use-toast";
+import { canAdminWorkspace, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
 interface Props {
   project: any;
+  role?: WorkspaceRole;
 }
 
 function ymd(date: Date) {
@@ -22,9 +24,10 @@ function formatDateLong(date: Date) {
   return date.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export default function ProjectScheduleTab({ project }: Props) {
+export default function ProjectScheduleTab({ project, role = null }: Props) {
   const qc = useQueryClient();
   const { settings } = useUserSettings();
+  const canEdit = canAdminWorkspace(role);
   const [startDraft, setStartDraft] = useState(project.start_date || "");
   const [endDraft, setEndDraft] = useState(project.end_date || "");
 
@@ -81,6 +84,7 @@ export default function ProjectScheduleTab({ project }: Props) {
 
   const updateDates = useMutation({
     mutationFn: async () => {
+      if (!canEdit) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const { error } = await supabase
         .from("projects")
         .update({
@@ -145,6 +149,7 @@ export default function ProjectScheduleTab({ project }: Props) {
               type="date"
               value={startDraft || ""}
               onChange={(e) => setStartDraft(e.target.value)}
+              disabled={!canEdit}
               className="text-[13px]"
             />
           </div>
@@ -156,12 +161,14 @@ export default function ProjectScheduleTab({ project }: Props) {
               value={endDraft || ""}
               onChange={(e) => setEndDraft(e.target.value)}
               min={startDraft || undefined}
+              disabled={!canEdit}
               className="text-[13px]"
             />
           </div>
           <Button
             onClick={() => updateDates.mutate()}
-            disabled={updateDates.isPending || (startDraft === (project.start_date || "") && endDraft === (project.end_date || ""))}
+            disabled={!canEdit || updateDates.isPending || (startDraft === (project.start_date || "") && endDraft === (project.end_date || ""))}
+            title={!canEdit ? NO_EDIT_PERMISSION_MESSAGE : undefined}
             className="gap-2"
           >
             {updateDates.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

@@ -16,6 +16,8 @@ import ProjectResourcesTab from "@/components/projects/workspace/ProjectResource
 import ProjectScheduleTab from "@/components/projects/workspace/ProjectScheduleTab";
 import { usePremiumGate, type PremiumFeature } from "@/hooks/usePremiumGate";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { PageErrorState } from "@/components/state/PageStates";
 
 type WorkspaceTab = "summary" | "planning" | "schedule" | "resources" | "costs" | "report";
 
@@ -31,15 +33,17 @@ export default function ProjectWorkspacePage() {
   const [tab, setTab] = useState<WorkspaceTab>("planning");
   const { settings } = useUserSettings();
   const gate = usePremiumGate();
+  const { ownerId, role, loading: workspaceLoading } = useWorkspace();
 
-  const { data: project, isLoading } = useQuery({
-    queryKey: ["project", id],
-    enabled: !!id,
+  const { data: project, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["project", id, ownerId],
+    enabled: !!id && !!ownerId && !workspaceLoading,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
         .select("*, clients(id, name, company), quotations(id, title)")
         .eq("id", id)
+        .eq("owner_id", ownerId!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -47,23 +51,42 @@ export default function ProjectWorkspacePage() {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["project-tasks-summary", id],
-    enabled: !!id,
+    queryKey: ["project-tasks-summary", id, ownerId],
+    enabled: !!id && !!ownerId && !workspaceLoading && !!project,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("id, status, due_date, blocks_project")
-        .eq("project_id", id!);
+        .eq("project_id", id!)
+        .eq("owner_id", ownerId!);
       if (error) throw error;
       return data;
     },
   });
 
-  if (isLoading) {
+  useEffect(() => {
+    const required = PREMIUM_TABS[tab];
+    if (required && gate.locked(required)) {
+      setTab("planning");
+    }
+  }, [tab, gate]);
+
+  if (workspaceLoading || isLoading) {
     return (
       <div className="p-12 text-center text-muted-foreground">
         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" /> Abriendo workspace del proyecto…
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <PageErrorState
+        error={error}
+        title="No pudimos cargar el proyecto"
+        description="Verifica que sigas activo en este workspace o intenta recargar."
+        onRetry={() => refetch()}
+      />
     );
   }
 
@@ -109,18 +132,6 @@ export default function ProjectWorkspacePage() {
     }
     setTab(nextTab);
   };
-
-  /**
-   * F6 — Estabilidad: si el plan cambia (downgrade, expiración) mientras el
-   * usuario está parado en un tab premium, lo regresamos a "planning" para no
-   * mostrar contenido al que ya no tiene acceso.
-   */
-  useEffect(() => {
-    const required = PREMIUM_TABS[tab];
-    if (required && gate.locked(required)) {
-      setTab("planning");
-    }
-  }, [tab, gate]);
 
   const renderTrigger = (value: WorkspaceTab, Icon: React.ElementType, label: string) => {
     const required = PREMIUM_TABS[value];
@@ -194,18 +205,18 @@ export default function ProjectWorkspacePage() {
           <ProjectSummaryTab project={project} tasks={tasks} onTabChange={(t) => handleTabChange(t)} />
         </TabsContent>
         <TabsContent value="planning">
-          <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} />
+          <ProjectPlanningTab projectId={project.id} planningMode={(project as any).planning_mode || "agile"} role={role} ownerId={ownerId} />
         </TabsContent>
         <TabsContent value="schedule">
-          <ProjectScheduleTab project={project} />
+          <ProjectScheduleTab project={project} role={role} />
         </TabsContent>
         {/* Los tabs premium ya no se renderizan para Free porque handleTabChange impide
             que el usuario llegue a ellos. Pro+ los ve de forma normal. */}
         <TabsContent value="resources">
-          <ProjectResourcesTab project={project} />
+          <ProjectResourcesTab project={project} role={role} />
         </TabsContent>
         <TabsContent value="costs">
-          <ProjectCostsTab project={project} />
+          <ProjectCostsTab project={project} role={role} />
         </TabsContent>
         <TabsContent value="report">
           <ProjectReportTab project={project} />

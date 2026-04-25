@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
 import TaskDetailPanel from "./TaskDetailPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { canCreateProjectWork, canEditAssignedTask, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
 type TaskPriority = "low" | "medium" | "high" | "critical";
@@ -29,6 +31,7 @@ interface Task {
   impact: TaskImpact;
   node_type: string;
   assignee_name: string | null;
+  assignee_id?: string | null;
   due_date: string | null;
   blocks_project: boolean;
   blocked_since: string | null;
@@ -72,6 +75,8 @@ interface Props {
   defaultView?: "kanban" | "list";
   /** Filtra por tipo de nodo (epic/story/task/phase/subphase/activity). */
   nodeTypeFilter?: string | null;
+  role?: WorkspaceRole;
+  ownerId?: string | null;
 }
 
 function getInitials(name: string | null): string {
@@ -79,8 +84,10 @@ function getInitials(name: string | null): string {
   return name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
 }
 
-export default function ProjectTasksTab({ projectId, defaultView = "kanban", nodeTypeFilter }: Props) {
+export default function ProjectTasksTab({ projectId, defaultView = "kanban", nodeTypeFilter, role = null, ownerId = null }: Props) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const canCreate = canCreateProjectWork(role);
   const [view, setView] = useState<"kanban" | "list">(defaultView);
   const [openForm, setOpenForm] = useState(false);
   const [form, setForm] = useState<FormValues>(emptyForm);
@@ -109,11 +116,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
 
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("No autenticado");
-      const { data: proj } = await supabase
-        .from("projects").select("owner_id").eq("id", projectId).maybeSingle();
-      const ownerId = proj?.owner_id ?? userData.user.id;
+      if (!ownerId) throw new Error("Workspace no disponible");
       const payload = {
         owner_id: ownerId,
         project_id: projectId,
@@ -144,6 +147,8 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
 
   const move = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
+      const task = allTasks.find((t) => t.id === id);
+      if (!canEditAssignedTask(role, task, user?.id)) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
       if (error) throw error;
     },
@@ -203,7 +208,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
           </div>
           <Dialog open={openForm} onOpenChange={setOpenForm}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} className="fire-button font-semibold">
+              <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} disabled={!canCreate} title={!canCreate ? NO_EDIT_PERMISSION_MESSAGE : undefined} className="fire-button font-semibold">
                 <Plus className="w-4 h-4" /> Nueva tarea
               </Button>
             </DialogTrigger>
@@ -299,7 +304,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
               Empieza desglosando lo que vendiste en pequeños bloques de trabajo.
             </p>
           </div>
-          <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} className="fire-button">
+          <Button onClick={() => { setForm(emptyForm); setOpenForm(true); }} disabled={!canCreate} title={!canCreate ? NO_EDIT_PERMISSION_MESSAGE : undefined} className="fire-button">
             <Plus className="w-4 h-4" /> Crear primera tarea
           </Button>
         </div>
@@ -324,6 +329,7 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
                       task={t}
                       onOpen={openTaskPanel}
                       onMove={(s) => move.mutate({ id: t.id, status: s })}
+                      canMove={canEditAssignedTask(role, t, user?.id)}
                     />
                   ))
                 )}
@@ -340,12 +346,14 @@ export default function ProjectTasksTab({ projectId, defaultView = "kanban", nod
         open={panelOpen}
         onOpenChange={setPanelOpen}
         projectId={projectId}
+        role={role}
+        userId={user?.id ?? null}
       />
     </div>
   );
 }
 
-function TaskCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task) => void; onMove: (s: TaskStatus) => void; }) {
+function TaskCard({ task, onOpen, onMove, canMove }: { task: Task; onOpen: (t: Task) => void; onMove: (s: TaskStatus) => void; canMove: boolean; }) {
   const pr = TASK_PRIORITY_META[task.priority];
   const im = TASK_IMPACT_META[task.impact || "delivery"];
   const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
@@ -388,7 +396,7 @@ function TaskCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task) => v
         )}
       </div>
       <div className="flex items-center gap-1 pt-1 border-t border-border" onClick={(e) => e.stopPropagation()}>
-        <Select value={task.status} onValueChange={(v: TaskStatus) => onMove(v)}>
+        <Select value={task.status} onValueChange={(v: TaskStatus) => onMove(v)} disabled={!canMove}>
           <SelectTrigger className="h-7 text-[11px] flex-1"><SelectValue /></SelectTrigger>
           <SelectContent>
             {Object.entries(TASK_STATUS_META).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label}</SelectItem>))}

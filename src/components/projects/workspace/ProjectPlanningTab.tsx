@@ -19,10 +19,13 @@ import ProjectTasksTab from "./ProjectTasksTab";
 import PlanningHierarchyView from "./PlanningHierarchyView";
 import PlanningTimelineView from "./PlanningTimelineView";
 import QuickCreateNodeDialog from "./QuickCreateNodeDialog";
+import { canAdminWorkspace, canCreateProjectWork, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
 interface Props {
   projectId: string;
   planningMode: "agile" | "traditional";
+  role?: WorkspaceRole;
+  ownerId?: string | null;
 }
 
 type Mode = "list" | "kanban" | "calendar";
@@ -36,8 +39,10 @@ const MODE_META: Record<Mode, { label: string; helper: string; icon: typeof List
 const VIEW_STORAGE_KEY = "scorpion.planning.lastView";
 const FILTER_STORAGE_KEY = "scorpion.planning.nodeFilter";
 
-export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
+export default function ProjectPlanningTab({ projectId, planningMode, role = null, ownerId = null }: Props) {
   const qc = useQueryClient();
+  const canAdmin = canAdminWorkspace(role);
+  const canCreate = canCreateProjectWork(role);
 
   // Recordar última vista usada (preferencia del usuario)
   const [mode, setMode] = useState<Mode>(() => {
@@ -131,8 +136,8 @@ export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
                 return (
                   <button
                     key={m}
-                    onClick={() => !active && switchMode.mutate(m)}
-                    disabled={switchMode.isPending}
+                    onClick={() => !active && canAdmin && switchMode.mutate(m)}
+                    disabled={switchMode.isPending || !canAdmin}
                     className={cn(
                       "flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-sf",
                       active
@@ -174,8 +179,10 @@ export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
             {/* Crear elemento raíz */}
             <Button
               onClick={() => openCreate(null, rootType)}
+              disabled={!canCreate}
               size="sm"
               className="fire-button"
+              title={!canCreate ? NO_EDIT_PERMISSION_MESSAGE : undefined}
             >
               <Plus className="w-3.5 h-3.5" />
               Nueva {NODE_TYPE_META[rootType].label}
@@ -240,10 +247,11 @@ export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
           mode={planningMode}
           onCreate={openCreate}
           nodeTypeFilter={nodeFilter}
+          canCreate={canCreate}
         />
       )}
       {mode === "kanban" && (
-        <ProjectTasksTab key="kanban" projectId={projectId} defaultView="kanban" nodeTypeFilter={nodeFilter} />
+        <ProjectTasksTab key="kanban" projectId={projectId} defaultView="kanban" nodeTypeFilter={nodeFilter} role={role} ownerId={ownerId} />
       )}
       {mode === "calendar" && (
         <PlanningTimelineView projectId={projectId} nodeTypeFilter={nodeFilter} />
@@ -253,8 +261,10 @@ export default function ProjectPlanningTab({ projectId, planningMode }: Props) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         projectId={projectId}
+        ownerId={ownerId}
         parentId={createParent}
         nodeType={createType}
+        canCreate={canCreate}
       />
     </div>
   );

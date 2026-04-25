@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
+import { canAdminWorkspace, canEditAssignedTask, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
 type TaskPriority = "low" | "medium" | "high" | "critical";
@@ -27,6 +28,7 @@ interface Task {
   priority: TaskPriority;
   impact: TaskImpact;
   assignee_name: string | null;
+  assignee_id?: string | null;
   due_date: string | null;
   blocks_project: boolean;
   estimated_cost?: number;
@@ -38,11 +40,16 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
+  role?: WorkspaceRole;
+  userId?: string | null;
 }
 
-export default function TaskDetailPanel({ task, open, onOpenChange, projectId }: Props) {
+export default function TaskDetailPanel({ task, open, onOpenChange, projectId, role = null, userId = null }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<Task | null>(null);
+  const canEdit = canEditAssignedTask(role, task, userId);
+  const canDelete = canAdminWorkspace(role);
+  const canEditCosts = canAdminWorkspace(role);
 
   useEffect(() => {
     setForm(task);
@@ -50,6 +57,7 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
 
   const save = useMutation({
     mutationFn: async (values: Task) => {
+      if (!canEdit) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const { error } = await supabase
         .from("tasks")
         .update({
@@ -84,6 +92,7 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId }:
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
+      if (!canDelete) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },
