@@ -36,16 +36,17 @@ import { useLocation } from "react-router-dom";
 function RootGate() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return user ? (
-    <ProtectedRoute>
-      <>
-        <AppSidebar />
-        <AppLayout><Dashboard /></AppLayout>
-      </>
-    </ProtectedRoute>
-  ) : (
-    <LandingPage />
-  );
+  if (user) {
+    return (
+      <ProtectedRoute>
+        <div>
+          <AppSidebar />
+          <AppLayout><Dashboard /></AppLayout>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+  return <LandingPage />;
 }
 
 const queryClient = new QueryClient();
