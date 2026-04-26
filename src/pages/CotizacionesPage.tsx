@@ -925,51 +925,53 @@ export default function CotizacionesPage() {
                           </TooltipProvider>
 
                           {/* Cambio de estado + conversión a proyecto */}
-                          <div className="flex items-center gap-1">
-                            {stage !== "won" && stage !== "lost" && (
-                              <Select
-                                value={q.status}
-                                onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
-                              >
-                                <SelectTrigger className="h-7 text-[11px] flex-1">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {STAGE_ORDER.map((s) => (
-                                    <SelectItem key={s} value={s}>
-                                      {STATUS_META[s].label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                            {stage === "won" && !q.converted_to_project && (
-                              <Button
-                                size="sm"
-                                onClick={() => convertToProject.mutate(q)}
-                                disabled={convertToProject.isPending}
-                                className="h-7 fire-button text-[11px] flex-1"
-                              >
-                                {convertToProject.isPending ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <ArrowRight className="w-3 h-3" />
-                                )}{" "}
-                                Convertir en Proyecto
-                              </Button>
-                            )}
-                            {stage === "quoted" && !q.converted_to_project && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => move.mutate({ id: q.id, status: "won" })}
-                                className="h-7 px-2 text-[11px]"
-                                title="Marcar como Ganado"
-                              >
-                                <CheckCircle2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </div>
+                          {canWrite && (
+                            <div className="flex items-center gap-1">
+                              {stage !== "won" && stage !== "lost" && (
+                                <Select
+                                  value={q.status}
+                                  onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
+                                >
+                                  <SelectTrigger className="h-7 text-[11px] flex-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {STAGE_ORDER.map((s) => (
+                                      <SelectItem key={s} value={s}>
+                                        {STATUS_META[s].label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              {stage === "won" && !q.converted_to_project && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => convertToProject.mutate(q)}
+                                  disabled={convertToProject.isPending}
+                                  className="h-7 fire-button text-[11px] flex-1"
+                                >
+                                  {convertToProject.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <ArrowRight className="w-3 h-3" />
+                                  )}{" "}
+                                  Convertir en Proyecto
+                                </Button>
+                              )}
+                              {stage === "quoted" && !q.converted_to_project && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => move.mutate({ id: q.id, status: "won" })}
+                                  className="h-7 px-2 text-[11px]"
+                                  title="Marcar como Ganado"
+                                >
+                                  <CheckCircle2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       );
