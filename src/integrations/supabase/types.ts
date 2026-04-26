@@ -721,6 +721,7 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
+          weight: number
         }
         Insert: {
           actual_cost?: number
@@ -745,6 +746,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
+          weight?: number
         }
         Update: {
           actual_cost?: number
@@ -769,6 +771,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
+          weight?: number
         }
         Relationships: [
           {
