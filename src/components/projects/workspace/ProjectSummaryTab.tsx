@@ -11,6 +11,7 @@ import {
   formatSafeMargin,
   isCountableTask,
   isPendingTask,
+  computeProgressMetrics,
 } from "@/lib/business-intelligence";
 import { useMoney } from "@/lib/format-money";
 import { useUserSettings } from "@/hooks/useUserSettings";
