@@ -53,6 +53,24 @@ const UNIT_META: Record<Unit, { label: string; suffix: string; qtyLabel: string 
   fixed: { label: "Costo único",        suffix: "",     qtyLabel: "Cantidad" },
 };
 
+// Acceso defensivo: si el valor en BD no coincide con el enum esperado,
+// devuelve un fallback en lugar de romper el render.
+const FALLBACK_UNIT_META = { label: "Costo", suffix: "", qtyLabel: "Cantidad" };
+const FALLBACK_KIND_META = {
+  label: "Recurso",
+  icon: Cog,
+  color: "text-muted-foreground",
+  bg: "bg-muted",
+  placeholderName: "",
+  placeholderRole: "",
+};
+function unitMeta(u: unknown) {
+  return (u && (UNIT_META as any)[u as string]) || FALLBACK_UNIT_META;
+}
+function kindMeta(k: unknown) {
+  return (k && (KIND_META as any)[k as string]) || FALLBACK_KIND_META;
+}
+
 // Opciones de tipo de costo permitidas según naturaleza del recurso
 const HUMAN_UNIT_OPTIONS: Unit[] = ["month", "hour", "use"];      // Personas: mensual / hora / tarea
 const TECH_UNIT_OPTIONS:  Unit[] = ["month", "use", "fixed"];     // Tech: SaaS mensual, APIs por uso, software único
@@ -111,13 +129,16 @@ export default function ProjectResourcesTab({ project }: Props) {
   const [form, setForm] = useState({ name: "", role_or_type: "", unit: "fixed" as Unit, unit_cost: 0, quantity: 1, notes: "" });
   const [presetId, setPresetId] = useState<string>("custom");
 
-  const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["project-resources", project.id],
+  const projectId: string | undefined = project?.id;
+
+  const { data: resources = [], isLoading, error: resourcesError } = useQuery({
+    queryKey: ["project-resources", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_resources" as any)
         .select("*")
-        .eq("project_id", project.id)
+        .eq("project_id", projectId as string)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as ProjectResource[];
@@ -125,14 +146,15 @@ export default function ProjectResourcesTab({ project }: Props) {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["project-tasks-for-resources", project.id],
+    queryKey: ["project-tasks-for-resources", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("id, status, assignee_name, node_type")
-        .eq("project_id", project.id);
+        .eq("project_id", projectId as string);
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
@@ -320,7 +342,14 @@ export default function ProjectResourcesTab({ project }: Props) {
 
   // ===== Totales =====
   const totals = useMemo(() => {
-    const sum = (k: Kind) => resources.filter(r => r.kind === k).reduce((s, r) => s + Number(r.total_cost), 0);
+    const safeNum = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const sum = (k: Kind) =>
+      (resources ?? [])
+        .filter(r => r?.kind === k)
+        .reduce((s, r) => s + safeNum(r?.total_cost), 0);
     const human = sum("human");
     const tech = sum("tech");
     const asset = sum("asset");
@@ -330,7 +359,7 @@ export default function ProjectResourcesTab({ project }: Props) {
   // ===== Insights =====
   const insights = useMemo(() => {
     const out: { type: "warn" | "info" | "good"; text: string }[] = [];
-    const budget = Number(project.budget) || 0;
+    const budget = Number(project?.budget) || 0;
     if (budget > 0 && totals.total > budget) {
       out.push({ type: "warn", text: `Costos asignados (${PEN.format(totals.total)}) superan el presupuesto (${PEN.format(budget)}).` });
     } else if (budget > 0 && totals.total > budget * 0.85) {
@@ -350,14 +379,34 @@ export default function ProjectResourcesTab({ project }: Props) {
       out.push({ type: "good", text: "Todos los responsables tienen costo configurado y la carga está bajo control." });
     }
     return out;
-  }, [totals, project.budget, detectedHumans, pendingHumans.length, resources.length]);
+  }, [totals, project?.budget, detectedHumans, pendingHumans.length, resources.length]);
+
+  if (!projectId) {
+    return (
+      <div className="surface-card p-8 text-center text-[12px] text-muted-foreground">
+        Cargando información del proyecto…
+      </div>
+    );
+  }
+
+  if (resourcesError) {
+    return (
+      <div className="surface-card p-8 text-center space-y-2">
+        <AlertTriangle className="w-6 h-6 text-cost-warning mx-auto" />
+        <p className="text-[13px] font-medium text-foreground">No se pudieron cargar los recursos del proyecto.</p>
+        <p className="text-[11px] text-muted-foreground">
+          Verifica tu conexión o tus permisos. Si el problema persiste, intenta recargar la página.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       {/* RESUMEN ARRIBA */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {(["human", "tech", "asset"] as Kind[]).map((k) => {
-          const meta = KIND_META[k];
+          const meta = kindMeta(k);
           const Icon = meta.icon;
           const cost = totals[k];
           const count = k === "human"
@@ -539,7 +588,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                               </div>
                               <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                                 <span className="font-mono-data">
-                                  {PEN.format(Number(r.unit_cost))}{UNIT_META[r.unit].suffix && `/${UNIT_META[r.unit].suffix}`} × {Number(r.quantity)}
+                                  {PEN.format(Number(r.unit_cost))}{unitMeta(r.unit).suffix && `/${unitMeta(r.unit).suffix}`} × {Number(r.quantity)}
                                 </span>
                                 {detected && (
                                   <span className={cn(
@@ -568,7 +617,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                               <div className="font-mono-data text-[13px] font-semibold text-foreground">
                                 {PEN.format(Number(r.total_cost))}
                               </div>
-                              <p className="text-[10px] text-muted-foreground">{UNIT_META[r.unit].label}</p>
+                              <p className="text-[10px] text-muted-foreground">{unitMeta(r.unit).label}</p>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openAssignCost(r.name)}>
@@ -599,7 +648,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
           {/* TECH + ASSET — creación manual permitida */}
           {(["tech", "asset"] as Exclude<Kind, "human">[]).map((k) => {
-            const meta = KIND_META[k];
+            const meta = kindMeta(k);
             const Icon = meta.icon;
             const items = resources.filter(r => r.kind === k);
             return (
@@ -632,7 +681,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                             <span className="font-mono-data">
-                              {PEN.format(Number(r.unit_cost))}{UNIT_META[r.unit].suffix && `/${UNIT_META[r.unit].suffix}`} × {Number(r.quantity)}
+                              {PEN.format(Number(r.unit_cost))}{unitMeta(r.unit).suffix && `/${unitMeta(r.unit).suffix}`} × {Number(r.quantity)}
                             </span>
                           </div>
                         </div>
@@ -640,7 +689,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           <div className="font-mono-data text-[13px] font-semibold text-foreground">
                             {PEN.format(Number(r.total_cost))}
                           </div>
-                          <p className="text-[10px] text-muted-foreground">{UNIT_META[r.unit].label}</p>
+                          <p className="text-[10px] text-muted-foreground">{unitMeta(r.unit).label}</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditNonHuman(r)}>
@@ -755,7 +804,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           active ? "bg-primary/10 border-primary text-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        {UNIT_META[u].label}
+                        {unitMeta(u).label}
                       </button>
                     );
                   })}
@@ -764,7 +813,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">{UNIT_META[humanForm.unit].qtyLabel}</Label>
+                  <Label className="text-[12px]">{unitMeta(humanForm.unit).qtyLabel}</Label>
                   <Input
                     type="number"
                     min={0.01}
@@ -776,7 +825,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px]">
-                    Costo {humanForm.unit === "fixed" ? "único" : `por ${UNIT_META[humanForm.unit].suffix}`}
+                    Costo {humanForm.unit === "fixed" ? "único" : `por ${unitMeta(humanForm.unit).suffix}`}
                   </Label>
                   <CurrencyInput
                     value={humanForm.unit_cost}
@@ -812,7 +861,7 @@ export default function ProjectResourcesTab({ project }: Props) {
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingNonHuman ? "Editar" : "Agregar"} {dialogKind && KIND_META[dialogKind].label.toLowerCase()}
+              {editingNonHuman ? "Editar" : "Agregar"} {dialogKind && kindMeta(dialogKind).label.toLowerCase()}
             </DialogTitle>
           </DialogHeader>
           {dialogKind && (
@@ -820,7 +869,7 @@ export default function ProjectResourcesTab({ project }: Props) {
               {/* Preset selector — solo al CREAR (al editar lo dejamos vacío para no sobreescribir) */}
               {!editingNonHuman && (
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">¿Qué tipo de {KIND_META[dialogKind].label.toLowerCase()} es?</Label>
+                  <Label className="text-[12px]">¿Qué tipo de {kindMeta(dialogKind).label.toLowerCase()} es?</Label>
                   <Select value={presetId} onValueChange={applyPreset}>
                     <SelectTrigger className="h-9 text-[13px]">
                       <SelectValue placeholder="Selecciona un tipo..." />
@@ -842,7 +891,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 <Input
                   value={form.name}
                   onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder={KIND_META[dialogKind].placeholderName}
+                  placeholder={kindMeta(dialogKind).placeholderName}
                   className="h-9 text-[13px]"
                   maxLength={120}
                 />
@@ -864,7 +913,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           active ? "bg-primary/10 border-primary text-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        {UNIT_META[u].label}
+                        {unitMeta(u).label}
                       </button>
                     );
                   })}
@@ -873,7 +922,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">{UNIT_META[form.unit].qtyLabel}</Label>
+                  <Label className="text-[12px]">{unitMeta(form.unit).qtyLabel}</Label>
                   <Input
                     type="number"
                     min={0.01}
@@ -885,7 +934,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px]">
-                    Costo {form.unit === "fixed" ? "único" : `por ${UNIT_META[form.unit].suffix}`}
+                    Costo {form.unit === "fixed" ? "único" : `por ${unitMeta(form.unit).suffix}`}
                   </Label>
                   <CurrencyInput
                     value={form.unit_cost}
