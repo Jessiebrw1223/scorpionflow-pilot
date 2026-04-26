@@ -349,7 +349,10 @@ export default function CotizacionesPage() {
       // Auto-navegar al workspace recién creado
       setTimeout(() => navigate(`/projects/${projectId}`), 600);
     },
-    onError: (e: Error) => toast.error("Error al convertir", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("No pudimos crear el proyecto", {
+        description: `${e.message}. La cotización no fue marcada como ganada para evitar inconsistencias.`,
+      }),
   });
 
   const remove = useMutation({
@@ -931,7 +934,14 @@ export default function CotizacionesPage() {
                               {stage !== "won" && stage !== "lost" && (
                                 <Select
                                   value={q.status}
-                                  onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
+                                  onValueChange={(v: QuoteStatus) => {
+                                    if (v === "won") {
+                                      // Ganada implica crear proyecto: usar flujo transaccional
+                                      convertToProject.mutate(q);
+                                    } else {
+                                      move.mutate({ id: q.id, status: v });
+                                    }
+                                  }}
                                 >
                                   <SelectTrigger className="h-7 text-[11px] flex-1">
                                     <SelectValue />
@@ -964,11 +974,16 @@ export default function CotizacionesPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => move.mutate({ id: q.id, status: "won" })}
+                                  onClick={() => convertToProject.mutate(q)}
+                                  disabled={convertToProject.isPending}
                                   className="h-7 px-2 text-[11px]"
-                                  title="Marcar como Ganado"
+                                  title="Marcar como ganada y crear proyecto"
                                 >
-                                  <CheckCircle2 className="w-3 h-3" />
+                                  {convertToProject.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="w-3 h-3" />
+                                  )}
                                 </Button>
                               )}
                             </div>

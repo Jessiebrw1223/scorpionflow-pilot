@@ -203,7 +203,7 @@ export default function LandingPage() {
             Gestión clara para proyectos y negocio
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] max-w-4xl mx-auto min-h-[7.5rem] md:min-h-[10rem] flex items-center justify-center">
+          <h1 className="text-[28px] sm:text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] max-w-4xl mx-auto min-h-[8.5rem] sm:min-h-[7.5rem] md:min-h-[10rem] flex items-center justify-center px-1">
             <span key={questionIndex} className="block animate-fade-in text-foreground">
               {ROTATING_QUESTIONS[questionIndex].split("…").map((part, i, arr) => (
                 <span key={i}>

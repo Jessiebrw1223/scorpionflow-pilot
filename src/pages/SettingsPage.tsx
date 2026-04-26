@@ -158,7 +158,7 @@ export default function SettingsPage() {
 
   // Decide la acción correcta según el estado actual del usuario
   const handlePlanAction = async (planId: PlanId) => {
-    if (planId === "free" || planId === realPlan && billing === realBilling) return;
+    if (planId === realPlan && billing === realBilling) return;
 
     // Caso 1: NO tiene sub activa en Stripe → checkout nuevo
     if (!hasActiveStripeSub) {
@@ -194,6 +194,16 @@ export default function SettingsPage() {
     }
 
     if (isDown || (isBillingOnly && billing === "monthly")) {
+      // Downgrade a Free = cancelar suscripción al final del período
+      if (planId === "free") {
+        setConfirmDialog({
+          title: "Volver al plan Free",
+          description: `Tu plan ${planLabel(realPlan)} continuará hasta el ${formatDate(currentPeriodEnd)}. Después pasarás automáticamente a Free y se desactivarán las funciones premium.`,
+          confirmLabel: "Confirmar cambio a Free",
+          onConfirm: handleCancelSubscription,
+        });
+        return;
+      }
       setConfirmDialog({
         title: `Programar cambio a ${planLabel(planId)}`,
         description: `Tu cambio se aplicará al cierre del período el ${formatDate(currentPeriodEnd)}. Hasta entonces conservas tu plan ${planLabel(realPlan)} sin interrupciones.`,
