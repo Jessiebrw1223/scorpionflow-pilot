@@ -194,6 +194,16 @@ export default function SettingsPage() {
     }
 
     if (isDown || (isBillingOnly && billing === "monthly")) {
+      // Downgrade a Free = cancelar suscripción al final del período
+      if (planId === "free") {
+        setConfirmDialog({
+          title: "Volver al plan Free",
+          description: `Tu plan ${planLabel(realPlan)} continuará hasta el ${formatDate(currentPeriodEnd)}. Después pasarás automáticamente a Free y se desactivarán las funciones premium.`,
+          confirmLabel: "Confirmar cambio a Free",
+          onConfirm: handleCancelSubscription,
+        });
+        return;
+      }
       setConfirmDialog({
         title: `Programar cambio a ${planLabel(planId)}`,
         description: `Tu cambio se aplicará al cierre del período el ${formatDate(currentPeriodEnd)}. Hasta entonces conservas tu plan ${planLabel(realPlan)} sin interrupciones.`,
