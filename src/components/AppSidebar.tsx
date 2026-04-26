@@ -16,7 +16,16 @@ import {
   ShieldAlert,
   Lock,
   HelpCircle,
+  Shield,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { usePremiumGate, type PremiumFeature } from "@/hooks/usePremiumGate";
+import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
+import { usePlan } from "@/hooks/usePlan";
+import { useIsSuperadmin } from "@/hooks/useIsSuperadmin";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
