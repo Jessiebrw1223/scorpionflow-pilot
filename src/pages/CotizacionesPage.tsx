@@ -890,33 +890,37 @@ export default function CotizacionesPage() {
                                 </TooltipTrigger>
                                 <TooltipContent>Correo · Enviar propuesta</TooltipContent>
                               </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={(e) => { e.stopPropagation(); duplicate.mutate(q); }}
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  >
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Duplicar · Reutilizar cotización</TooltipContent>
-                              </Tooltip>
+                              {canWrite && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={(e) => { e.stopPropagation(); duplicate.mutate(q); }}
+                                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Duplicar · Reutilizar cotización</TooltipContent>
+                                </Tooltip>
+                              )}
                               <div className="flex-1" />
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={(e) => { e.stopPropagation(); remove.mutate(q.id); }}
-                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Eliminar · Borrar registro</TooltipContent>
-                              </Tooltip>
+                              {canWrite && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={(e) => { e.stopPropagation(); setDeletingQuote(q); }}
+                                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Eliminar · Borrar registro</TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           </TooltipProvider>
 
