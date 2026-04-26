@@ -458,8 +458,7 @@ export default function CotizacionesPage() {
             Cotizaciones
           </h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
-            Pipeline comercial: {quotes.length} cotizaciones · Conversión {conversionRate.toFixed(0)}%
-            · Ganado {PEN.format(totalWon)}
+            Gestiona tus oportunidades comerciales desde el primer contacto hasta el cierre.
           </p>
         </div>
 
