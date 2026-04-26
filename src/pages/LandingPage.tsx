@@ -705,7 +705,7 @@ export default function LandingPage() {
                 >
                   {isPro && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold shadow-lg whitespace-nowrap">
-                      ⭐ Recomendado
+                      ⭐ Más elegido por empresas en crecimiento
                     </span>
                   )}
 
