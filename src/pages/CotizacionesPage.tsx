@@ -988,6 +988,32 @@ export default function CotizacionesPage() {
         recommendedPlan="starter"
         reason={`Has alcanzado el límite de ${planLimits.limits.quotations} cotizaciones del plan ${planLimits.plan.toUpperCase()}`}
       />
+
+      <AlertDialog open={!!deletingQuote} onOpenChange={(o) => !o && setDeletingQuote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cotización?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará "{deletingQuote?.title}" y sus líneas de detalle.
+              {deletingQuote?.converted_to_project && " Esta cotización tiene un proyecto creado a partir de ella."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingQuote) {
+                  remove.mutate(deletingQuote.id);
+                  setDeletingQuote(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
