@@ -904,7 +904,7 @@ export default function CotizacionesPage() {
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Eliminar</TooltipContent>
+                                <TooltipContent>Eliminar · Borrar registro</TooltipContent>
                               </Tooltip>
                             </div>
                           </TooltipProvider>
