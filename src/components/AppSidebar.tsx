@@ -60,6 +60,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const gate = usePremiumGate();
   const { role } = useWorkspace();
+  const { isBusiness } = usePlan();
 
   const handleLogout = async () => {
     await signOut();
@@ -67,10 +68,14 @@ export function AppSidebar() {
     navigate("/", { replace: true });
   };
 
-  // Filtrar nav items según rol del workspace activo.
-  const visibleNavItems = navItems.filter(
-    (it) => !it.visibleFor || (role && it.visibleFor.includes(role)),
-  );
+  // Filtrar nav items según rol del workspace activo y plan.
+  // Las "Finanzas empresariales" (Recursos/Costos/Informes globales) solo
+  // aparecen en plan Business. En Pro siguen vivas dentro del proyecto.
+  const visibleNavItems = navItems.filter((it) => {
+    if (it.visibleFor && (!role || !it.visibleFor.includes(role))) return false;
+    if (it.businessOnly && !isBusiness) return false;
+    return true;
+  });
 
   const groups = visibleNavItems.reduce<Record<string, NavItem[]>>((acc, it) => {
     const g = it.group || "General";
