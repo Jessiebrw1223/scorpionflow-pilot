@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { ExecutiveAnalytics } from "@/components/corporate/ExecutiveAnalytics";
 
 /**
  * Centro Financiero Corporativo (Plan Business)
