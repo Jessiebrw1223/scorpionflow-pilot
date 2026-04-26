@@ -83,7 +83,8 @@ function AppShell() {
                     <Route path="/costs" element={<CorporateOverviewPage />} />
                     <Route path="/resources" element={<CorporateResourcesPage />} />
                     <Route path="/reports" element={<CorporateReportsPage />} />
-                    <Route path="/risks" element={<CorporateRisksPage />} />
+                    <Route path="/riesgos" element={<CorporateRisksPage />} />
+                    <Route path="/risks" element={<Navigate to="/riesgos" replace />} />
                     {/* Ruta legacy: tareas globales → ahora dentro del proyecto */}
                     <Route path="/tasks" element={<Navigate to="/projects" replace />} />
                     <Route path="/settings" element={<SettingsPage />} />

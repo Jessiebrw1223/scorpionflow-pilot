@@ -10,9 +10,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ScatterChart,
-  Scatter,
-  ZAxis,
   Cell,
 } from "recharts";
 import {
@@ -21,7 +18,6 @@ import {
   Wallet,
   Users,
   Crown,
-  ShieldAlert,
   LineChart as LineChartIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -304,35 +300,8 @@ export function ExecutiveAnalytics({ projects, resources, quotations }: Props) {
     return `Cliente ${top.name} genera ${top.share}% de tu utilidad total.`;
   }, [clientProfitability]);
 
-  // ============================================================
-  // 6) MATRIZ DE RIESGO: probabilidad vs impacto financiero
-  // ============================================================
-  const riskMatrix = useMemo(() => {
-    return projects
-      .filter((p) => p.status !== "completed")
-      .map((p) => {
-        const budget = Number(p.budget) || 0;
-        const cost = Number(p.actual_cost) || 0;
-        const profit = budget - cost;
-        const overrun = cost > budget ? (cost - budget) / Math.max(1, budget) : 0;
-        const progress = Number(p.progress) || 0;
-        // Probabilidad de problema: 0-100 según overrun + atraso
-        let probability = Math.min(100, overrun * 100);
-        if (p.end_date) {
-          const end = new Date(p.end_date).getTime();
-          if (end < Date.now() && progress < 100) probability = Math.min(100, probability + 40);
-        }
-        // Impacto financiero: pérdida proyectada o presupuesto en juego
-        const impact = profit < 0 ? Math.abs(profit) : budget * 0.2;
-        return {
-          name: p.name,
-          probability: Math.round(probability),
-          impact: Math.round(impact),
-          profit,
-        };
-      })
-      .filter((r) => r.impact > 0);
-  }, [projects]);
+  // Matriz de riesgo se eliminó de aquí: ahora vive en el módulo /riesgos
+
 
   return (
     <div className="space-y-5">
@@ -595,81 +564,7 @@ export function ExecutiveAnalytics({ projects, resources, quotations }: Props) {
           </CardContent>
         </Card>
       </div>
-
-      {/* === 6. Matriz de riesgo === */}
-      <Card className="surface-card">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-primary" />
-            Matriz de riesgo financiero
-          </CardTitle>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Cada burbuja es un proyecto. Arriba‑derecha = atención inmediata.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[280px]">
-            {riskMatrix.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-                Sin proyectos activos para evaluar.
-              </div>
-            ) : (
-              <ResponsiveContainer>
-                <ScatterChart margin={{ top: 12, right: 16, left: 0, bottom: 12 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis
-                    type="number"
-                    dataKey="probability"
-                    name="Probabilidad"
-                    domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickFormatter={(v) => `${v}%`}
-                    label={{ value: "Probabilidad de problema", position: "insideBottom", offset: -4, fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="impact"
-                    name="Impacto"
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)}
-                    label={{ value: "Impacto $", angle: -90, position: "insideLeft", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <ZAxis type="number" dataKey="impact" range={[60, 400]} />
-                  <Tooltip
-                    cursor={{ strokeDasharray: "3 3" }}
-                    contentStyle={{
-                      background: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 11,
-                    }}
-                    formatter={(v: number, name: string) => {
-                      if (name === "Impacto") return PEN.format(v);
-                      if (name === "Probabilidad") return `${v}%`;
-                      return v;
-                    }}
-                    labelFormatter={(_, payload: any) => payload?.[0]?.payload?.name ?? ""}
-                  />
-                  <Scatter data={riskMatrix}>
-                    {riskMatrix.map((r, i) => (
-                      <Cell
-                        key={i}
-                        fill={
-                          r.probability >= 60 || r.profit < 0
-                            ? "hsl(var(--destructive))"
-                            : r.probability >= 30
-                            ? "hsl(38 92% 50%)"
-                            : "hsl(var(--primary))"
-                        }
-                      />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Matriz de riesgo movida al módulo independiente /riesgos */}
     </div>
   );
 }
