@@ -186,14 +186,19 @@ export default function ProjectReportTab({ project }: Props) {
                 const im = TASK_IMPACT_META[t.impact || "delivery"];
                 const overdue = t.due_date && new Date(t.due_date) < new Date() && t.status !== "done";
                 return (
-                  <div key={t.id} className="flex items-center gap-2 text-[12px] py-1.5 border-b border-border last:border-0">
+                  <div key={t.id} className="flex items-center gap-2 text-[12px] py-1.5 border-b border-border last:border-0 flex-wrap">
                     <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", pr.bg, pr.color)}>
                       {pr.emoji} {pr.label}
                     </span>
                     <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", im.bg, im.color)}>
                       {im.emoji} {im.short}
                     </span>
-                    <span className="flex-1 truncate">{t.title}</span>
+                    <span className="flex-1 truncate min-w-0">{t.title}</span>
+                    {t.status === "blocked" && t.blocked_reason && (
+                      <span className="text-[10px] font-medium text-status-blocked bg-status-blocked/10 px-1.5 py-0.5 rounded">
+                        {getBlockedReasonLabel(t.blocked_reason)}
+                      </span>
+                    )}
                     {t.blocks_project && (
                       <span className="text-[10px] text-cost-warning font-semibold">⚠ Bloquea</span>
                     )}
