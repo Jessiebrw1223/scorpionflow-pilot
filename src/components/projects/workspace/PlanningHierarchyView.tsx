@@ -241,15 +241,27 @@ function HierarchyNode({ node, level, expanded, toggle, childrenOf, onOpen, onCr
   const im = TASK_IMPACT_META[node.impact || "delivery"];
   const overdue = node.due_date && node.status !== "done" && new Date(node.due_date) < new Date();
 
-  // Calcular avance si tiene hijos: % de hijos completados (recursivo a 1 nivel)
+  // Avance del nodo (PMBOK 8 + regla anti-humo):
+  // - Contenedores (épica/HU/fase/subfase): SIEMPRE se calculan por hojas reales
+  //   ponderadas (excluyendo canceladas). El status del propio contenedor no
+  //   puede inflar el porcentaje a 100% si hay hojas pendientes.
+  // - Hojas (task/activity): 100 si done, 0 en otro caso.
   const allDescendants = (id: string): TaskRow[] => {
     const direct = childrenOf(id);
     return direct.concat(direct.flatMap((d) => allDescendants(d.id)));
   };
   const descendants = allDescendants(node.id);
-  const progressPct = descendants.length > 0
-    ? Math.round((descendants.filter((d) => d.status === "done").length / descendants.length) * 100)
-    : node.status === "done" ? 100 : 0;
+  const leafDescendants = descendants.filter(
+    (d) => !isContainerNode(d as any) && d.status !== "cancelled"
+  );
+  const isContainer = isContainerNode(node as any);
+  const progressPct = isContainer
+    ? computeContainerProgress(leafDescendants as any)
+    : node.status === "done"
+    ? 100
+    : node.status === "cancelled"
+    ? 0
+    : 0;
 
   return (
     <>
