@@ -849,15 +849,149 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CIERRE */}
-      <section className="border-t border-border/60 bg-gradient-to-b from-background to-secondary/30">
+      {/* PRUEBA SOCIAL */}
+      <section id="prueba-social" className="border-t border-border/60 bg-secondary/20">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Confianza</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Equipos que necesitaban claridad
+              <span className="block text-primary">eligieron ScorpionFlow.</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-12">
+            {[
+              { value: "+1,200", label: "proyectos gestionados" },
+              { value: "+3,800", label: "cotizaciones creadas" },
+              { value: "+450", label: "equipos colaborando" },
+            ].map((m, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-card p-8 text-center hover:border-primary/40 transition-colors"
+              >
+                <p className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {m.value}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{m.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+            {[
+              {
+                quote: "Por fin sé qué proyectos me dan dinero y cuáles me lo quitan. Cambió cómo decido.",
+                author: "Gerente comercial · Agencia de marketing",
+              },
+              {
+                quote: "Dejamos de cotizar a ciegas. Ahora cerramos más rápido y con margen real.",
+                author: "Director de operaciones · Constructora",
+              },
+            ].map((t, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6">
+                <Quote className="w-5 h-5 text-primary mb-3" />
+                <p className="text-[15px] text-foreground/90 leading-relaxed">"{t.quote}"</p>
+                <p className="mt-4 text-[12px] uppercase tracking-widest text-muted-foreground">
+                  {t.author}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* EDUCACIÓN RÁPIDA */}
+      <section id="educacion" className="border-t border-border/60">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Aprende en minutos</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Aprende a usarlo
+              <span className="block text-primary">en minutos.</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Sin capacitaciones largas. Sin manuales. Solo abre y empieza.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[
+              { icon: FileText, title: "Cómo cotizar rápido", body: "Crea propuestas profesionales en menos de 2 minutos." },
+              { icon: Wallet, title: "Cómo controlar costos", body: "Ve qué consume tu margen antes de que sea tarde." },
+              { icon: TrendingDown, title: "Cómo detectar pérdidas", body: "Identifica proyectos que no son rentables a tiempo." },
+              { icon: ShieldQuestion, title: "Cómo revisar riesgos", body: "Visibilidad total de lo que puede salir mal." },
+            ].map(({ icon: Icon, title, body }, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link to="/auth/register">
+              <Button size="lg" variant="outline" className="h-12 px-7 gap-2 border-border hover:border-primary/50">
+                <GraduationCap className="w-4 h-4" />
+                Explorar Learn Center
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="border-t border-border/60 bg-secondary/20">
+        <div className="max-w-3xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Preguntas frecuentes</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Resolvemos tus dudas
+              <span className="block text-primary">antes de empezar.</span>
+            </h2>
+          </div>
+
+          <Accordion type="single" collapsible className="space-y-3">
+            {FAQS.map((item, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="rounded-xl border border-border bg-card px-5 data-[state=open]:border-primary/40 transition-colors"
+              >
+                <AccordionTrigger className="text-left font-semibold hover:no-underline py-4">
+                  <span className="flex items-center gap-3">
+                    <HelpCircle className="w-4 h-4 text-primary shrink-0" />
+                    {item.q}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-[15px] leading-relaxed pb-5 pl-7">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
+      {/* CTA FINAL */}
+      <section className="border-t border-border/60 bg-gradient-to-b from-background to-secondary/30 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-primary/10 blur-[120px]" />
+        </div>
         <div className="max-w-3xl mx-auto px-5 py-24 text-center">
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-            Trabajar más no siempre
-            <span className="block text-primary">significa avanzar mejor.</span>
+            Tu negocio no necesita
+            <span className="block text-muted-foreground">más herramientas sueltas.</span>
+            <span className="block text-primary mt-2">Necesita claridad.</span>
           </h2>
           <p className="mt-6 text-muted-foreground text-base md:text-lg">
-            Con claridad, tomas mejores decisiones.
+            Empieza gratis hoy y entiende lo que pasa detrás de tus proyectos.
           </p>
           <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/auth/register">
@@ -867,9 +1001,10 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link to="/auth/login">
-              <Button size="lg" variant="outline" className="h-12 px-8">
-                Ya tengo cuenta
+            <Link to="/auth/register">
+              <Button size="lg" variant="outline" className="h-12 px-8 gap-2">
+                <PlayCircle className="w-4 h-4" />
+                Solicitar demo
               </Button>
             </Link>
           </div>
