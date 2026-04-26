@@ -194,19 +194,27 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="surface-card p-4">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
-            Avance del proyecto
-            <span className="text-[9px] normal-case tracking-normal text-primary font-semibold">· auto</span>
+            Avance real (ponderado)
+            <span className="text-[9px] normal-case tracking-normal text-primary font-semibold">· PMBOK</span>
           </div>
           <div className="flex items-center gap-3 mt-2">
-            <div className="text-2xl font-bold font-mono-data fire-text">{project.progress}%</div>
-            <Progress value={project.progress} className="h-2 flex-1" />
+            <div className="text-2xl font-bold font-mono-data fire-text">{progressMetrics.realProgress}%</div>
+            <Progress value={progressMetrics.realProgress} className="h-2 flex-1" />
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
-            {doneTasks} de {totalTasks} tareas activas completadas
+            {progressMetrics.doneLeaves} de {progressMetrics.totalLeaves} tareas reales completadas
+            {progressMetrics.totalWeight !== progressMetrics.totalLeaves && (
+              <span className="ml-1">· {progressMetrics.doneWeight}/{progressMetrics.totalWeight} pts</span>
+            )}
             {cancelledTasks > 0 && (
-              <span className="ml-1 text-muted-foreground">· {cancelledTasks} cancelada{cancelledTasks === 1 ? "" : "s"} excluida{cancelledTasks === 1 ? "" : "s"}</span>
+              <span className="ml-1">· {cancelledTasks} cancelada{cancelledTasks === 1 ? "" : "s"}</span>
             )}
           </div>
+          {progressMetrics.realProgress !== progressMetrics.structuralProgress && (
+            <div className="text-[10px] text-muted-foreground mt-1 italic">
+              Estructural (sin pesos): {progressMetrics.structuralProgress}%
+            </div>
+          )}
         </div>
         <div className="surface-card p-4">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Presupuesto vs gasto</div>
