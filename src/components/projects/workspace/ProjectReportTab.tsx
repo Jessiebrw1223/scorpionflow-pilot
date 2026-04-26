@@ -4,7 +4,7 @@ import { Loader2, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { PROJECT_STATUS_META, TASK_PRIORITY_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
+import { PROJECT_STATUS_META, TASK_PRIORITY_META, TASK_IMPACT_META, isCountableTask, isPendingTask, getBlockedReasonLabel } from "@/lib/business-intelligence";
 import { useMoney } from "@/lib/format-money";
 import { NoDataMetric } from "@/components/state/NoDataMetric";
 
@@ -33,16 +33,19 @@ export default function ProjectReportTab({ project }: Props) {
   const margin = budget > 0 ? (profit / budget) * 100 : 0;
   const usedPct = budget > 0 ? Math.min(100, (actualCost / budget) * 100) : 0;
 
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter((t) => t.status === "done").length;
+  // Excluimos canceladas del total y contamos bloqueadas como pendientes.
+  const countableTasks = tasks.filter(isCountableTask);
+  const totalTasks = countableTasks.length;
+  const cancelledTasks = tasks.filter((t: any) => t.status === "cancelled").length;
+  const doneTasks = countableTasks.filter((t) => t.status === "done").length;
   const completion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  const blockingTasks = tasks.filter((t: any) => t.blocks_project);
-  const overdueTasks = tasks.filter(
-    (t: any) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date()
+  const blockingTasks = countableTasks.filter((t: any) => t.blocks_project && isPendingTask(t));
+  const overdueTasks = countableTasks.filter(
+    (t: any) => isPendingTask(t) && t.due_date && new Date(t.due_date) < new Date()
   );
-  const blockedTasks = tasks.filter((t: any) => t.status === "blocked");
-  const criticalImpactCost = tasks.filter((t: any) => t.impact === "cost" && t.status !== "done");
-  const tasksWithDueDate = tasks.filter((t: any) => !!t.due_date).length;
+  const blockedTasks = countableTasks.filter((t: any) => t.status === "blocked");
+  const criticalImpactCost = countableTasks.filter((t: any) => t.impact === "cost" && isPendingTask(t));
+  const tasksWithDueDate = countableTasks.filter((t: any) => !!t.due_date).length;
 
   // F8 — Métricas creíbles: solo evaluamos si hay datos suficientes.
   const hasFinancialData = budget > 0 || actualCost > 0;
@@ -183,14 +186,19 @@ export default function ProjectReportTab({ project }: Props) {
                 const im = TASK_IMPACT_META[t.impact || "delivery"];
                 const overdue = t.due_date && new Date(t.due_date) < new Date() && t.status !== "done";
                 return (
-                  <div key={t.id} className="flex items-center gap-2 text-[12px] py-1.5 border-b border-border last:border-0">
+                  <div key={t.id} className="flex items-center gap-2 text-[12px] py-1.5 border-b border-border last:border-0 flex-wrap">
                     <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", pr.bg, pr.color)}>
                       {pr.emoji} {pr.label}
                     </span>
                     <span className={cn("text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded", im.bg, im.color)}>
                       {im.emoji} {im.short}
                     </span>
-                    <span className="flex-1 truncate">{t.title}</span>
+                    <span className="flex-1 truncate min-w-0">{t.title}</span>
+                    {t.status === "blocked" && t.blocked_reason && (
+                      <span className="text-[10px] font-medium text-status-blocked bg-status-blocked/10 px-1.5 py-0.5 rounded">
+                        {getBlockedReasonLabel(t.blocked_reason)}
+                      </span>
+                    )}
                     {t.blocks_project && (
                       <span className="text-[10px] text-cost-warning font-semibold">⚠ Bloquea</span>
                     )}

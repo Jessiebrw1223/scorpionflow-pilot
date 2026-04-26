@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Calendar, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, ListChecks, ArrowRight, Building2, HandCoins, DollarSign } from "lucide-react";
+import { Calendar, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, ListChecks, ArrowRight, Building2, HandCoins, DollarSign, ShieldAlert, Activity } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,8 @@ import {
   getFinancialHealth,
   getExecutionStatus,
   formatSafeMargin,
+  isCountableTask,
+  isPendingTask,
 } from "@/lib/business-intelligence";
 import { useMoney } from "@/lib/format-money";
 import { useUserSettings } from "@/hooks/useUserSettings";
@@ -36,12 +38,18 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
   });
   const totalContributions = contributions.reduce((s, c: any) => s + Number(c.amount || 0), 0);
 
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter((t) => t.status === "done").length;
-  const blockedTasks = tasks.filter((t) => t.status === "blocked").length;
-  const blockingProject = tasks.filter((t) => t.blocks_project).length;
-  const overdueTasks = tasks.filter(
-    (t) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date()
+  // === Conteo de tareas con reglas Fase Consolidación ===
+  // - Canceladas se excluyen del total y de pendientes.
+  // - Bloqueadas cuentan como pendientes (no como completadas).
+  const countableTasks = tasks.filter(isCountableTask);
+  const totalTasks = countableTasks.length;
+  const doneTasks = countableTasks.filter((t) => t.status === "done").length;
+  const blockedTasks = countableTasks.filter((t) => t.status === "blocked").length;
+  const cancelledTasks = tasks.filter((t) => t.status === "cancelled").length;
+  const activeTasks = countableTasks.filter(isPendingTask).length;
+  const blockingProject = countableTasks.filter((t) => t.blocks_project && isPendingTask(t)).length;
+  const overdueTasks = countableTasks.filter(
+    (t) => isPendingTask(t) && t.due_date && new Date(t.due_date) < new Date()
   ).length;
 
   // === Estados DUALES: nunca mezclar tiempo con dinero ===
@@ -51,7 +59,7 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
     endDate: project.end_date,
     progress: Number(project.progress) || 0,
     hasOverdueTasks: overdueTasks > 0,
-    taskDates: tasks.map((t) => t.due_date),
+    taskDates: countableTasks.map((t) => t.due_date),
     inferSchedule: settings.auto_behavior.inferSchedule,
   });
   const financial = getFinancialHealth({
@@ -69,6 +77,40 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
   const usedPct = Number(project.budget) > 0
     ? Math.min(100, (Number(project.actual_cost) / Number(project.budget)) * 100)
     : 0;
+
+  // === Fecha estimada de entrega ===
+  // Prioridad: end_date del proyecto > máxima fecha límite de tareas activas.
+  const taskDueDates = countableTasks
+    .filter((t) => isPendingTask(t) && t.due_date)
+    .map((t) => new Date(t.due_date));
+  const maxTaskDue = taskDueDates.length
+    ? new Date(Math.max(...taskDueDates.map((d) => d.getTime())))
+    : null;
+  const estimatedDelivery: Date | null = project.end_date
+    ? new Date(project.end_date)
+    : maxTaskDue;
+  const estimatedDeliverySource = project.end_date ? "definida" : maxTaskDue ? "inferida" : "sin fecha";
+
+  // === Riesgo del proyecto (heurística simple, sin tocar finanzas) ===
+  // Alto: bloquea entrega O cancelado O perdiendo + atrasado.
+  // Medio: tareas vencidas O bloqueadas reales O sobre presupuesto.
+  // Bajo: en tiempo y sin bloqueos.
+  const riskLevel: "high" | "medium" | "low" | "unknown" =
+    project.status === "cancelled"
+      ? "high"
+      : blockingProject > 0 || (losing && execution.key === "delayed")
+      ? "high"
+      : execution.key === "not_evaluable" && totalTasks === 0
+      ? "unknown"
+      : overdueTasks > 0 || blockedTasks > 0 || execution.key === "delayed" || losing
+      ? "medium"
+      : "low";
+  const riskMeta = {
+    high: { label: "Alto", color: "text-cost-negative", bg: "bg-cost-negative/10", border: "border-cost-negative/40", emoji: "🔴" },
+    medium: { label: "Medio", color: "text-cost-warning", bg: "bg-cost-warning/10", border: "border-cost-warning/40", emoji: "🟡" },
+    low: { label: "Bajo", color: "text-cost-positive", bg: "bg-cost-positive/10", border: "border-cost-positive/40", emoji: "🟢" },
+    unknown: { label: "Sin datos", color: "text-muted-foreground", bg: "bg-muted/20", border: "border-muted/40", emoji: "⚪" },
+  }[riskLevel];
 
   return (
     <div className="space-y-4">
@@ -156,7 +198,10 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
             <Progress value={project.progress} className="h-2 flex-1" />
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
-            {doneTasks} de {totalTasks} tareas completadas
+            {doneTasks} de {totalTasks} tareas activas completadas
+            {cancelledTasks > 0 && (
+              <span className="ml-1 text-muted-foreground">· {cancelledTasks} cancelada{cancelledTasks === 1 ? "" : "s"} excluida{cancelledTasks === 1 ? "" : "s"}</span>
+            )}
           </div>
         </div>
         <div className="surface-card p-4">
@@ -167,6 +212,52 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
             {PEN.format(Number(project.actual_cost))} / {PEN.format(Number(project.budget))}
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================
+          4.5 RESUMEN EJECUTIVO — visión rápida del estado operativo
+          ============================================================ */}
+      <div className="surface-card p-4">
+        <h3 className="section-header mb-3 inline-flex items-center gap-1.5">
+          <Activity className="w-3.5 h-3.5 text-primary" /> Resumen ejecutivo
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Tareas activas</div>
+            <div className="text-xl font-bold font-mono-data text-foreground">{activeTasks}</div>
+            <div className="text-[11px] text-muted-foreground">de {totalTasks} totales</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Bloqueadas</div>
+            <div className={cn("text-xl font-bold font-mono-data", blockedTasks > 0 ? "text-status-blocked" : "text-foreground")}>{blockedTasks}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {blockingProject > 0 ? `${blockingProject} bloquea${blockingProject === 1 ? "" : "n"} entrega` : "Sin impacto en entrega"}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Entrega estimada</div>
+            <div className="text-sm font-semibold font-mono-data text-foreground">
+              {estimatedDelivery
+                ? estimatedDelivery.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })
+                : "—"}
+            </div>
+            <div className="text-[11px] text-muted-foreground capitalize">{estimatedDeliverySource}</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3" /> Riesgo
+            </div>
+            <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-sm font-bold", riskMeta.bg, riskMeta.color)}>
+              <span>{riskMeta.emoji}</span> {riskMeta.label}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {riskLevel === "high" && "Atención inmediata"}
+              {riskLevel === "medium" && "Monitorear de cerca"}
+              {riskLevel === "low" && "Sin alertas"}
+              {riskLevel === "unknown" && "Faltan datos"}
+            </div>
           </div>
         </div>
       </div>

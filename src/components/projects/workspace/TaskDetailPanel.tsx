@@ -12,10 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
-import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
+import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META, BLOCKED_REASONS } from "@/lib/business-intelligence";
 import { canAdminWorkspace, canEditAssignedTask, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
-type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
+type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked" | "cancelled";
 type TaskPriority = "low" | "medium" | "high" | "critical";
 type TaskImpact = "time" | "cost" | "delivery";
 
@@ -33,6 +33,7 @@ interface Task {
   blocks_project: boolean;
   estimated_cost?: number;
   actual_cost?: number;
+  blocked_reason?: string | null;
 }
 
 interface Props {
@@ -71,6 +72,8 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
           blocks_project: values.blocks_project,
           estimated_cost: Number(values.estimated_cost) || 0,
           actual_cost: Number(values.actual_cost) || 0,
+          // Solo guardamos motivo si la tarea está bloqueada; al cambiar de estado se limpia.
+          blocked_reason: values.status === "blocked" ? (values.blocked_reason || null) : null,
         })
         .eq("id", values.id);
       if (error) throw error;
@@ -183,6 +186,32 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
             </div>
           </div>
 
+          {/* Motivo de bloqueo — solo visible si status = blocked */}
+          {form.status === "blocked" && (
+            <div className="space-y-1.5 surface-card p-3 border-l-2 border-status-blocked bg-status-blocked/5">
+              <Label className="text-[11px] uppercase tracking-wider text-status-blocked inline-flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Motivo del bloqueo
+              </Label>
+              <Select
+                value={form.blocked_reason || ""}
+                onValueChange={(v) => setForm({ ...form, blocked_reason: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un motivo…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BLOCKED_REASONS.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.emoji} {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Identificar la causa ayuda al equipo a desbloquear más rápido.
+              </p>
+            </div>
+          )}
           {/* Responsable + Fecha */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

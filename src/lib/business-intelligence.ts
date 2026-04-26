@@ -702,7 +702,42 @@ export const TASK_STATUS_META: Record<string, { label: string; color: string }> 
   in_review: { label: "En revisión", color: "bg-status-review" },
   done: { label: "Completada", color: "bg-status-done" },
   blocked: { label: "Bloqueada", color: "bg-status-blocked" },
+  cancelled: { label: "Cancelada", color: "bg-muted-foreground" },
 };
+
+/**
+ * Catálogo de motivos para una tarea bloqueada.
+ * Mantener sincronizado con el selector en TaskDetailPanel.
+ */
+export const BLOCKED_REASONS: { value: string; label: string; emoji: string }[] = [
+  { value: "waiting_client", label: "Esperando cliente", emoji: "⏳" },
+  { value: "technical_dependency", label: "Dependencia técnica", emoji: "🔗" },
+  { value: "budget", label: "Presupuesto", emoji: "💰" },
+  { value: "no_assignee", label: "Sin responsable", emoji: "👤" },
+  { value: "other", label: "Otro motivo", emoji: "❔" },
+];
+
+export function getBlockedReasonLabel(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const found = BLOCKED_REASONS.find((r) => r.value === value);
+  return found ? `${found.emoji} ${found.label}` : value;
+}
+
+/**
+ * Reglas de cálculo de avance/conteo de tareas:
+ * - Canceladas NO se cuentan en el total ni como pendientes.
+ * - Bloqueadas cuentan como pendientes (no como completadas).
+ * - Solo nodos hoja (task/activity) son contables.
+ */
+export function isCountableTask(t: { status?: string | null; node_type?: string | null }): boolean {
+  if (t.status === "cancelled") return false;
+  if (t.node_type && !["task", "activity"].includes(t.node_type)) return false;
+  return true;
+}
+
+export function isPendingTask(t: { status?: string | null }): boolean {
+  return t.status !== "done" && t.status !== "cancelled";
+}
 
 // Tipo de nodo en la jerarquía de planificación
 export const NODE_TYPE_META: Record<
