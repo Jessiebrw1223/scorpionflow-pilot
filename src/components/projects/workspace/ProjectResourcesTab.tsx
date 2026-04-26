@@ -374,6 +374,26 @@ export default function ProjectResourcesTab({ project }: Props) {
     return out;
   }, [totals, project.budget, detectedHumans, pendingHumans.length, resources.length]);
 
+  if (!projectId) {
+    return (
+      <div className="surface-card p-8 text-center text-[12px] text-muted-foreground">
+        Cargando información del proyecto…
+      </div>
+    );
+  }
+
+  if (resourcesError) {
+    return (
+      <div className="surface-card p-8 text-center space-y-2">
+        <AlertTriangle className="w-6 h-6 text-cost-warning mx-auto" />
+        <p className="text-[13px] font-medium text-foreground">No se pudieron cargar los recursos del proyecto.</p>
+        <p className="text-[11px] text-muted-foreground">
+          Verifica tu conexión o tus permisos. Si el problema persiste, intenta recargar la página.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* RESUMEN ARRIBA */}
