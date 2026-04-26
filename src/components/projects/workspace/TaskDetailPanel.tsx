@@ -186,6 +186,32 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
             </div>
           </div>
 
+          {/* Motivo de bloqueo — solo visible si status = blocked */}
+          {form.status === "blocked" && (
+            <div className="space-y-1.5 surface-card p-3 border-l-2 border-status-blocked bg-status-blocked/5">
+              <Label className="text-[11px] uppercase tracking-wider text-status-blocked inline-flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Motivo del bloqueo
+              </Label>
+              <Select
+                value={form.blocked_reason || ""}
+                onValueChange={(v) => setForm({ ...form, blocked_reason: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un motivo…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BLOCKED_REASONS.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.emoji} {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Identificar la causa ayuda al equipo a desbloquear más rápido.
+              </p>
+            </div>
+          )}
           {/* Responsable + Fecha */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
