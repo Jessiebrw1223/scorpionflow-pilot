@@ -10,9 +10,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ScatterChart,
-  Scatter,
-  ZAxis,
   Cell,
 } from "recharts";
 import {
@@ -21,7 +18,6 @@ import {
   Wallet,
   Users,
   Crown,
-  ShieldAlert,
   LineChart as LineChartIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
