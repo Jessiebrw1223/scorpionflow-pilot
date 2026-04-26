@@ -211,6 +211,20 @@ export function AppSidebar() {
 
         {/* Footer */}
         <div className="px-2 py-2 border-t border-sidebar-border space-y-0.5">
+          {isSuperadmin && (
+            <NavLink
+              to="/admin"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf",
+                location.pathname.startsWith("/admin")
+                  ? "bg-orange-950/40 text-orange-300 border border-orange-900/40"
+                  : "text-orange-400/80 hover:text-orange-300 hover:bg-orange-950/30"
+              )}
+            >
+              <Shield className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Admin Console</span>}
+            </NavLink>
+          )}
           <NavLink
             to="/settings"
             className={cn(
