@@ -61,7 +61,7 @@ export default function ProjectWorkspacePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, status, due_date, blocks_project")
+        .select("id, status, due_date, blocks_project, node_type, weight")
         .eq("project_id", id!);
       if (error) throw error;
       return data;
