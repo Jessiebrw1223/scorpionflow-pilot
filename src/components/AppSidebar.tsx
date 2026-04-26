@@ -67,6 +67,7 @@ export function AppSidebar() {
   const gate = usePremiumGate();
   const { role } = useWorkspace();
   const { isBusiness } = usePlan();
+  const { isSuperadmin } = useIsSuperadmin();
 
   const handleLogout = async () => {
     await signOut();
