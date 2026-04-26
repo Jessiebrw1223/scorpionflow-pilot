@@ -667,18 +667,23 @@ export default function CotizacionesPage() {
                 </p>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenForm(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => create.mutate()}
-                disabled={create.isPending}
-                className="fire-button"
-              >
-                {create.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Crear cotización
-              </Button>
+            <DialogFooter className="flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground sm:mr-auto">
+                Podrás editarla luego.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setOpenForm(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => create.mutate()}
+                  disabled={create.isPending}
+                  className="fire-button"
+                >
+                  {create.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Crear cotización
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
