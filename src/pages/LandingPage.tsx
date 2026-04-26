@@ -172,11 +172,10 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted-foreground">
             <a href="#problema" className="hover:text-foreground transition-colors">Problema</a>
-            <a href="#demo" className="hover:text-foreground transition-colors">Demo</a>
             <a href="#solucion" className="hover:text-foreground transition-colors">Solución</a>
-            <a href="#colaboracion" className="hover:text-foreground transition-colors">Equipo</a>
-            <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
             <a href="#nosotros" className="hover:text-foreground transition-colors">Nosotros</a>
+            <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
+            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/auth/login">
