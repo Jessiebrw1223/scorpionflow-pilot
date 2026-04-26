@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { ExecutiveAnalytics } from "@/components/corporate/ExecutiveAnalytics";
 
 /**
  * Centro Financiero Corporativo (Plan Business)
@@ -84,6 +85,18 @@ export default function CorporateOverviewPage() {
       const { data, error } = await supabase
         .from("tasks")
         .select("id, title, status, due_date, project_id, blocks_project");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const { data: resources = [] } = useQuery({
+    queryKey: ["corp-resources"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_resources")
+        .select("id, project_id, kind, name, role_or_type, quantity, unit_cost, total_cost, status");
       if (error) throw error;
       return data as any[];
     },
@@ -510,6 +523,13 @@ export default function CorporateOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* === Analítica visual ejecutiva === */}
+      <ExecutiveAnalytics
+        projects={filteredProjects as any}
+        resources={resources as any}
+        quotations={quotations as any}
+      />
 
       <div className="flex items-center justify-end gap-2 text-[11px] text-muted-foreground pt-1">
         <Link to="/reports" className="hover:text-primary hover:underline">Ver informes ejecutivos →</Link>
