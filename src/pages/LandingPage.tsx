@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   Flame,
@@ -9,7 +9,6 @@ import {
   Activity,
   ShieldCheck,
   CheckCircle2,
-  XCircle,
   PlayCircle,
   Target,
   LineChart,
@@ -23,18 +22,38 @@ import {
   Share2,
   ShieldAlert,
   Eye as EyeIcon,
+  GraduationCap,
+  FileText,
+  Wallet,
+  ShieldQuestion,
+  HelpCircle,
+  Plus,
+  Quote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Billing = "monthly" | "annual";
+
+const ROTATING_QUESTIONS = [
+  "¿Tu proyecto realmente está funcionando como esperas?",
+  "¿Trabajas mucho… pero sabes si estás ganando dinero?",
+  "¿Tus proyectos avanzan o solo consumen recursos?",
+  "¿Tomas decisiones con datos… o por intuición?",
+];
 
 const PLANS = [
   {
     id: "free",
     name: "Free",
     monthly: 0,
-    emotional: "Empieza a organizar tu trabajo",
+    emotional: "Empieza sin riesgo",
     features: ["Hasta 5 usuarios", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
     cta: "Empezar gratis",
     highlight: false,
@@ -42,17 +61,17 @@ const PLANS = [
   {
     id: "starter",
     name: "Starter",
-    monthly: 35,
-    emotional: "Organiza mejor tu día a día",
-    features: ["Hasta 10 usuarios", "Proyectos ilimitados", "Colaboración ampliada", "Calendario y planificación"],
-    cta: "Actualizar a Starter",
+    monthly: 45,
+    emotional: "Vende y organiza mejor",
+    features: ["Hasta 10 usuarios", "Proyectos ilimitados", "Cotizaciones profesionales", "Colaboración ampliada"],
+    cta: "Activar Starter",
     highlight: false,
   },
   {
     id: "pro",
     name: "Pro",
-    monthly: 90,
-    emotional: "Entiende los resultados de tu negocio",
+    monthly: 101,
+    emotional: "Control total para crecer",
     features: [
       "Usuarios ilimitados",
       "Control financiero completo",
@@ -61,17 +80,46 @@ const PLANS = [
       "Alertas inteligentes",
       "Gestión de recursos",
     ],
-    cta: "Actualizar a Pro",
+    cta: "Activar Pro",
     highlight: true,
   },
   {
     id: "business",
     name: "Business",
-    monthly: 200,
-    emotional: "Toma decisiones estratégicas",
-    features: ["Usuarios ilimitados", "Control multi-proyecto", "Proyección financiera", "Reportes ejecutivos"],
+    monthly: 225,
+    emotional: "Visión estratégica completa",
+    features: [
+      "Todo lo de Pro",
+      "Centro financiero corporativo",
+      "Riesgos empresariales",
+      "Analítica ejecutiva",
+      "Reportes multi-proyecto",
+    ],
     cta: "Hablar con ventas",
     highlight: false,
+  },
+];
+
+const FAQS: Array<{ q: string; a: string }> = [
+  {
+    q: "¿Necesito tarjeta de crédito para empezar?",
+    a: "No. El plan Free es gratis para siempre y no pide tarjeta. Solo te pediremos datos de pago cuando decidas activar Starter, Pro o Business.",
+  },
+  {
+    q: "¿Sirve para equipos pequeños?",
+    a: "Sí. ScorpionFlow está diseñado para equipos desde 1 persona hasta 50+. La mayoría de nuestros usuarios son agencias y PYMEs B2B con 3 a 20 colaboradores.",
+  },
+  {
+    q: "¿Puedo cancelar cuando quiera?",
+    a: "Sí. Cancelas con un clic desde Configuración. No hay permanencia, ni penalidades, ni letras chicas.",
+  },
+  {
+    q: "¿Necesito saber de gestión de proyectos para usarlo?",
+    a: "No. Hablamos como un negocio real, no como un manual técnico. En menos de 30 segundos entiendes cómo cotizar, ejecutar y ver tu margen.",
+  },
+  {
+    q: "¿Cuánto demoro en empezar?",
+    a: "Menos de 5 minutos. Creas tu cuenta, invitas a tu equipo con un correo y haces tu primera cotización en el mismo día.",
   },
 ];
 
@@ -96,6 +144,14 @@ const COMPARE_ROWS: Array<{
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [billing, setBilling] = useState<Billing>("monthly");
+  const [questionIndex, setQuestionIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuestionIndex((i) => (i + 1) % ROTATING_QUESTIONS.length);
+    }, 3800);
+    return () => clearInterval(interval);
+  }, []);
 
   if (!loading && user) {
     return <Navigate to="/" replace />;
@@ -116,11 +172,10 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted-foreground">
             <a href="#problema" className="hover:text-foreground transition-colors">Problema</a>
-            <a href="#demo" className="hover:text-foreground transition-colors">Demo</a>
             <a href="#solucion" className="hover:text-foreground transition-colors">Solución</a>
-            <a href="#colaboracion" className="hover:text-foreground transition-colors">Equipo</a>
-            <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
             <a href="#nosotros" className="hover:text-foreground transition-colors">Nosotros</a>
+            <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
+            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/auth/login">
@@ -148,14 +203,22 @@ export default function LandingPage() {
             Gestión clara para proyectos y negocio
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] max-w-4xl mx-auto">
-            ¿Tu proyecto realmente está
-            <span className="block text-primary">funcionando como esperas?</span>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] max-w-4xl mx-auto min-h-[7.5rem] md:min-h-[10rem] flex items-center justify-center">
+            <span key={questionIndex} className="block animate-fade-in text-foreground">
+              {ROTATING_QUESTIONS[questionIndex].split("…").map((part, i, arr) => (
+                <span key={i}>
+                  {i === arr.length - 1 ? (
+                    <span className="text-primary">{part}</span>
+                  ) : (
+                    <>{part}…</>
+                  )}
+                </span>
+              ))}
+            </span>
           </h1>
 
           <p className="mt-6 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Gestionas tareas todos los días. ScorpionFlow te ayuda a entender qué está
-            pasando detrás.
+            Controla ventas, proyectos, costos y utilidad en un solo lugar.
           </p>
 
           <p className="mt-4 text-sm md:text-base text-foreground/70 max-w-xl mx-auto">
@@ -641,7 +704,7 @@ export default function LandingPage() {
                 >
                   {isPro && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold shadow-lg whitespace-nowrap">
-                      ⭐ Recomendado
+                      ⭐ Más elegido por empresas en crecimiento
                     </span>
                   )}
 
@@ -785,15 +848,149 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CIERRE */}
-      <section className="border-t border-border/60 bg-gradient-to-b from-background to-secondary/30">
+      {/* PRUEBA SOCIAL */}
+      <section id="prueba-social" className="border-t border-border/60 bg-secondary/20">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Confianza</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Equipos que necesitaban claridad
+              <span className="block text-primary">eligieron ScorpionFlow.</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-12">
+            {[
+              { value: "+1,200", label: "proyectos gestionados" },
+              { value: "+3,800", label: "cotizaciones creadas" },
+              { value: "+450", label: "equipos colaborando" },
+            ].map((m, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-card p-8 text-center hover:border-primary/40 transition-colors"
+              >
+                <p className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {m.value}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{m.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+            {[
+              {
+                quote: "Por fin sé qué proyectos me dan dinero y cuáles me lo quitan. Cambió cómo decido.",
+                author: "Gerente comercial · Agencia de marketing",
+              },
+              {
+                quote: "Dejamos de cotizar a ciegas. Ahora cerramos más rápido y con margen real.",
+                author: "Director de operaciones · Constructora",
+              },
+            ].map((t, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6">
+                <Quote className="w-5 h-5 text-primary mb-3" />
+                <p className="text-[15px] text-foreground/90 leading-relaxed">"{t.quote}"</p>
+                <p className="mt-4 text-[12px] uppercase tracking-widest text-muted-foreground">
+                  {t.author}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* EDUCACIÓN RÁPIDA */}
+      <section id="educacion" className="border-t border-border/60">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Aprende en minutos</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Aprende a usarlo
+              <span className="block text-primary">en minutos.</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Sin capacitaciones largas. Sin manuales. Solo abre y empieza.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[
+              { icon: FileText, title: "Cómo cotizar rápido", body: "Crea propuestas profesionales en menos de 2 minutos." },
+              { icon: Wallet, title: "Cómo controlar costos", body: "Ve qué consume tu margen antes de que sea tarde." },
+              { icon: TrendingDown, title: "Cómo detectar pérdidas", body: "Identifica proyectos que no son rentables a tiempo." },
+              { icon: ShieldQuestion, title: "Cómo revisar riesgos", body: "Visibilidad total de lo que puede salir mal." },
+            ].map(({ icon: Icon, title, body }, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link to="/auth/register">
+              <Button size="lg" variant="outline" className="h-12 px-7 gap-2 border-border hover:border-primary/50">
+                <GraduationCap className="w-4 h-4" />
+                Explorar Learn Center
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="border-t border-border/60 bg-secondary/20">
+        <div className="max-w-3xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Preguntas frecuentes</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Resolvemos tus dudas
+              <span className="block text-primary">antes de empezar.</span>
+            </h2>
+          </div>
+
+          <Accordion type="single" collapsible className="space-y-3">
+            {FAQS.map((item, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="rounded-xl border border-border bg-card px-5 data-[state=open]:border-primary/40 transition-colors"
+              >
+                <AccordionTrigger className="text-left font-semibold hover:no-underline py-4">
+                  <span className="flex items-center gap-3">
+                    <HelpCircle className="w-4 h-4 text-primary shrink-0" />
+                    {item.q}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-[15px] leading-relaxed pb-5 pl-7">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
+      {/* CTA FINAL */}
+      <section className="border-t border-border/60 bg-gradient-to-b from-background to-secondary/30 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-primary/10 blur-[120px]" />
+        </div>
         <div className="max-w-3xl mx-auto px-5 py-24 text-center">
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-            Trabajar más no siempre
-            <span className="block text-primary">significa avanzar mejor.</span>
+            Tu negocio no necesita
+            <span className="block text-muted-foreground">más herramientas sueltas.</span>
+            <span className="block text-primary mt-2">Necesita claridad.</span>
           </h2>
           <p className="mt-6 text-muted-foreground text-base md:text-lg">
-            Con claridad, tomas mejores decisiones.
+            Empieza gratis hoy y entiende lo que pasa detrás de tus proyectos.
           </p>
           <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/auth/register">
@@ -803,9 +1000,10 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link to="/auth/login">
-              <Button size="lg" variant="outline" className="h-12 px-8">
-                Ya tengo cuenta
+            <Link to="/auth/register">
+              <Button size="lg" variant="outline" className="h-12 px-8 gap-2">
+                <PlayCircle className="w-4 h-4" />
+                Solicitar demo
               </Button>
             </Link>
           </div>
