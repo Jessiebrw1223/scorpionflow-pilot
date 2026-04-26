@@ -361,6 +361,7 @@ export default function CotizacionesPage() {
       qc.invalidateQueries({ queryKey: ["quotations"] });
       toast.success("Cotización eliminada");
     },
+    onError: (e: Error) => toast.error("No se pudo eliminar", { description: e.message }),
   });
 
   const duplicate = useMutation({
