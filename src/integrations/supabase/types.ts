@@ -702,6 +702,7 @@ export type Database = {
           actual_cost: number
           assignee_id: string | null
           assignee_name: string | null
+          blocked_reason: string | null
           blocked_since: string | null
           blocks_project: boolean
           created_at: string
@@ -725,6 +726,7 @@ export type Database = {
           actual_cost?: number
           assignee_id?: string | null
           assignee_name?: string | null
+          blocked_reason?: string | null
           blocked_since?: string | null
           blocks_project?: boolean
           created_at?: string
@@ -748,6 +750,7 @@ export type Database = {
           actual_cost?: number
           assignee_id?: string | null
           assignee_name?: string | null
+          blocked_reason?: string | null
           blocked_since?: string | null
           blocks_project?: boolean
           created_at?: string
@@ -1069,7 +1072,13 @@ export type Database = {
         | "subphase"
         | "activity"
       task_priority: "low" | "medium" | "high" | "critical"
-      task_status: "todo" | "in_progress" | "in_review" | "done" | "blocked"
+      task_status:
+        | "todo"
+        | "in_progress"
+        | "in_review"
+        | "done"
+        | "blocked"
+        | "cancelled"
       team_role: "admin" | "collaborator" | "viewer"
     }
     CompositeTypes: {
@@ -1263,7 +1272,14 @@ export const Constants = {
         "activity",
       ],
       task_priority: ["low", "medium", "high", "critical"],
-      task_status: ["todo", "in_progress", "in_review", "done", "blocked"],
+      task_status: [
+        "todo",
+        "in_progress",
+        "in_review",
+        "done",
+        "blocked",
+        "cancelled",
+      ],
       team_role: ["admin", "collaborator", "viewer"],
     },
   },
