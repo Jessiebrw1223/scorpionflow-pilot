@@ -432,6 +432,10 @@ export default function CorporateRisksPage() {
     return risks.filter((r) => {
       if (levelFilter !== "all" && r.level !== levelFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (categoryFilter === "critical" && r.level !== "critical") return false;
+      if (categoryFilter === "financial" && r.category !== "financial") return false;
+      if (categoryFilter === "operational" && r.category !== "operational" && r.category !== "schedule") return false;
+      if (categoryFilter === "closed" && r.status !== "closed" && r.status !== "mitigated") return false;
       if (search) {
         const q = search.toLowerCase();
         const hit =
@@ -443,7 +447,7 @@ export default function CorporateRisksPage() {
       }
       return true;
     });
-  }, [risks, levelFilter, statusFilter, search]);
+  }, [risks, levelFilter, statusFilter, categoryFilter, search]);
 
   // === Plan gate ===
   if (!planLoading && !isBusiness) {
