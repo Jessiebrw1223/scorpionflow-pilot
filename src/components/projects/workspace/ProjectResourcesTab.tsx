@@ -342,7 +342,14 @@ export default function ProjectResourcesTab({ project }: Props) {
 
   // ===== Totales =====
   const totals = useMemo(() => {
-    const sum = (k: Kind) => resources.filter(r => r.kind === k).reduce((s, r) => s + Number(r.total_cost), 0);
+    const safeNum = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const sum = (k: Kind) =>
+      (resources ?? [])
+        .filter(r => r?.kind === k)
+        .reduce((s, r) => s + safeNum(r?.total_cost), 0);
     const human = sum("human");
     const tech = sum("tech");
     const asset = sum("asset");
