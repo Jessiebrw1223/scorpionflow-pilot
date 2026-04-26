@@ -1025,7 +1025,7 @@ export type Database = {
         | "resource_overload"
         | "quotation_stale"
         | "general"
-      app_role: "admin" | "manager" | "user"
+      app_role: "admin" | "manager" | "user" | "superadmin"
       client_type:
         | "hotel"
         | "spa"
@@ -1220,7 +1220,7 @@ export const Constants = {
         "quotation_stale",
         "general",
       ],
-      app_role: ["admin", "manager", "user"],
+      app_role: ["admin", "manager", "user", "superadmin"],
       client_type: [
         "hotel",
         "spa",
