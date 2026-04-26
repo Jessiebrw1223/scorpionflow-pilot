@@ -144,6 +144,14 @@ const COMPARE_ROWS: Array<{
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [billing, setBilling] = useState<Billing>("monthly");
+  const [questionIndex, setQuestionIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuestionIndex((i) => (i + 1) % ROTATING_QUESTIONS.length);
+    }, 3800);
+    return () => clearInterval(interval);
+  }, []);
 
   if (!loading && user) {
     return <Navigate to="/" replace />;
