@@ -190,6 +190,41 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
             </div>
           </div>
 
+          {/* Peso / Story points — solo nodos hoja contables (PMBOK 8: ponderado real) */}
+          {(!form.node_type || ["task", "activity"].includes(form.node_type)) && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+                Peso (story points)
+                <span className="text-[10px] text-muted-foreground/70 normal-case tracking-normal">
+                  · cuánto vale para el avance
+                </span>
+              </Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={form.weight ?? 1}
+                  onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 1 })}
+                  className="w-24 font-mono-data"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[11px]"
+                  onClick={() => setForm({ ...form, weight: suggestWeightFromPriority(form.priority) })}
+                  title="Sugerir peso según la prioridad"
+                >
+                  Sugerir ({suggestWeightFromPriority(form.priority)})
+                </Button>
+                <p className="text-[11px] text-muted-foreground basis-full">
+                  Tareas pequeñas = 1-3 · Medianas = 5-8 · Grandes = 13+
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Motivo de bloqueo — solo visible si status = blocked */}
           {form.status === "blocked" && (
             <div className="space-y-1.5 surface-card p-3 border-l-2 border-status-blocked bg-status-blocked/5">
