@@ -141,6 +141,7 @@ export default function CotizacionesPage() {
   const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
+  const [deletingQuote, setDeletingQuote] = useState<Quotation | null>(null);
   const planLimits = usePlanLimits();
 
   const tryOpenForm = () => {
