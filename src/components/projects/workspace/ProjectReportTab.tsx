@@ -33,16 +33,19 @@ export default function ProjectReportTab({ project }: Props) {
   const margin = budget > 0 ? (profit / budget) * 100 : 0;
   const usedPct = budget > 0 ? Math.min(100, (actualCost / budget) * 100) : 0;
 
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter((t) => t.status === "done").length;
+  // Excluimos canceladas del total y contamos bloqueadas como pendientes.
+  const countableTasks = tasks.filter(isCountableTask);
+  const totalTasks = countableTasks.length;
+  const cancelledTasks = tasks.filter((t: any) => t.status === "cancelled").length;
+  const doneTasks = countableTasks.filter((t) => t.status === "done").length;
   const completion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  const blockingTasks = tasks.filter((t: any) => t.blocks_project);
-  const overdueTasks = tasks.filter(
-    (t: any) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date()
+  const blockingTasks = countableTasks.filter((t: any) => t.blocks_project && isPendingTask(t));
+  const overdueTasks = countableTasks.filter(
+    (t: any) => isPendingTask(t) && t.due_date && new Date(t.due_date) < new Date()
   );
-  const blockedTasks = tasks.filter((t: any) => t.status === "blocked");
-  const criticalImpactCost = tasks.filter((t: any) => t.impact === "cost" && t.status !== "done");
-  const tasksWithDueDate = tasks.filter((t: any) => !!t.due_date).length;
+  const blockedTasks = countableTasks.filter((t: any) => t.status === "blocked");
+  const criticalImpactCost = countableTasks.filter((t: any) => t.impact === "cost" && isPendingTask(t));
+  const tasksWithDueDate = countableTasks.filter((t: any) => !!t.due_date).length;
 
   // F8 — Métricas creíbles: solo evaluamos si hay datos suficientes.
   const hasFinancialData = budget > 0 || actualCost > 0;
