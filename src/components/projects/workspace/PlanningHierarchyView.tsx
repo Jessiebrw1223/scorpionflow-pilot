@@ -11,6 +11,8 @@ import {
   TASK_STATUS_META,
   NODE_TYPE_META,
   getNodeTypesForMode,
+  isContainerNode,
+  computeContainerProgress,
 } from "@/lib/business-intelligence";
 import TaskDetailPanel from "./TaskDetailPanel";
 
