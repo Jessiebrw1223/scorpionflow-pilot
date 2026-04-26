@@ -831,8 +831,9 @@ export default function CotizacionesPage() {
                             {PEN.format(Number(q.total))}
                           </span>
                           {q.converted_to_project && (
-                            <span className="text-[10px] uppercase tracking-wider text-cost-positive font-semibold">
-                              ★ Proyecto
+                            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-cost-positive font-semibold bg-cost-positive/10 border border-cost-positive/30 rounded px-1.5 py-0.5">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Proyecto creado
                             </span>
                           )}
                         </div>
