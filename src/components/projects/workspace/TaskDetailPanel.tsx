@@ -12,10 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
-import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META } from "@/lib/business-intelligence";
+import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META, BLOCKED_REASONS } from "@/lib/business-intelligence";
 import { canAdminWorkspace, canEditAssignedTask, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
-type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked";
+type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked" | "cancelled";
 type TaskPriority = "low" | "medium" | "high" | "critical";
 type TaskImpact = "time" | "cost" | "delivery";
 
@@ -33,6 +33,7 @@ interface Task {
   blocks_project: boolean;
   estimated_cost?: number;
   actual_cost?: number;
+  blocked_reason?: string | null;
 }
 
 interface Props {
