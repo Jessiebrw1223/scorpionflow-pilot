@@ -113,9 +113,19 @@ export default function ProjectReportTab({ project }: Props) {
             )}
           </div>
           <div className="text-right">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Avance</div>
-            <div className="text-2xl font-bold font-mono-data fire-text">{project.progress}%</div>
-            <div className="text-[11px] text-muted-foreground font-mono-data">{doneTasks}/{totalTasks} tareas</div>
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Avance real</div>
+            <div className="text-2xl font-bold font-mono-data fire-text">{progressMetrics.realProgress}%</div>
+            <div className="text-[11px] text-muted-foreground font-mono-data">
+              {progressMetrics.doneLeaves}/{progressMetrics.totalLeaves} tareas
+              {progressMetrics.totalWeight !== progressMetrics.totalLeaves && (
+                <> · {progressMetrics.doneWeight}/{progressMetrics.totalWeight} pts</>
+              )}
+            </div>
+            {progressMetrics.realProgress !== progressMetrics.structuralProgress && (
+              <div className="text-[10px] text-muted-foreground italic mt-0.5">
+                Estructural: {progressMetrics.structuralProgress}%
+              </div>
+            )}
           </div>
         </div>
       </div>
