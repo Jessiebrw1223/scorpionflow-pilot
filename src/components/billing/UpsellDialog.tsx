@@ -42,9 +42,9 @@ const PLAN_BENEFITS: Record<Exclude<PlanId, "free">, string[]> = {
 };
 
 const PLAN_PRICES: Record<Exclude<PlanId, "free">, { monthly: string; annual: string }> = {
-  starter: { monthly: "$12", annual: "$108" },
-  pro: { monthly: "$27", annual: "$252" },
-  business: { monthly: "$60", annual: "$576" },
+  starter: { monthly: "S/45", annual: "S/432" },
+  pro: { monthly: "S/101", annual: "S/970" },
+  business: { monthly: "S/225", annual: "S/2,160" },
 };
 
 const FEATURE_HEADLINES: Record<PremiumFeature, string> = {
