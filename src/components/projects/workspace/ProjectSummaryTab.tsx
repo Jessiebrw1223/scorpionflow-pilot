@@ -198,7 +198,10 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
             <Progress value={project.progress} className="h-2 flex-1" />
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
-            {doneTasks} de {totalTasks} tareas completadas
+            {doneTasks} de {totalTasks} tareas activas completadas
+            {cancelledTasks > 0 && (
+              <span className="ml-1 text-muted-foreground">· {cancelledTasks} cancelada{cancelledTasks === 1 ? "" : "s"} excluida{cancelledTasks === 1 ? "" : "s"}</span>
+            )}
           </div>
         </div>
         <div className="surface-card p-4">
@@ -209,6 +212,52 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
           </div>
           <div className="text-[11px] text-muted-foreground mt-2 font-mono-data">
             {PEN.format(Number(project.actual_cost))} / {PEN.format(Number(project.budget))}
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================
+          4.5 RESUMEN EJECUTIVO — visión rápida del estado operativo
+          ============================================================ */}
+      <div className="surface-card p-4">
+        <h3 className="section-header mb-3 inline-flex items-center gap-1.5">
+          <Activity className="w-3.5 h-3.5 text-primary" /> Resumen ejecutivo
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Tareas activas</div>
+            <div className="text-xl font-bold font-mono-data text-foreground">{activeTasks}</div>
+            <div className="text-[11px] text-muted-foreground">de {totalTasks} totales</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Bloqueadas</div>
+            <div className={cn("text-xl font-bold font-mono-data", blockedTasks > 0 ? "text-status-blocked" : "text-foreground")}>{blockedTasks}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {blockingProject > 0 ? `${blockingProject} bloquea${blockingProject === 1 ? "" : "n"} entrega` : "Sin impacto en entrega"}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Entrega estimada</div>
+            <div className="text-sm font-semibold font-mono-data text-foreground">
+              {estimatedDelivery
+                ? estimatedDelivery.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })
+                : "—"}
+            </div>
+            <div className="text-[11px] text-muted-foreground capitalize">{estimatedDeliverySource}</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3" /> Riesgo
+            </div>
+            <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-sm font-bold", riskMeta.bg, riskMeta.color)}>
+              <span>{riskMeta.emoji}</span> {riskMeta.label}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {riskLevel === "high" && "Atención inmediata"}
+              {riskLevel === "medium" && "Monitorear de cerca"}
+              {riskLevel === "low" && "Sin alertas"}
+              {riskLevel === "unknown" && "Faltan datos"}
+            </div>
           </div>
         </div>
       </div>
