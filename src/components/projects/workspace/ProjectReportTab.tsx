@@ -39,6 +39,7 @@ export default function ProjectReportTab({ project }: Props) {
   const cancelledTasks = tasks.filter((t: any) => t.status === "cancelled").length;
   const doneTasks = countableTasks.filter((t) => t.status === "done").length;
   const completion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const progressMetrics = computeProgressMetrics(tasks);
   const blockingTasks = countableTasks.filter((t: any) => t.blocks_project && isPendingTask(t));
   const overdueTasks = countableTasks.filter(
     (t: any) => isPendingTask(t) && t.due_date && new Date(t.due_date) < new Date()
