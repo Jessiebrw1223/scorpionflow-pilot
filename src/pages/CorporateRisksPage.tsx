@@ -114,6 +114,7 @@ export default function CorporateRisksPage() {
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // === Data fetching (solo si Business) ===
   const { data: projects = [] } = useQuery({
