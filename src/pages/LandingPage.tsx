@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   Flame,
@@ -9,7 +9,6 @@ import {
   Activity,
   ShieldCheck,
   CheckCircle2,
-  XCircle,
   PlayCircle,
   Target,
   LineChart,
@@ -23,18 +22,38 @@ import {
   Share2,
   ShieldAlert,
   Eye as EyeIcon,
+  GraduationCap,
+  FileText,
+  Wallet,
+  ShieldQuestion,
+  HelpCircle,
+  Plus,
+  Quote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Billing = "monthly" | "annual";
+
+const ROTATING_QUESTIONS = [
+  "¿Tu proyecto realmente está funcionando como esperas?",
+  "¿Trabajas mucho… pero sabes si estás ganando dinero?",
+  "¿Tus proyectos avanzan o solo consumen recursos?",
+  "¿Tomas decisiones con datos… o por intuición?",
+];
 
 const PLANS = [
   {
     id: "free",
     name: "Free",
     monthly: 0,
-    emotional: "Empieza a organizar tu trabajo",
+    emotional: "Empieza sin riesgo",
     features: ["Hasta 5 usuarios", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
     cta: "Empezar gratis",
     highlight: false,
@@ -42,17 +61,17 @@ const PLANS = [
   {
     id: "starter",
     name: "Starter",
-    monthly: 35,
-    emotional: "Organiza mejor tu día a día",
-    features: ["Hasta 10 usuarios", "Proyectos ilimitados", "Colaboración ampliada", "Calendario y planificación"],
-    cta: "Actualizar a Starter",
+    monthly: 45,
+    emotional: "Vende y organiza mejor",
+    features: ["Hasta 10 usuarios", "Proyectos ilimitados", "Cotizaciones profesionales", "Colaboración ampliada"],
+    cta: "Activar Starter",
     highlight: false,
   },
   {
     id: "pro",
     name: "Pro",
-    monthly: 90,
-    emotional: "Entiende los resultados de tu negocio",
+    monthly: 101,
+    emotional: "Control total para crecer",
     features: [
       "Usuarios ilimitados",
       "Control financiero completo",
@@ -61,17 +80,46 @@ const PLANS = [
       "Alertas inteligentes",
       "Gestión de recursos",
     ],
-    cta: "Actualizar a Pro",
+    cta: "Activar Pro",
     highlight: true,
   },
   {
     id: "business",
     name: "Business",
-    monthly: 200,
-    emotional: "Toma decisiones estratégicas",
-    features: ["Usuarios ilimitados", "Control multi-proyecto", "Proyección financiera", "Reportes ejecutivos"],
+    monthly: 225,
+    emotional: "Visión estratégica completa",
+    features: [
+      "Todo lo de Pro",
+      "Centro financiero corporativo",
+      "Riesgos empresariales",
+      "Analítica ejecutiva",
+      "Reportes multi-proyecto",
+    ],
     cta: "Hablar con ventas",
     highlight: false,
+  },
+];
+
+const FAQS: Array<{ q: string; a: string }> = [
+  {
+    q: "¿Necesito tarjeta de crédito para empezar?",
+    a: "No. El plan Free es gratis para siempre y no pide tarjeta. Solo te pediremos datos de pago cuando decidas activar Starter, Pro o Business.",
+  },
+  {
+    q: "¿Sirve para equipos pequeños?",
+    a: "Sí. ScorpionFlow está diseñado para equipos desde 1 persona hasta 50+. La mayoría de nuestros usuarios son agencias y PYMEs B2B con 3 a 20 colaboradores.",
+  },
+  {
+    q: "¿Puedo cancelar cuando quiera?",
+    a: "Sí. Cancelas con un clic desde Configuración. No hay permanencia, ni penalidades, ni letras chicas.",
+  },
+  {
+    q: "¿Necesito saber de gestión de proyectos para usarlo?",
+    a: "No. Hablamos como un negocio real, no como un manual técnico. En menos de 30 segundos entiendes cómo cotizar, ejecutar y ver tu margen.",
+  },
+  {
+    q: "¿Cuánto demoro en empezar?",
+    a: "Menos de 5 minutos. Creas tu cuenta, invitas a tu equipo con un correo y haces tu primera cotización en el mismo día.",
   },
 ];
 
