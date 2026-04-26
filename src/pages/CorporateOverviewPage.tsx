@@ -90,6 +90,18 @@ export default function CorporateOverviewPage() {
     },
   });
 
+  const { data: resources = [] } = useQuery({
+    queryKey: ["corp-resources"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_resources")
+        .select("id, project_id, kind, name, role_or_type, quantity, unit_cost, total_cost, status");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   // === Filters ===
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
