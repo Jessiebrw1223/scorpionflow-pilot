@@ -487,16 +487,56 @@ export default function CorporateRisksPage() {
     <TooltipProvider>
       <div className="min-h-screen bg-background text-foreground p-6 space-y-6">
         {/* Header */}
-        <header className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-status-blocked/15 border border-status-blocked/30 flex items-center justify-center">
-              <ShieldAlert className="w-5 h-5 text-status-blocked" />
+        <header className="space-y-3">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-status-blocked/15 border border-status-blocked/30 flex items-center justify-center">
+                <ShieldAlert className="w-5 h-5 text-status-blocked" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Centro de Riesgos Empresariales</h1>
+                <p className="text-sm text-muted-foreground max-w-2xl">
+                  Anticipa problemas, protege utilidad y toma acción antes de perder dinero.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Riesgos Empresariales</h1>
-              <p className="text-sm text-muted-foreground">
-                Qué puede salir mal, cuánto costaría y qué hacer hoy.
-              </p>
+            <button
+              onClick={() =>
+                toast.info("Próximamente", {
+                  description: "El registro manual de riesgos llegará pronto. Por ahora se detectan automáticamente.",
+                })
+              }
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-sf"
+            >
+              <Plus className="w-4 h-4" /> Nuevo riesgo
+            </button>
+          </div>
+
+          {/* Filtros rápidos por categoría */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {[
+              { id: "all", label: "Todos" },
+              { id: "critical", label: "Críticos" },
+              { id: "financial", label: "Financieros" },
+              { id: "operational", label: "Operativos" },
+              { id: "closed", label: "Cerrados" },
+            ].map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setCategoryFilter(c.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium border transition-sf",
+                  categoryFilter === c.id
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card/40 text-muted-foreground border-border/60 hover:text-foreground hover:border-border"
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+            <div className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Info className="w-3 h-3" />
+              {filteredRisks.length} riesgo{filteredRisks.length === 1 ? "" : "s"} en vista
             </div>
           </div>
         </header>
