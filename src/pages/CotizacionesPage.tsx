@@ -427,9 +427,20 @@ export default function CotizacionesPage() {
     return m;
   }, [quotes]);
 
+  // Vendido este mes (won en el mes actual)
+  const startOfMonth = useMemo(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  }, []);
+  const soldThisMonth = quotes
+    .filter((q) => q.status === "won" && new Date(q.status_changed_at).getTime() >= startOfMonth)
+    .reduce((s, q) => s + Number(q.total), 0);
   const totalWon = quotes.filter((q) => q.status === "won").reduce((s, q) => s + Number(q.total), 0);
   const conversionRate =
     quotes.length > 0 ? (quotes.filter((q) => q.status === "won").length / quotes.length) * 100 : 0;
+  const activeOpportunities = quotes.filter(
+    (q) => q.status === "pending" || q.status === "in_contact" || q.status === "quoted"
+  ).length;
 
   const updateItem = (idx: number, patch: Partial<QuoteItem>) => {
     setForm((f) => ({
