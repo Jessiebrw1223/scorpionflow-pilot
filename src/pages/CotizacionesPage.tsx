@@ -476,7 +476,7 @@ export default function CotizacionesPage() {
             <DialogHeader>
               <DialogTitle className="fire-text">Nueva cotización</DialogTitle>
               <p className="text-[12px] text-muted-foreground mt-1">
-                <span className="text-primary font-semibold">Paso 2:</span> Crea una cotización para tu cliente. Define los conceptos y el sistema calcula el total.
+                Define qué le vas a cobrar al cliente. El total se calcula automáticamente.
               </p>
             </DialogHeader>
             <div className="space-y-4">
