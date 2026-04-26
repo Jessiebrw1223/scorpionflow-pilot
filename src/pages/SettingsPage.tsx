@@ -158,7 +158,7 @@ export default function SettingsPage() {
 
   // Decide la acción correcta según el estado actual del usuario
   const handlePlanAction = async (planId: PlanId) => {
-    if (planId === "free" || planId === realPlan && billing === realBilling) return;
+    if (planId === realPlan && billing === realBilling) return;
 
     // Caso 1: NO tiene sub activa en Stripe → checkout nuevo
     if (!hasActiveStripeSub) {

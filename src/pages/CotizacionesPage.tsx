@@ -349,7 +349,10 @@ export default function CotizacionesPage() {
       // Auto-navegar al workspace recién creado
       setTimeout(() => navigate(`/projects/${projectId}`), 600);
     },
-    onError: (e: Error) => toast.error("Error al convertir", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("No pudimos crear el proyecto", {
+        description: `${e.message}. La cotización no fue marcada como ganada para evitar inconsistencias.`,
+      }),
   });
 
   const remove = useMutation({
