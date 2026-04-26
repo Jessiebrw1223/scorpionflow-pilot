@@ -91,7 +91,12 @@ export default function ProjectsPage() {
   const PEN = useMoney();
   const { settings } = useUserSettings();
   const { user } = useAuth();
-  const { ownerId: workspaceOwnerId, role: workspaceRole, ownerName } = useWorkspace();
+  const { guestWorkspaces } = useWorkspace();
+  // Set de owner_ids de equipos ajenos donde soy miembro (para clasificar "team" vs "shared").
+  const guestOwnerIds = useMemo(
+    () => new Set(guestWorkspaces.map((g) => g.ownerId)),
+    [guestWorkspaces],
+  );
 
   const { data: projects = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["projects", user?.id],
@@ -122,17 +127,19 @@ export default function ProjectsPage() {
       });
       const health = getProjectHealth({ execution, financial });
 
-      // Clasificación: own si yo soy el owner del proyecto;
-      // team si el proyecto pertenece al workspace ajeno donde soy miembro;
-      // shared si fue compartido vía project_members (proyecto de otro owner distinto al workspace).
+      // Clasificación:
+      //   own    = yo soy el owner del proyecto (workspace personal).
+      //   team   = el proyecto pertenece a un workspace ajeno donde soy miembro del equipo.
+      //   shared = el proyecto fue compartido conmigo vía project_members
+      //            (no soy miembro del workspace owner, solo del proyecto).
       let scope: ProjectScope = "own";
       if (p.owner_id === user?.id) scope = "own";
-      else if (workspaceOwnerId && p.owner_id === workspaceOwnerId) scope = "team";
+      else if (guestOwnerIds.has(p.owner_id)) scope = "team";
       else scope = "shared";
 
       return { project: p, execution, financial, health, scope };
     });
-  }, [projects, settings.auto_behavior.inferSchedule, settings.target_margin, user?.id, workspaceOwnerId]);
+  }, [projects, settings.auto_behavior.inferSchedule, settings.target_margin, user?.id, guestOwnerIds]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -300,7 +307,7 @@ export default function ProjectsPage() {
             description="Proyectos creados por ti."
             items={sections.own}
             scope="own"
-            workspaceRole={workspaceRole}
+            workspaceRole="owner"
             PEN={PEN}
           />
           <ProjectSection
@@ -309,16 +316,20 @@ export default function ProjectsPage() {
             description="Proyectos donde te asignaron acceso específico."
             items={sections.shared}
             scope="shared"
-            workspaceRole={workspaceRole}
+            workspaceRole="collaborator"
             PEN={PEN}
           />
           <ProjectSection
-            title={ownerName ? `Equipo · ${ownerName}` : "Equipos / Workspaces"}
+            title={
+              guestWorkspaces.length === 1 && guestWorkspaces[0].ownerName
+                ? `Equipo · ${guestWorkspaces[0].ownerName}`
+                : "Equipos / Workspaces"
+            }
             icon={<Users className="w-3.5 h-3.5" />}
-            description="Proyectos del workspace donde colaboras."
+            description="Proyectos de los workspaces donde colaboras."
             items={sections.team}
             scope="team"
-            workspaceRole={workspaceRole}
+            workspaceRole={guestWorkspaces[0]?.role ?? "collaborator"}
             PEN={PEN}
           />
         </div>
