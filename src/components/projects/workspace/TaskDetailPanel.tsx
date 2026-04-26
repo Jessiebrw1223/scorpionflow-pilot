@@ -72,6 +72,8 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
           blocks_project: values.blocks_project,
           estimated_cost: Number(values.estimated_cost) || 0,
           actual_cost: Number(values.actual_cost) || 0,
+          // Solo guardamos motivo si la tarea está bloqueada; al cambiar de estado se limpia.
+          blocked_reason: values.status === "blocked" ? (values.blocked_reason || null) : null,
         })
         .eq("id", values.id);
       if (error) throw error;
