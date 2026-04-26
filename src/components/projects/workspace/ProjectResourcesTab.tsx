@@ -53,6 +53,24 @@ const UNIT_META: Record<Unit, { label: string; suffix: string; qtyLabel: string 
   fixed: { label: "Costo único",        suffix: "",     qtyLabel: "Cantidad" },
 };
 
+// Acceso defensivo: si el valor en BD no coincide con el enum esperado,
+// devuelve un fallback en lugar de romper el render.
+const FALLBACK_UNIT_META = { label: "Costo", suffix: "", qtyLabel: "Cantidad" };
+const FALLBACK_KIND_META = {
+  label: "Recurso",
+  icon: Cog,
+  color: "text-muted-foreground",
+  bg: "bg-muted",
+  placeholderName: "",
+  placeholderRole: "",
+};
+function unitMeta(u: unknown) {
+  return (u && (UNIT_META as any)[u as string]) || FALLBACK_UNIT_META;
+}
+function kindMeta(k: unknown) {
+  return (k && (KIND_META as any)[k as string]) || FALLBACK_KIND_META;
+}
+
 // Opciones de tipo de costo permitidas según naturaleza del recurso
 const HUMAN_UNIT_OPTIONS: Unit[] = ["month", "hour", "use"];      // Personas: mensual / hora / tarea
 const TECH_UNIT_OPTIONS:  Unit[] = ["month", "use", "fixed"];     // Tech: SaaS mensual, APIs por uso, software único
