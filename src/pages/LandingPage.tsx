@@ -204,14 +204,22 @@ export default function LandingPage() {
             Gestión clara para proyectos y negocio
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] max-w-4xl mx-auto">
-            ¿Tu proyecto realmente está
-            <span className="block text-primary">funcionando como esperas?</span>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] max-w-4xl mx-auto min-h-[7.5rem] md:min-h-[10rem] flex items-center justify-center">
+            <span key={questionIndex} className="block animate-fade-in text-foreground">
+              {ROTATING_QUESTIONS[questionIndex].split("…").map((part, i, arr) => (
+                <span key={i}>
+                  {i === arr.length - 1 ? (
+                    <span className="text-primary">{part}</span>
+                  ) : (
+                    <>{part}…</>
+                  )}
+                </span>
+              ))}
+            </span>
           </h1>
 
           <p className="mt-6 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Gestionas tareas todos los días. ScorpionFlow te ayuda a entender qué está
-            pasando detrás.
+            Controla ventas, proyectos, costos y utilidad en un solo lugar.
           </p>
 
           <p className="mt-4 text-sm md:text-base text-foreground/70 max-w-xl mx-auto">
