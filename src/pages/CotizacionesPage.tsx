@@ -672,6 +672,44 @@ export default function CotizacionesPage() {
         </Dialog>
       </div>
 
+      {quotes.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="surface-card p-4 fire-glow">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Vendido este mes
+            </div>
+            <div className="font-mono-data fire-text text-2xl font-bold mt-1">
+              {PEN.format(soldThisMonth)}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              Total ganado histórico: {PEN.format(totalWon)}
+            </div>
+          </div>
+          <div className="surface-card p-4">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Tasa de cierre
+            </div>
+            <div className="font-mono-data text-2xl font-bold text-foreground mt-1">
+              {conversionRate.toFixed(0)}%
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              {quotes.filter((q) => q.status === "won").length} de {quotes.length} cotizaciones
+            </div>
+          </div>
+          <div className="surface-card p-4">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Oportunidades activas
+            </div>
+            <div className="font-mono-data text-2xl font-bold text-foreground mt-1">
+              {activeOpportunities}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              En pipeline (pendiente, en contacto, cotizado)
+            </div>
+          </div>
+        </div>
+      )}
+
       {clients.length === 0 && (
         <div className="surface-card border border-cost-warning/40 bg-cost-warning/5 p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-cost-warning shrink-0 mt-0.5" />
