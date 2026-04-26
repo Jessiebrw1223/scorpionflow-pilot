@@ -15,6 +15,7 @@ import {
   Building2,
   ShieldAlert,
   Lock,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -218,6 +219,18 @@ export function AppSidebar() {
           >
             <Settings className="w-4 h-4 shrink-0" />
             {!collapsed && <span>Configuración</span>}
+          </NavLink>
+          <NavLink
+            to="/learn"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-sf",
+              location.pathname.startsWith("/learn")
+                ? "bg-sidebar-accent text-primary"
+                : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+            )}
+          >
+            <HelpCircle className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Centro de Ayuda</span>}
           </NavLink>
           <button
             onClick={handleLogout}
