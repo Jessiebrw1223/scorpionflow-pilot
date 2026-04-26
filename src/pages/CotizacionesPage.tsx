@@ -753,18 +753,16 @@ export default function CotizacionesPage() {
           Cargando pipeline…
         </div>
       ) : quotes.length === 0 ? (
-        <div className="surface-card p-12 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-secondary mx-auto flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-muted-foreground" />
+        <div className="surface-card fire-border p-12 text-center space-y-3">
+          <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center fire-glow">
+            <DollarSign className="w-7 h-7 text-primary fire-icon" />
           </div>
-          <div className="text-base font-semibold">
-            {canWrite
-              ? "Aún no tienes cotizaciones"
-              : "No tienes cotizaciones disponibles"}
+          <div className="text-base font-semibold text-foreground">
+            {canWrite ? "Aún no tienes cotizaciones." : "No tienes cotizaciones disponibles"}
           </div>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             {canWrite
-              ? "Crea tu primera cotización para empezar a gestionar tu pipeline comercial."
+              ? "Crea tu primera propuesta y empieza a vender hoy."
               : "Solo verás cotizaciones vinculadas a los proyectos que tienes asignados."}
           </p>
           {canWrite && clients.length > 0 && (
