@@ -129,13 +129,16 @@ export default function ProjectResourcesTab({ project }: Props) {
   const [form, setForm] = useState({ name: "", role_or_type: "", unit: "fixed" as Unit, unit_cost: 0, quantity: 1, notes: "" });
   const [presetId, setPresetId] = useState<string>("custom");
 
-  const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["project-resources", project.id],
+  const projectId: string | undefined = project?.id;
+
+  const { data: resources = [], isLoading, error: resourcesError } = useQuery({
+    queryKey: ["project-resources", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_resources" as any)
         .select("*")
-        .eq("project_id", project.id)
+        .eq("project_id", projectId as string)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as ProjectResource[];
@@ -143,14 +146,15 @@ export default function ProjectResourcesTab({ project }: Props) {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["project-tasks-for-resources", project.id],
+    queryKey: ["project-tasks-for-resources", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("id, status, assignee_name, node_type")
-        .eq("project_id", project.id);
+        .eq("project_id", projectId as string);
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
