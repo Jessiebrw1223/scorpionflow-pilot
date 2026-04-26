@@ -427,9 +427,20 @@ export default function CotizacionesPage() {
     return m;
   }, [quotes]);
 
+  // Vendido este mes (won en el mes actual)
+  const startOfMonth = useMemo(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  }, []);
+  const soldThisMonth = quotes
+    .filter((q) => q.status === "won" && new Date(q.status_changed_at).getTime() >= startOfMonth)
+    .reduce((s, q) => s + Number(q.total), 0);
   const totalWon = quotes.filter((q) => q.status === "won").reduce((s, q) => s + Number(q.total), 0);
   const conversionRate =
     quotes.length > 0 ? (quotes.filter((q) => q.status === "won").length / quotes.length) * 100 : 0;
+  const activeOpportunities = quotes.filter(
+    (q) => q.status === "pending" || q.status === "in_contact" || q.status === "quoted"
+  ).length;
 
   const updateItem = (idx: number, patch: Partial<QuoteItem>) => {
     setForm((f) => ({
@@ -447,8 +458,7 @@ export default function CotizacionesPage() {
             Cotizaciones
           </h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
-            Pipeline comercial: {quotes.length} cotizaciones · Conversión {conversionRate.toFixed(0)}%
-            · Ganado {PEN.format(totalWon)}
+            Gestiona tus oportunidades comerciales desde el primer contacto hasta el cierre.
           </p>
         </div>
 
@@ -466,7 +476,7 @@ export default function CotizacionesPage() {
             <DialogHeader>
               <DialogTitle className="fire-text">Nueva cotización</DialogTitle>
               <p className="text-[12px] text-muted-foreground mt-1">
-                <span className="text-primary font-semibold">Paso 2:</span> Crea una cotización para tu cliente. Define los conceptos y el sistema calcula el total.
+                Define qué le vas a cobrar al cliente. El total se calcula automáticamente.
               </p>
             </DialogHeader>
             <div className="space-y-4">
@@ -539,9 +549,9 @@ export default function CotizacionesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Conceptos de la cotización *</Label>
+                    <Label>¿Qué le cobrarás al cliente? *</Label>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Cada fila = algo que el cliente paga (servicio, hito, soporte…)
+                      Agrega productos o servicios que el cliente recibirá.
                     </p>
                   </div>
                   <Button
@@ -555,16 +565,26 @@ export default function CotizacionesPage() {
                       })
                     }
                   >
-                    <Plus className="w-3 h-3" /> Agregar concepto
+                    <Plus className="w-3 h-3" /> Agregar línea
                   </Button>
                 </div>
+
+                {/* Headers de columnas */}
+                <div className="grid grid-cols-12 gap-2 px-2 pt-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <div className="col-span-5">Servicio / Producto</div>
+                  <div className="col-span-2">Cantidad</div>
+                  <div className="col-span-2">Precio unitario</div>
+                  <div className="col-span-2 text-right">Total</div>
+                  <div className="col-span-1" />
+                </div>
+
                 <TooltipProvider delayDuration={200}>
                   <div className="space-y-2">
                     {form.items.map((it, idx) => {
                       const lineTotal = (Number(it.quantity) || 0) * (Number(it.unit_price) || 0);
                       const placeholders = [
-                        "Ej: Desarrollo del sistema",
-                        "Ej: Instalación",
+                        "Ej: Página web corporativa",
+                        "Ej: Diseño logo premium",
                         "Ej: Soporte mensual",
                         "Ej: Capacitación al equipo",
                       ];
@@ -585,12 +605,14 @@ export default function CotizacionesPage() {
                               <TooltipTrigger asChild>
                                 <Input
                                   type="number"
-                                  placeholder="Cant."
+                                  placeholder="1"
                                   value={it.quantity}
                                   onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
                                 />
                               </TooltipTrigger>
-                              <TooltipContent side="top">Horas, unidades o meses</TooltipContent>
+                              <TooltipContent side="top">
+                                Unidades simples. Ej: web=1, soporte 3 meses=3
+                              </TooltipContent>
                             </Tooltip>
                           </div>
                           <div className="col-span-2">
@@ -645,22 +667,65 @@ export default function CotizacionesPage() {
                 </p>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenForm(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => create.mutate()}
-                disabled={create.isPending}
-                className="fire-button"
-              >
-                {create.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Crear cotización
-              </Button>
+            <DialogFooter className="flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground sm:mr-auto">
+                Podrás editarla luego.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setOpenForm(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => create.mutate()}
+                  disabled={create.isPending}
+                  className="fire-button"
+                >
+                  {create.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Crear cotización
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
+
+      {quotes.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="surface-card p-4 fire-glow">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Vendido este mes
+            </div>
+            <div className="font-mono-data fire-text text-2xl font-bold mt-1">
+              {PEN.format(soldThisMonth)}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              Total ganado histórico: {PEN.format(totalWon)}
+            </div>
+          </div>
+          <div className="surface-card p-4">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Tasa de cierre
+            </div>
+            <div className="font-mono-data text-2xl font-bold text-foreground mt-1">
+              {conversionRate.toFixed(0)}%
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              {quotes.filter((q) => q.status === "won").length} de {quotes.length} cotizaciones
+            </div>
+          </div>
+          <div className="surface-card p-4">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Oportunidades activas
+            </div>
+            <div className="font-mono-data text-2xl font-bold text-foreground mt-1">
+              {activeOpportunities}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              En pipeline (pendiente, en contacto, cotizado)
+            </div>
+          </div>
+        </div>
+      )}
 
       {clients.length === 0 && (
         <div className="surface-card border border-cost-warning/40 bg-cost-warning/5 p-4 flex items-start gap-3">
@@ -681,22 +746,6 @@ export default function CotizacionesPage() {
         </div>
       )}
 
-      {clients.length > 0 && quotes.length === 0 && !isLoading && (
-        <div className="surface-card fire-border p-8 text-center space-y-3">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center fire-glow">
-            <DollarSign className="w-6 h-6 text-primary fire-icon" />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">Empieza creando una cotización para tus clientes</p>
-            <p className="text-[13px] text-muted-foreground mt-1">
-              Todo tu flujo comercial comienza aquí. Define qué vendes, cuánto cobras y haz seguimiento hasta cerrar.
-            </p>
-          </div>
-          <Button onClick={tryOpenForm} className="fire-button">
-            <Plus className="w-4 h-4" /> Crear primera cotización
-          </Button>
-        </div>
-      )}
 
       {isLoading ? (
         <div className="p-12 text-center text-muted-foreground">
@@ -704,18 +753,16 @@ export default function CotizacionesPage() {
           Cargando pipeline…
         </div>
       ) : quotes.length === 0 ? (
-        <div className="surface-card p-12 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-secondary mx-auto flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-muted-foreground" />
+        <div className="surface-card fire-border p-12 text-center space-y-3">
+          <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center fire-glow">
+            <DollarSign className="w-7 h-7 text-primary fire-icon" />
           </div>
-          <div className="text-base font-semibold">
-            {canWrite
-              ? "Aún no tienes cotizaciones"
-              : "No tienes cotizaciones disponibles"}
+          <div className="text-base font-semibold text-foreground">
+            {canWrite ? "Aún no tienes cotizaciones." : "No tienes cotizaciones disponibles"}
           </div>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             {canWrite
-              ? "Crea tu primera cotización para empezar a gestionar tu pipeline comercial."
+              ? "Crea tu primera propuesta y empieza a vender hoy."
               : "Solo verás cotizaciones vinculadas a los proyectos que tienes asignados."}
           </p>
           {canWrite && clients.length > 0 && (
@@ -784,8 +831,9 @@ export default function CotizacionesPage() {
                             {PEN.format(Number(q.total))}
                           </span>
                           {q.converted_to_project && (
-                            <span className="text-[10px] uppercase tracking-wider text-cost-positive font-semibold">
-                              ★ Proyecto
+                            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-cost-positive font-semibold bg-cost-positive/10 border border-cost-positive/30 rounded px-1.5 py-0.5">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Proyecto creado
                             </span>
                           )}
                         </div>
@@ -816,7 +864,7 @@ export default function CotizacionesPage() {
                                     <MessageCircle className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Contactar por WhatsApp</TooltipContent>
+                                <TooltipContent>WhatsApp · Contactar cliente</TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -829,7 +877,7 @@ export default function CotizacionesPage() {
                                     <Mail className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Enviar email</TooltipContent>
+                                <TooltipContent>Correo · Enviar propuesta</TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -842,7 +890,7 @@ export default function CotizacionesPage() {
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Duplicar cotización</TooltipContent>
+                                <TooltipContent>Duplicar · Reutilizar cotización</TooltipContent>
                               </Tooltip>
                               <div className="flex-1" />
                               <Tooltip>
@@ -856,7 +904,7 @@ export default function CotizacionesPage() {
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Eliminar</TooltipContent>
+                                <TooltipContent>Eliminar · Borrar registro</TooltipContent>
                               </Tooltip>
                             </div>
                           </TooltipProvider>
