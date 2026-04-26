@@ -20,6 +20,7 @@ import CorporateResourcesPage from "./pages/CorporateResourcesPage";
 import CorporateReportsPage from "./pages/CorporateReportsPage";
 import CorporateRisksPage from "./pages/CorporateRisksPage";
 import LearnCenterPage from "./pages/LearnCenterPage";
+import AdminConsolePage from "./pages/AdminConsolePage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
