@@ -4,7 +4,7 @@ import { Loader2, Receipt, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { PROJECT_STATUS_META, TASK_PRIORITY_META, TASK_IMPACT_META, isCountableTask, isPendingTask, getBlockedReasonLabel } from "@/lib/business-intelligence";
+import { PROJECT_STATUS_META, TASK_PRIORITY_META, TASK_IMPACT_META, isCountableTask, isPendingTask, getBlockedReasonLabel, computeProgressMetrics } from "@/lib/business-intelligence";
 import { useMoney } from "@/lib/format-money";
 import { NoDataMetric } from "@/components/state/NoDataMetric";
 
@@ -39,6 +39,7 @@ export default function ProjectReportTab({ project }: Props) {
   const cancelledTasks = tasks.filter((t: any) => t.status === "cancelled").length;
   const doneTasks = countableTasks.filter((t) => t.status === "done").length;
   const completion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const progressMetrics = computeProgressMetrics(tasks);
   const blockingTasks = countableTasks.filter((t: any) => t.blocks_project && isPendingTask(t));
   const overdueTasks = countableTasks.filter(
     (t: any) => isPendingTask(t) && t.due_date && new Date(t.due_date) < new Date()
@@ -112,9 +113,19 @@ export default function ProjectReportTab({ project }: Props) {
             )}
           </div>
           <div className="text-right">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Avance</div>
-            <div className="text-2xl font-bold font-mono-data fire-text">{project.progress}%</div>
-            <div className="text-[11px] text-muted-foreground font-mono-data">{doneTasks}/{totalTasks} tareas</div>
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Avance real</div>
+            <div className="text-2xl font-bold font-mono-data fire-text">{progressMetrics.realProgress}%</div>
+            <div className="text-[11px] text-muted-foreground font-mono-data">
+              {progressMetrics.doneLeaves}/{progressMetrics.totalLeaves} tareas
+              {progressMetrics.totalWeight !== progressMetrics.totalLeaves && (
+                <> · {progressMetrics.doneWeight}/{progressMetrics.totalWeight} pts</>
+              )}
+            </div>
+            {progressMetrics.realProgress !== progressMetrics.structuralProgress && (
+              <div className="text-[10px] text-muted-foreground italic mt-0.5">
+                Estructural: {progressMetrics.structuralProgress}%
+              </div>
+            )}
           </div>
         </div>
       </div>

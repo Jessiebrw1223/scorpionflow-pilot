@@ -739,6 +739,103 @@ export function isPendingTask(t: { status?: string | null }): boolean {
   return t.status !== "done" && t.status !== "cancelled";
 }
 
+/**
+ * Tipos contenedores: NO cuentan en el avance (PMBOK 8 / regla anti-humo).
+ * Solo agrupan, no son trabajo ejecutable.
+ */
+export const CONTAINER_NODE_TYPES = ["epic", "story", "phase", "subphase"] as const;
+export const LEAF_NODE_TYPES = ["task", "activity"] as const;
+
+export function isContainerNode(t: { node_type?: string | null }): boolean {
+  return !!t.node_type && (CONTAINER_NODE_TYPES as readonly string[]).includes(t.node_type);
+}
+
+/**
+ * Métricas de progreso del proyecto, alineadas a PMBOK 8.
+ *
+ * - structuralProgress: conteo simple por tareas (cuántos checks hay).
+ *   Solo informativo, NO se muestra como avance principal.
+ * - realProgress: avance ponderado por peso (story points). Es el oficial.
+ * - totalLeaves / doneLeaves: hojas reales contables (task/activity, no canceladas).
+ * - totalWeight / doneWeight: suma de pesos.
+ *
+ * Regla anti-humo: contenedores (épica/HU/fase/subfase) NO cuentan, ni siquiera
+ * si están "done". Si una HU tiene hijos pendientes, no puede llegar a 100%
+ * solo porque el padre esté marcado.
+ */
+export interface ProgressMetrics {
+  structuralProgress: number; // % por conteo simple
+  realProgress: number;       // % ponderado (oficial)
+  totalLeaves: number;
+  doneLeaves: number;
+  totalWeight: number;
+  doneWeight: number;
+  cancelledCount: number;
+}
+
+export function computeProgressMetrics(
+  tasks: Array<{ status?: string | null; node_type?: string | null; weight?: number | null }>
+): ProgressMetrics {
+  const leaves = tasks.filter(isCountableTask);
+  const totalLeaves = leaves.length;
+  const doneLeaves = leaves.filter((t) => t.status === "done").length;
+
+  let totalWeight = 0;
+  let doneWeight = 0;
+  for (const t of leaves) {
+    const w = Number(t.weight) > 0 ? Number(t.weight) : 1;
+    totalWeight += w;
+    if (t.status === "done") doneWeight += w;
+  }
+
+  const structuralProgress = totalLeaves === 0 ? 0 : Math.round((doneLeaves / totalLeaves) * 100);
+  const realProgress = totalWeight === 0 ? 0 : Math.round((doneWeight / totalWeight) * 100);
+  const cancelledCount = tasks.filter((t) => t.status === "cancelled").length;
+
+  return {
+    structuralProgress,
+    realProgress,
+    totalLeaves,
+    doneLeaves,
+    totalWeight,
+    doneWeight,
+    cancelledCount,
+  };
+}
+
+/**
+ * Progreso de un nodo contenedor a partir de sus descendientes hojas.
+ * Usado en la jerarquía para evitar que un padre marcado como "done"
+ * muestre 100% si hay hijos reales pendientes.
+ */
+export function computeContainerProgress(
+  leafDescendants: Array<{ status?: string | null; weight?: number | null }>
+): number {
+  if (leafDescendants.length === 0) return 0;
+  let total = 0;
+  let done = 0;
+  for (const t of leafDescendants) {
+    const w = Number(t.weight) > 0 ? Number(t.weight) : 1;
+    total += w;
+    if (t.status === "done") done += w;
+  }
+  return total === 0 ? 0 : Math.round((done / total) * 100);
+}
+
+/**
+ * Sugerencia de peso por defecto según prioridad (Fibonacci).
+ * Se aplica al crear tareas o cuando weight es null.
+ */
+export function suggestWeightFromPriority(priority?: string | null): number {
+  switch (priority) {
+    case "low": return 1;
+    case "medium": return 3;
+    case "high": return 8;
+    case "critical": return 13;
+    default: return 1;
+  }
+}
+
 // Tipo de nodo en la jerarquía de planificación
 export const NODE_TYPE_META: Record<
   string,

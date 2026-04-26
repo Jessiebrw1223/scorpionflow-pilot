@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
-import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META, BLOCKED_REASONS } from "@/lib/business-intelligence";
+import { TASK_PRIORITY_META, TASK_STATUS_META, TASK_IMPACT_META, BLOCKED_REASONS, suggestWeightFromPriority } from "@/lib/business-intelligence";
 import { canAdminWorkspace, canEditAssignedTask, NO_EDIT_PERMISSION_MESSAGE, type WorkspaceRole } from "@/lib/workspace-permissions";
 
 type TaskStatus = "todo" | "in_progress" | "in_review" | "done" | "blocked" | "cancelled";
@@ -34,6 +34,8 @@ interface Task {
   estimated_cost?: number;
   actual_cost?: number;
   blocked_reason?: string | null;
+  weight?: number | null;
+  node_type?: string | null;
 }
 
 interface Props {
@@ -74,6 +76,8 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
           actual_cost: Number(values.actual_cost) || 0,
           // Solo guardamos motivo si la tarea está bloqueada; al cambiar de estado se limpia.
           blocked_reason: values.status === "blocked" ? (values.blocked_reason || null) : null,
+          // Peso (story points) — clamp [1,100], default 1.
+          weight: Math.min(100, Math.max(1, Number(values.weight) || 1)),
         })
         .eq("id", values.id);
       if (error) throw error;
@@ -185,6 +189,41 @@ export default function TaskDetailPanel({ task, open, onOpenChange, projectId, r
               </Select>
             </div>
           </div>
+
+          {/* Peso / Story points — solo nodos hoja contables (PMBOK 8: ponderado real) */}
+          {(!form.node_type || ["task", "activity"].includes(form.node_type)) && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+                Peso (story points)
+                <span className="text-[10px] text-muted-foreground/70 normal-case tracking-normal">
+                  · cuánto vale para el avance
+                </span>
+              </Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={form.weight ?? 1}
+                  onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 1 })}
+                  className="w-24 font-mono-data"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[11px]"
+                  onClick={() => setForm({ ...form, weight: suggestWeightFromPriority(form.priority) })}
+                  title="Sugerir peso según la prioridad"
+                >
+                  Sugerir ({suggestWeightFromPriority(form.priority)})
+                </Button>
+                <p className="text-[11px] text-muted-foreground basis-full">
+                  Tareas pequeñas = 1-3 · Medianas = 5-8 · Grandes = 13+
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Motivo de bloqueo — solo visible si status = blocked */}
           {form.status === "blocked" && (
