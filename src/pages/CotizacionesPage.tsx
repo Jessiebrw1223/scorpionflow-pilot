@@ -746,22 +746,6 @@ export default function CotizacionesPage() {
         </div>
       )}
 
-      {clients.length > 0 && quotes.length === 0 && !isLoading && (
-        <div className="surface-card fire-border p-8 text-center space-y-3">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center fire-glow">
-            <DollarSign className="w-6 h-6 text-primary fire-icon" />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">Empieza creando una cotización para tus clientes</p>
-            <p className="text-[13px] text-muted-foreground mt-1">
-              Todo tu flujo comercial comienza aquí. Define qué vendes, cuánto cobras y haz seguimiento hasta cerrar.
-            </p>
-          </div>
-          <Button onClick={tryOpenForm} className="fire-button">
-            <Plus className="w-4 h-4" /> Crear primera cotización
-          </Button>
-        </div>
-      )}
 
       {isLoading ? (
         <div className="p-12 text-center text-muted-foreground">
