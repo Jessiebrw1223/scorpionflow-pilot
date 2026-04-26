@@ -549,9 +549,9 @@ export default function CotizacionesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Conceptos de la cotización *</Label>
+                    <Label>¿Qué le cobrarás al cliente? *</Label>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Cada fila = algo que el cliente paga (servicio, hito, soporte…)
+                      Agrega productos o servicios que el cliente recibirá.
                     </p>
                   </div>
                   <Button
@@ -565,16 +565,26 @@ export default function CotizacionesPage() {
                       })
                     }
                   >
-                    <Plus className="w-3 h-3" /> Agregar concepto
+                    <Plus className="w-3 h-3" /> Agregar línea
                   </Button>
                 </div>
+
+                {/* Headers de columnas */}
+                <div className="grid grid-cols-12 gap-2 px-2 pt-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <div className="col-span-5">Servicio / Producto</div>
+                  <div className="col-span-2">Cantidad</div>
+                  <div className="col-span-2">Precio unitario</div>
+                  <div className="col-span-2 text-right">Total</div>
+                  <div className="col-span-1" />
+                </div>
+
                 <TooltipProvider delayDuration={200}>
                   <div className="space-y-2">
                     {form.items.map((it, idx) => {
                       const lineTotal = (Number(it.quantity) || 0) * (Number(it.unit_price) || 0);
                       const placeholders = [
-                        "Ej: Desarrollo del sistema",
-                        "Ej: Instalación",
+                        "Ej: Página web corporativa",
+                        "Ej: Diseño logo premium",
                         "Ej: Soporte mensual",
                         "Ej: Capacitación al equipo",
                       ];
@@ -595,12 +605,14 @@ export default function CotizacionesPage() {
                               <TooltipTrigger asChild>
                                 <Input
                                   type="number"
-                                  placeholder="Cant."
+                                  placeholder="1"
                                   value={it.quantity}
                                   onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
                                 />
                               </TooltipTrigger>
-                              <TooltipContent side="top">Horas, unidades o meses</TooltipContent>
+                              <TooltipContent side="top">
+                                Unidades simples. Ej: web=1, soporte 3 meses=3
+                              </TooltipContent>
                             </Tooltip>
                           </div>
                           <div className="col-span-2">
