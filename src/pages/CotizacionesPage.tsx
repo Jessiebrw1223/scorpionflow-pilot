@@ -890,7 +890,7 @@ export default function CotizacionesPage() {
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Duplicar cotización</TooltipContent>
+                                <TooltipContent>Duplicar · Reutilizar cotización</TooltipContent>
                               </Tooltip>
                               <div className="flex-1" />
                               <Tooltip>
