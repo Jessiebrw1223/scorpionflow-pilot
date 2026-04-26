@@ -877,7 +877,7 @@ export default function CotizacionesPage() {
                                     <Mail className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Enviar email</TooltipContent>
+                                <TooltipContent>Correo · Enviar propuesta</TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
