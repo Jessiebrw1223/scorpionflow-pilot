@@ -35,15 +35,20 @@ export default function ProjectWorkspacePage() {
   const gate = usePremiumGate();
   const { ownerId, role, loading: workspaceLoading } = useWorkspace();
 
+  // IMPORTANTE: NO filtrar por owner_id aquí. La RLS ya garantiza que el
+  // usuario solo verá proyectos a los que tiene acceso (sus propios proyectos
+  // como dueño, proyectos del workspace donde es miembro, o proyectos
+  // compartidos via project_members). Filtrar por ownerId rompe el caso del
+  // dueño que también es miembro de OTRO workspace: useWorkspace prioriza el
+  // workspace ajeno y sus propios proyectos quedarían invisibles.
   const { data: project, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["project", id, ownerId],
-    enabled: !!id && !!ownerId && !workspaceLoading,
+    queryKey: ["project", id],
+    enabled: !!id && !workspaceLoading,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
         .select("*, clients(id, name, company), quotations(id, title)")
-        .eq("id", id)
-        .eq("owner_id", ownerId!)
+        .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -51,14 +56,13 @@ export default function ProjectWorkspacePage() {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["project-tasks-summary", id, ownerId],
-    enabled: !!id && !!ownerId && !workspaceLoading && !!project,
+    queryKey: ["project-tasks-summary", id],
+    enabled: !!id && !workspaceLoading && !!project,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("id, status, due_date, blocks_project")
-        .eq("project_id", id!)
-        .eq("owner_id", ownerId!);
+        .eq("project_id", id!);
       if (error) throw error;
       return data;
     },
