@@ -864,7 +864,7 @@ export default function CotizacionesPage() {
                                     <MessageCircle className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Contactar por WhatsApp</TooltipContent>
+                                <TooltipContent>WhatsApp · Contactar cliente</TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
