@@ -91,7 +91,12 @@ export default function ProjectsPage() {
   const PEN = useMoney();
   const { settings } = useUserSettings();
   const { user } = useAuth();
-  const { ownerId: workspaceOwnerId, role: workspaceRole, ownerName } = useWorkspace();
+  const { guestWorkspaces } = useWorkspace();
+  // Set de owner_ids de equipos ajenos donde soy miembro (para clasificar "team" vs "shared").
+  const guestOwnerIds = useMemo(
+    () => new Set(guestWorkspaces.map((g) => g.ownerId)),
+    [guestWorkspaces],
+  );
 
   const { data: projects = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["projects", user?.id],
