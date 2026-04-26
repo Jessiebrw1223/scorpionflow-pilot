@@ -11,8 +11,8 @@ import {
   Receipt,
   Contact2,
   Users,
-  DollarSign,
   FileBarChart2,
+  Building2,
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,8 +48,9 @@ const navItems: NavItem[] = [
   { label: "Equipo", icon: Users, path: "/team", group: "Ejecución" },
   // Finanzas empresariales: solo plan Business y solo owner/admin.
   // En Pro, recursos/costos/informe siguen disponibles dentro del workspace del proyecto.
+  // Centro Financiero Corporativo = visión global de empresa, NO entra a un proyecto.
+  { label: "Resumen Ejecutivo", icon: Building2, path: "/finanzas", group: "Finanzas empresariales", feature: "executive_dashboard", visibleFor: ADMIN_ONLY, businessOnly: true },
   { label: "Recursos", icon: Users, path: "/resources", group: "Finanzas empresariales", feature: "resources_management", visibleFor: ADMIN_ONLY, businessOnly: true },
-  { label: "Costos", icon: DollarSign, path: "/costs", group: "Finanzas empresariales", feature: "cost_intelligence", visibleFor: ADMIN_ONLY, businessOnly: true },
   { label: "Informes", icon: FileBarChart2, path: "/reports", group: "Finanzas empresariales", feature: "advanced_reports", visibleFor: ADMIN_ONLY, businessOnly: true },
 ];
 

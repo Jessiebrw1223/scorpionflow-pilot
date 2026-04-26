@@ -15,6 +15,9 @@ import SettingsPage from "./pages/SettingsPage";
 import ClientesPage from "./pages/ClientesPage";
 import CotizacionesPage from "./pages/CotizacionesPage";
 import TeamPage from "./pages/TeamPage";
+import CorporateOverviewPage from "./pages/CorporateOverviewPage";
+import CorporateResourcesPage from "./pages/CorporateResourcesPage";
+import CorporateReportsPage from "./pages/CorporateReportsPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -74,11 +77,13 @@ function AppShell() {
                     <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/projects/:id" element={<ProjectWorkspacePage />} />
                     <Route path="/team" element={<TeamPage />} />
-                    {/* Rutas legacy redirigidas al nuevo flujo por proyecto */}
+                    {/* Centro Financiero Corporativo (plan Business) */}
+                    <Route path="/finanzas" element={<CorporateOverviewPage />} />
+                    <Route path="/costs" element={<CorporateOverviewPage />} />
+                    <Route path="/resources" element={<CorporateResourcesPage />} />
+                    <Route path="/reports" element={<CorporateReportsPage />} />
+                    {/* Ruta legacy: tareas globales → ahora dentro del proyecto */}
                     <Route path="/tasks" element={<Navigate to="/projects" replace />} />
-                    <Route path="/costs" element={<Navigate to="/projects" replace />} />
-                    <Route path="/reports" element={<Navigate to="/projects" replace />} />
-                    <Route path="/resources" element={<Navigate to="/projects" replace />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
