@@ -11,7 +11,6 @@ import {
   Receipt,
   Contact2,
   Users,
-  DollarSign,
   FileBarChart2,
   Building2,
   Lock,
