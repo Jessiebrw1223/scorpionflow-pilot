@@ -13,6 +13,7 @@ import {
   Users,
   FileBarChart2,
   Building2,
+  ShieldAlert,
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { label: "Resumen Ejecutivo", icon: Building2, path: "/finanzas", group: "Finanzas empresariales", feature: "executive_dashboard", visibleFor: ADMIN_ONLY, businessOnly: true },
   { label: "Recursos", icon: Users, path: "/resources", group: "Finanzas empresariales", feature: "resources_management", visibleFor: ADMIN_ONLY, businessOnly: true },
   { label: "Informes", icon: FileBarChart2, path: "/reports", group: "Finanzas empresariales", feature: "advanced_reports", visibleFor: ADMIN_ONLY, businessOnly: true },
+  { label: "Riesgos", icon: ShieldAlert, path: "/risks", group: "Finanzas empresariales", feature: "executive_dashboard", visibleFor: ADMIN_ONLY, businessOnly: true },
 ];
 
 export function AppSidebar() {
