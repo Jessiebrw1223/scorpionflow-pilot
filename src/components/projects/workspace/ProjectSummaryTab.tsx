@@ -53,6 +53,9 @@ export default function ProjectSummaryTab({ project, tasks, onTabChange }: Props
     (t) => isPendingTask(t) && t.due_date && new Date(t.due_date) < new Date()
   ).length;
 
+  // === Progreso PMBOK 8: ponderado real (oficial) + estructural (informativo) ===
+  const progressMetrics = computeProgressMetrics(tasks);
+
   // === Estados DUALES: nunca mezclar tiempo con dinero ===
   const execution = getExecutionStatus({
     status: project.status,
