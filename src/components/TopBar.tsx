@@ -1,7 +1,8 @@
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Home, Users, Eye, Shield, Crown } from "lucide-react";
+import { ChevronRight, Home, Users, Eye, Shield, Crown, HelpCircle } from "lucide-react";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { Link as RouterLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, WORKSPACE_ROLE_LABEL } from "@/hooks/useWorkspace";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/projects": "Proyectos",
   "/team": "Equipo",
   "/settings": "Configuración",
+  "/learn": "Centro de Ayuda",
 };
 
 interface Crumb {
@@ -114,6 +116,14 @@ export function TopBar() {
             )}
           </Badge>
         )}
+        <RouterLink
+          to="/learn"
+          title="Centro de Ayuda"
+          aria-label="Centro de Ayuda"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/50 transition-sf"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </RouterLink>
         <NotificationsBell />
       </div>
     </div>
