@@ -359,7 +359,7 @@ export default function ProjectResourcesTab({ project }: Props) {
   // ===== Insights =====
   const insights = useMemo(() => {
     const out: { type: "warn" | "info" | "good"; text: string }[] = [];
-    const budget = Number(project.budget) || 0;
+    const budget = Number(project?.budget) || 0;
     if (budget > 0 && totals.total > budget) {
       out.push({ type: "warn", text: `Costos asignados (${PEN.format(totals.total)}) superan el presupuesto (${PEN.format(budget)}).` });
     } else if (budget > 0 && totals.total > budget * 0.85) {
