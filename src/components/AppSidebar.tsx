@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { usePremiumGate, type PremiumFeature } from "@/hooks/usePremiumGate";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
 import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
+import { usePlan } from "@/hooks/usePlan";
 
 interface NavItem {
   label: string;
@@ -31,10 +32,12 @@ interface NavItem {
   feature?: PremiumFeature;
   /** Roles que pueden ver este item. Si no se define, lo ven todos. */
   visibleFor?: WorkspaceRole[];
+  /** Si es true, el item solo se muestra cuando el plan es Business. */
+  businessOnly?: boolean;
 }
 
 // Acceso comercial / financiero solo para owner y admin del workspace.
-// Colaboradores y visualizadores no ven Clientes, Cotizaciones, Recursos, Costos ni Informes.
+// Colaboradores y visualizadores no ven Clientes ni Cotizaciones globales.
 const ADMIN_ONLY: WorkspaceRole[] = ["owner", "admin"];
 
 const navItems: NavItem[] = [
@@ -43,9 +46,11 @@ const navItems: NavItem[] = [
   { label: "Cotizaciones", icon: Receipt, path: "/cotizaciones", group: "Comercial", visibleFor: ADMIN_ONLY },
   { label: "Proyectos", icon: FolderKanban, path: "/projects", group: "Ejecución" },
   { label: "Equipo", icon: Users, path: "/team", group: "Ejecución" },
-  { label: "Recursos", icon: Users, path: "/resources", group: "Finanzas", feature: "resources_management", visibleFor: ADMIN_ONLY },
-  { label: "Costos", icon: DollarSign, path: "/costs", group: "Finanzas", feature: "cost_intelligence", visibleFor: ADMIN_ONLY },
-  { label: "Informes", icon: FileBarChart2, path: "/reports", group: "Finanzas", feature: "advanced_reports", visibleFor: ADMIN_ONLY },
+  // Finanzas empresariales: solo plan Business y solo owner/admin.
+  // En Pro, recursos/costos/informe siguen disponibles dentro del workspace del proyecto.
+  { label: "Recursos", icon: Users, path: "/resources", group: "Finanzas empresariales", feature: "resources_management", visibleFor: ADMIN_ONLY, businessOnly: true },
+  { label: "Costos", icon: DollarSign, path: "/costs", group: "Finanzas empresariales", feature: "cost_intelligence", visibleFor: ADMIN_ONLY, businessOnly: true },
+  { label: "Informes", icon: FileBarChart2, path: "/reports", group: "Finanzas empresariales", feature: "advanced_reports", visibleFor: ADMIN_ONLY, businessOnly: true },
 ];
 
 export function AppSidebar() {
@@ -55,6 +60,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const gate = usePremiumGate();
   const { role } = useWorkspace();
+  const { isBusiness } = usePlan();
 
   const handleLogout = async () => {
     await signOut();
@@ -62,10 +68,14 @@ export function AppSidebar() {
     navigate("/", { replace: true });
   };
 
-  // Filtrar nav items según rol del workspace activo.
-  const visibleNavItems = navItems.filter(
-    (it) => !it.visibleFor || (role && it.visibleFor.includes(role)),
-  );
+  // Filtrar nav items según rol del workspace activo y plan.
+  // Las "Finanzas empresariales" (Recursos/Costos/Informes globales) solo
+  // aparecen en plan Business. En Pro siguen vivas dentro del proyecto.
+  const visibleNavItems = navItems.filter((it) => {
+    if (it.visibleFor && (!role || !it.visibleFor.includes(role))) return false;
+    if (it.businessOnly && !isBusiness) return false;
+    return true;
+  });
 
   const groups = visibleNavItems.reduce<Record<string, NavItem[]>>((acc, it) => {
     const g = it.group || "General";
