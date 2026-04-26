@@ -399,7 +399,7 @@ export default function ProjectResourcesTab({ project }: Props) {
       {/* RESUMEN ARRIBA */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {(["human", "tech", "asset"] as Kind[]).map((k) => {
-          const meta = KIND_META[k];
+          const meta = kindMeta(k);
           const Icon = meta.icon;
           const cost = totals[k];
           const count = k === "human"
@@ -581,7 +581,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                               </div>
                               <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                                 <span className="font-mono-data">
-                                  {PEN.format(Number(r.unit_cost))}{UNIT_META[r.unit].suffix && `/${UNIT_META[r.unit].suffix}`} × {Number(r.quantity)}
+                                  {PEN.format(Number(r.unit_cost))}{unitMeta(r.unit).suffix && `/${unitMeta(r.unit).suffix}`} × {Number(r.quantity)}
                                 </span>
                                 {detected && (
                                   <span className={cn(
@@ -610,7 +610,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                               <div className="font-mono-data text-[13px] font-semibold text-foreground">
                                 {PEN.format(Number(r.total_cost))}
                               </div>
-                              <p className="text-[10px] text-muted-foreground">{UNIT_META[r.unit].label}</p>
+                              <p className="text-[10px] text-muted-foreground">{unitMeta(r.unit).label}</p>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openAssignCost(r.name)}>
@@ -641,7 +641,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
           {/* TECH + ASSET — creación manual permitida */}
           {(["tech", "asset"] as Exclude<Kind, "human">[]).map((k) => {
-            const meta = KIND_META[k];
+            const meta = kindMeta(k);
             const Icon = meta.icon;
             const items = resources.filter(r => r.kind === k);
             return (
@@ -674,7 +674,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                             <span className="font-mono-data">
-                              {PEN.format(Number(r.unit_cost))}{UNIT_META[r.unit].suffix && `/${UNIT_META[r.unit].suffix}`} × {Number(r.quantity)}
+                              {PEN.format(Number(r.unit_cost))}{unitMeta(r.unit).suffix && `/${unitMeta(r.unit).suffix}`} × {Number(r.quantity)}
                             </span>
                           </div>
                         </div>
@@ -682,7 +682,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           <div className="font-mono-data text-[13px] font-semibold text-foreground">
                             {PEN.format(Number(r.total_cost))}
                           </div>
-                          <p className="text-[10px] text-muted-foreground">{UNIT_META[r.unit].label}</p>
+                          <p className="text-[10px] text-muted-foreground">{unitMeta(r.unit).label}</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditNonHuman(r)}>
@@ -797,7 +797,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           active ? "bg-primary/10 border-primary text-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        {UNIT_META[u].label}
+                        {unitMeta(u).label}
                       </button>
                     );
                   })}
@@ -806,7 +806,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">{UNIT_META[humanForm.unit].qtyLabel}</Label>
+                  <Label className="text-[12px]">{unitMeta(humanForm.unit).qtyLabel}</Label>
                   <Input
                     type="number"
                     min={0.01}
@@ -818,7 +818,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px]">
-                    Costo {humanForm.unit === "fixed" ? "único" : `por ${UNIT_META[humanForm.unit].suffix}`}
+                    Costo {humanForm.unit === "fixed" ? "único" : `por ${unitMeta(humanForm.unit).suffix}`}
                   </Label>
                   <CurrencyInput
                     value={humanForm.unit_cost}
@@ -854,7 +854,7 @@ export default function ProjectResourcesTab({ project }: Props) {
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingNonHuman ? "Editar" : "Agregar"} {dialogKind && KIND_META[dialogKind].label.toLowerCase()}
+              {editingNonHuman ? "Editar" : "Agregar"} {dialogKind && kindMeta(dialogKind).label.toLowerCase()}
             </DialogTitle>
           </DialogHeader>
           {dialogKind && (
@@ -862,7 +862,7 @@ export default function ProjectResourcesTab({ project }: Props) {
               {/* Preset selector — solo al CREAR (al editar lo dejamos vacío para no sobreescribir) */}
               {!editingNonHuman && (
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">¿Qué tipo de {KIND_META[dialogKind].label.toLowerCase()} es?</Label>
+                  <Label className="text-[12px]">¿Qué tipo de {kindMeta(dialogKind).label.toLowerCase()} es?</Label>
                   <Select value={presetId} onValueChange={applyPreset}>
                     <SelectTrigger className="h-9 text-[13px]">
                       <SelectValue placeholder="Selecciona un tipo..." />
@@ -884,7 +884,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 <Input
                   value={form.name}
                   onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder={KIND_META[dialogKind].placeholderName}
+                  placeholder={kindMeta(dialogKind).placeholderName}
                   className="h-9 text-[13px]"
                   maxLength={120}
                 />
@@ -906,7 +906,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                           active ? "bg-primary/10 border-primary text-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        {UNIT_META[u].label}
+                        {unitMeta(u).label}
                       </button>
                     );
                   })}
@@ -915,7 +915,7 @@ export default function ProjectResourcesTab({ project }: Props) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">{UNIT_META[form.unit].qtyLabel}</Label>
+                  <Label className="text-[12px]">{unitMeta(form.unit).qtyLabel}</Label>
                   <Input
                     type="number"
                     min={0.01}
@@ -927,7 +927,7 @@ export default function ProjectResourcesTab({ project }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px]">
-                    Costo {form.unit === "fixed" ? "único" : `por ${UNIT_META[form.unit].suffix}`}
+                    Costo {form.unit === "fixed" ? "único" : `por ${unitMeta(form.unit).suffix}`}
                   </Label>
                   <CurrencyInput
                     value={form.unit_cost}
