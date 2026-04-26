@@ -524,6 +524,13 @@ export default function CorporateOverviewPage() {
         </Card>
       </div>
 
+      {/* === Analítica visual ejecutiva === */}
+      <ExecutiveAnalytics
+        projects={filteredProjects as any}
+        resources={resources as any}
+        quotations={quotations as any}
+      />
+
       <div className="flex items-center justify-end gap-2 text-[11px] text-muted-foreground pt-1">
         <Link to="/reports" className="hover:text-primary hover:underline">Ver informes ejecutivos →</Link>
         <span>·</span>
