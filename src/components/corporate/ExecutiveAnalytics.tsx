@@ -300,35 +300,8 @@ export function ExecutiveAnalytics({ projects, resources, quotations }: Props) {
     return `Cliente ${top.name} genera ${top.share}% de tu utilidad total.`;
   }, [clientProfitability]);
 
-  // ============================================================
-  // 6) MATRIZ DE RIESGO: probabilidad vs impacto financiero
-  // ============================================================
-  const riskMatrix = useMemo(() => {
-    return projects
-      .filter((p) => p.status !== "completed")
-      .map((p) => {
-        const budget = Number(p.budget) || 0;
-        const cost = Number(p.actual_cost) || 0;
-        const profit = budget - cost;
-        const overrun = cost > budget ? (cost - budget) / Math.max(1, budget) : 0;
-        const progress = Number(p.progress) || 0;
-        // Probabilidad de problema: 0-100 según overrun + atraso
-        let probability = Math.min(100, overrun * 100);
-        if (p.end_date) {
-          const end = new Date(p.end_date).getTime();
-          if (end < Date.now() && progress < 100) probability = Math.min(100, probability + 40);
-        }
-        // Impacto financiero: pérdida proyectada o presupuesto en juego
-        const impact = profit < 0 ? Math.abs(profit) : budget * 0.2;
-        return {
-          name: p.name,
-          probability: Math.round(probability),
-          impact: Math.round(impact),
-          profit,
-        };
-      })
-      .filter((r) => r.impact > 0);
-  }, [projects]);
+  // Matriz de riesgo se eliminó de aquí: ahora vive en el módulo /riesgos
+
 
   return (
     <div className="space-y-5">
