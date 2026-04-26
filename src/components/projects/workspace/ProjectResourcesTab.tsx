@@ -379,7 +379,7 @@ export default function ProjectResourcesTab({ project }: Props) {
       out.push({ type: "good", text: "Todos los responsables tienen costo configurado y la carga está bajo control." });
     }
     return out;
-  }, [totals, project.budget, detectedHumans, pendingHumans.length, resources.length]);
+  }, [totals, project?.budget, detectedHumans, pendingHumans.length, resources.length]);
 
   if (!projectId) {
     return (
