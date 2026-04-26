@@ -964,11 +964,16 @@ export default function CotizacionesPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => move.mutate({ id: q.id, status: "won" })}
+                                  onClick={() => convertToProject.mutate(q)}
+                                  disabled={convertToProject.isPending}
                                   className="h-7 px-2 text-[11px]"
-                                  title="Marcar como Ganado"
+                                  title="Marcar como ganada y crear proyecto"
                                 >
-                                  <CheckCircle2 className="w-3 h-3" />
+                                  {convertToProject.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="w-3 h-3" />
+                                  )}
                                 </Button>
                               )}
                             </div>
