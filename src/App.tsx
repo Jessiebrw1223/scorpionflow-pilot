@@ -18,6 +18,7 @@ import TeamPage from "./pages/TeamPage";
 import CorporateOverviewPage from "./pages/CorporateOverviewPage";
 import CorporateResourcesPage from "./pages/CorporateResourcesPage";
 import CorporateReportsPage from "./pages/CorporateReportsPage";
+import CorporateRisksPage from "./pages/CorporateRisksPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -82,6 +83,7 @@ function AppShell() {
                     <Route path="/costs" element={<CorporateOverviewPage />} />
                     <Route path="/resources" element={<CorporateResourcesPage />} />
                     <Route path="/reports" element={<CorporateReportsPage />} />
+                    <Route path="/risks" element={<CorporateRisksPage />} />
                     {/* Ruta legacy: tareas globales → ahora dentro del proyecto */}
                     <Route path="/tasks" element={<Navigate to="/projects" replace />} />
                     <Route path="/settings" element={<SettingsPage />} />
