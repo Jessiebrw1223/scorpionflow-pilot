@@ -149,7 +149,7 @@ export default function CorporateOverviewPage() {
         income += budget;
         costs += cost;
       }
-      if (p.status === "on_track" || p.status === "at_risk" || p.status === "delayed") {
+      if (p.status === "on_track" || p.status === "at_risk" || p.status === "over_budget") {
         activeProjects++;
         // Forecast: presupuesto pendiente de cobrar (lo no facturado aún)
         const pending = Math.max(0, budget - cost);

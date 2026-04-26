@@ -45,6 +45,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { cn } from "@/lib/utils";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
@@ -141,6 +151,7 @@ export default function CotizacionesPage() {
   const preselectedClientId = searchParams.get("clientId") || "";
   const [openForm, setOpenForm] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
+  const [deletingQuote, setDeletingQuote] = useState<Quotation | null>(null);
   const planLimits = usePlanLimits();
 
   const tryOpenForm = () => {
@@ -350,6 +361,7 @@ export default function CotizacionesPage() {
       qc.invalidateQueries({ queryKey: ["quotations"] });
       toast.success("Cotización eliminada");
     },
+    onError: (e: Error) => toast.error("No se pudo eliminar", { description: e.message }),
   });
 
   const duplicate = useMutation({
@@ -879,82 +891,88 @@ export default function CotizacionesPage() {
                                 </TooltipTrigger>
                                 <TooltipContent>Correo · Enviar propuesta</TooltipContent>
                               </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={(e) => { e.stopPropagation(); duplicate.mutate(q); }}
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  >
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Duplicar · Reutilizar cotización</TooltipContent>
-                              </Tooltip>
+                              {canWrite && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={(e) => { e.stopPropagation(); duplicate.mutate(q); }}
+                                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Duplicar · Reutilizar cotización</TooltipContent>
+                                </Tooltip>
+                              )}
                               <div className="flex-1" />
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={(e) => { e.stopPropagation(); remove.mutate(q.id); }}
-                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Eliminar · Borrar registro</TooltipContent>
-                              </Tooltip>
+                              {canWrite && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={(e) => { e.stopPropagation(); setDeletingQuote(q); }}
+                                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Eliminar · Borrar registro</TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           </TooltipProvider>
 
                           {/* Cambio de estado + conversión a proyecto */}
-                          <div className="flex items-center gap-1">
-                            {stage !== "won" && stage !== "lost" && (
-                              <Select
-                                value={q.status}
-                                onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
-                              >
-                                <SelectTrigger className="h-7 text-[11px] flex-1">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {STAGE_ORDER.map((s) => (
-                                    <SelectItem key={s} value={s}>
-                                      {STATUS_META[s].label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                            {stage === "won" && !q.converted_to_project && (
-                              <Button
-                                size="sm"
-                                onClick={() => convertToProject.mutate(q)}
-                                disabled={convertToProject.isPending}
-                                className="h-7 fire-button text-[11px] flex-1"
-                              >
-                                {convertToProject.isPending ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <ArrowRight className="w-3 h-3" />
-                                )}{" "}
-                                Convertir en Proyecto
-                              </Button>
-                            )}
-                            {stage === "quoted" && !q.converted_to_project && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => move.mutate({ id: q.id, status: "won" })}
-                                className="h-7 px-2 text-[11px]"
-                                title="Marcar como Ganado"
-                              >
-                                <CheckCircle2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </div>
+                          {canWrite && (
+                            <div className="flex items-center gap-1">
+                              {stage !== "won" && stage !== "lost" && (
+                                <Select
+                                  value={q.status}
+                                  onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
+                                >
+                                  <SelectTrigger className="h-7 text-[11px] flex-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {STAGE_ORDER.map((s) => (
+                                      <SelectItem key={s} value={s}>
+                                        {STATUS_META[s].label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              {stage === "won" && !q.converted_to_project && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => convertToProject.mutate(q)}
+                                  disabled={convertToProject.isPending}
+                                  className="h-7 fire-button text-[11px] flex-1"
+                                >
+                                  {convertToProject.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <ArrowRight className="w-3 h-3" />
+                                  )}{" "}
+                                  Convertir en Proyecto
+                                </Button>
+                              )}
+                              {stage === "quoted" && !q.converted_to_project && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => move.mutate({ id: q.id, status: "won" })}
+                                  className="h-7 px-2 text-[11px]"
+                                  title="Marcar como Ganado"
+                                >
+                                  <CheckCircle2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       );
@@ -973,6 +991,32 @@ export default function CotizacionesPage() {
         recommendedPlan="starter"
         reason={`Has alcanzado el límite de ${planLimits.limits.quotations} cotizaciones del plan ${planLimits.plan.toUpperCase()}`}
       />
+
+      <AlertDialog open={!!deletingQuote} onOpenChange={(o) => !o && setDeletingQuote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cotización?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará "{deletingQuote?.title}" y sus líneas de detalle.
+              {deletingQuote?.converted_to_project && " Esta cotización tiene un proyecto creado a partir de ella."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingQuote) {
+                  remove.mutate(deletingQuote.id);
+                  setDeletingQuote(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
