@@ -931,7 +931,14 @@ export default function CotizacionesPage() {
                               {stage !== "won" && stage !== "lost" && (
                                 <Select
                                   value={q.status}
-                                  onValueChange={(v: QuoteStatus) => move.mutate({ id: q.id, status: v })}
+                                  onValueChange={(v: QuoteStatus) => {
+                                    if (v === "won") {
+                                      // Ganada implica crear proyecto: usar flujo transaccional
+                                      convertToProject.mutate(q);
+                                    } else {
+                                      move.mutate({ id: q.id, status: v });
+                                    }
+                                  }}
                                 >
                                   <SelectTrigger className="h-7 text-[11px] flex-1">
                                     <SelectValue />
