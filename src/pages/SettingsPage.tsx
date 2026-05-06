@@ -583,7 +583,11 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                const isCurrent = realPlan === plan.id;
+                // BETA: cualquier plan no-business cuenta como Founder Access actual
+                const isFounderCard = plan.id === "free";
+                const isCurrent = isFounderCard
+                  ? realPlan !== "business"
+                  : realPlan === "business";
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
                 const isLoadingThis = actionLoading === plan.id;
