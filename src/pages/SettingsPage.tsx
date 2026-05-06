@@ -26,7 +26,8 @@ import {
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
 
-// Catálogo: solo metadata visual y features. Los PRECIOS se leen de Stripe.
+// BETA: catálogo simplificado a Founder Access + Business.
+// La lógica de planes (free/starter/pro/business) sigue intacta en backend.
 const PLANS: Array<{
   id: PlanId;
   name: string;
@@ -36,43 +37,41 @@ const PLANS: Array<{
   features: string[];
   cta: string;
   highlight?: boolean;
+  badge?: string;
 }> = [
   {
     id: "free",
-    name: "Free",
-    tagline: "Empieza a organizar tu trabajo",
+    name: "Founder Access",
+    badge: "Beta",
+    tagline: "Acceso beta para usuarios fundadores",
     icon: Sparkles,
-    accent: "text-muted-foreground",
-    features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Planificación básica", "Tareas y tablero simple", "Dashboard básico"],
-    cta: "Empezar gratis",
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    tagline: "Trabaja sin límites",
-    icon: Rocket,
-    accent: "text-blue-400",
-    features: ["Clientes ilimitados", "Proyectos ilimitados", "Planificación completa", "Calendario y vistas avanzadas", "Cotizaciones ilimitadas"],
-    cta: "Actualizar a Starter",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    tagline: "Controla tu negocio y evita pérdidas",
-    icon: Star,
     accent: "text-primary",
     highlight: true,
-    features: ["Todo lo de Starter", "💰 Ganancia real y margen", "ROI por proyecto", "Costos por tarea y recursos", "Alertas inteligentes de riesgo", "Gestión avanzada de recursos"],
-    cta: "Actualizar a Pro",
+    features: [
+      "Cotizaciones, clientes y proyectos",
+      "Recursos, costos y riesgos",
+      "Dashboard, informes y Learn Center",
+      "Colaboración básica",
+      "Branding ScorpionFlow visible",
+      "Construido junto a nuestros primeros usuarios",
+    ],
+    cta: "Empezar gratis",
   },
   {
     id: "business",
     name: "Business",
-    tagline: "Decisiones estratégicas y control total",
+    tagline: "Visión estratégica y control corporativo",
     icon: TrendingUp,
     accent: "text-cost-warning",
-    features: ["Todo lo de Pro", "Dashboard ejecutivo", "Proyección financiera", "Informes avanzados", "Control multi-proyecto", "Soporte prioritario"],
-    cta: "Actualizar a Business",
+    features: [
+      "Visión financiera global",
+      "Dashboards ejecutivos",
+      "Analítica avanzada",
+      "Colaboración empresarial",
+      "Exportaciones completas",
+      "Soporte prioritario",
+    ],
+    cta: "Solicitar acceso Business",
   },
 ];
 
