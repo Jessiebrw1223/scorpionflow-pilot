@@ -534,11 +534,26 @@ export default function SettingsPage() {
         {/* === TAB: SUSCRIPCIONES === */}
         <TabsContent value="subscriptions">
           <div className="space-y-5">
+            <div className="surface-card p-4 rounded-lg flex items-start gap-3 bg-primary/5 border border-primary/30">
+              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="text-[12.5px]">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-foreground font-semibold">Acceso beta para usuarios fundadores.</span>
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-primary/40 text-primary">Beta · Early Access</Badge>
+                </div>
+                <p className="text-muted-foreground mt-0.5">
+                  Estamos construyendo ScorpionFlow junto a nuestros primeros usuarios. Mientras dure la beta tienes acceso casi completo sin tarjeta.
+                </p>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold text-foreground">Elige el plan que se adapta a tu negocio</h3>
+                <h3 className="text-base font-semibold text-foreground">Founder Access o Business</h3>
                 <p className="text-[13px] text-muted-foreground">
-                  Empieza gratis. Trabaja sin límites. Controla tu negocio cuando estés listo.
+                  Empieza con Founder Access. Cambia a Business cuando necesites visión empresarial completa.
                 </p>
               </div>
 
