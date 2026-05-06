@@ -580,7 +580,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
                 const isCurrent = realPlan === plan.id;
