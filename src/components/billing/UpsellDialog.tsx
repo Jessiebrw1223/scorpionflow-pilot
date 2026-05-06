@@ -20,22 +20,20 @@ interface UpsellDialogProps {
 
 const PLAN_BENEFITS: Record<Exclude<PlanId, "free">, string[]> = {
   starter: [
-    "Hasta 10 usuarios en tu equipo",
-    "Proyectos y clientes ilimitados",
-    "Cotizaciones ilimitadas",
-    "Calendario y vistas avanzadas",
+    "Acceso completo a Founder Access",
+    "Cotizaciones, clientes y proyectos",
+    "Recursos, costos y riesgos",
+    "Soporte para los primeros usuarios",
   ],
   pro: [
-    "Usuarios ilimitados",
-    "💰 Ganancia real y margen por proyecto",
-    "Inteligencia de costos automática",
+    "Acceso completo a Founder Access",
+    "Inteligencia de costos y márgenes",
     "Alertas inteligentes de pérdida",
     "Gestión avanzada de recursos",
   ],
   business: [
-    "Todo lo de Pro",
-    "Dashboard ejecutivo multi-proyecto",
-    "Proyección financiera avanzada",
+    "Visión financiera global multi-proyecto",
+    "Dashboard ejecutivo y proyección financiera",
     "Reportes ejecutivos descargables",
     "Soporte prioritario",
   ],
