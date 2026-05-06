@@ -747,14 +747,22 @@ export default function LandingPage() {
                     ))}
                   </ul>
 
-                  <Link to="/auth/register" className="mt-6">
-                    <Button
-                      className={`w-full ${isPro ? "fire-button font-semibold" : ""}`}
-                      variant={isPro ? "default" : isFree ? "secondary" : "outline"}
+                  {isFree ? (
+                    <Link to="/auth/register" className="mt-6">
+                      <Button className="w-full fire-button font-semibold" variant="default">
+                        {plan.cta}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <a
+                      href="mailto:ventas@scorpionflow.com?subject=Solicitud%20de%20acceso%20Business"
+                      className="mt-6"
                     >
-                      {plan.cta}
-                    </Button>
-                  </Link>
+                      <Button className="w-full" variant="outline">
+                        {plan.cta}
+                      </Button>
+                    </a>
+                  )}
                 </div>
               );
             })}
