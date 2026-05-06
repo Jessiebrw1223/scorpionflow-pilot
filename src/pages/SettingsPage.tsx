@@ -26,7 +26,8 @@ import {
 type PlanId = "free" | "starter" | "pro" | "business";
 type Billing = "monthly" | "annual";
 
-// Catálogo: solo metadata visual y features. Los PRECIOS se leen de Stripe.
+// BETA: catálogo simplificado a Founder Access + Business.
+// La lógica de planes (free/starter/pro/business) sigue intacta en backend.
 const PLANS: Array<{
   id: PlanId;
   name: string;
@@ -36,43 +37,41 @@ const PLANS: Array<{
   features: string[];
   cta: string;
   highlight?: boolean;
+  badge?: string;
 }> = [
   {
     id: "free",
-    name: "Free",
-    tagline: "Empieza a organizar tu trabajo",
+    name: "Founder Access",
+    badge: "Beta",
+    tagline: "Acceso beta para usuarios fundadores",
     icon: Sparkles,
-    accent: "text-muted-foreground",
-    features: ["Hasta 5 clientes", "Hasta 3 proyectos", "Planificación básica", "Tareas y tablero simple", "Dashboard básico"],
-    cta: "Empezar gratis",
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    tagline: "Trabaja sin límites",
-    icon: Rocket,
-    accent: "text-blue-400",
-    features: ["Clientes ilimitados", "Proyectos ilimitados", "Planificación completa", "Calendario y vistas avanzadas", "Cotizaciones ilimitadas"],
-    cta: "Actualizar a Starter",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    tagline: "Controla tu negocio y evita pérdidas",
-    icon: Star,
     accent: "text-primary",
     highlight: true,
-    features: ["Todo lo de Starter", "💰 Ganancia real y margen", "ROI por proyecto", "Costos por tarea y recursos", "Alertas inteligentes de riesgo", "Gestión avanzada de recursos"],
-    cta: "Actualizar a Pro",
+    features: [
+      "Cotizaciones, clientes y proyectos",
+      "Recursos, costos y riesgos",
+      "Dashboard, informes y Learn Center",
+      "Colaboración básica",
+      "Branding ScorpionFlow visible",
+      "Construido junto a nuestros primeros usuarios",
+    ],
+    cta: "Empezar gratis",
   },
   {
     id: "business",
     name: "Business",
-    tagline: "Decisiones estratégicas y control total",
+    tagline: "Visión estratégica y control corporativo",
     icon: TrendingUp,
     accent: "text-cost-warning",
-    features: ["Todo lo de Pro", "Dashboard ejecutivo", "Proyección financiera", "Informes avanzados", "Control multi-proyecto", "Soporte prioritario"],
-    cta: "Actualizar a Business",
+    features: [
+      "Visión financiera global",
+      "Dashboards ejecutivos",
+      "Analítica avanzada",
+      "Colaboración empresarial",
+      "Exportaciones completas",
+      "Soporte prioritario",
+    ],
+    cta: "Solicitar acceso Business",
   },
 ];
 
@@ -154,7 +153,8 @@ export default function SettingsPage() {
   const formatDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" }) : "—";
 
-  const planLabel = (id: PlanId) => id.charAt(0).toUpperCase() + id.slice(1);
+  // BETA: free/starter/pro se muestran como "Founder Access". Business sin cambios.
+  const planLabel = (id: PlanId) => (id === "business" ? "Business" : "Founder Access");
 
   // Decide la acción correcta según el estado actual del usuario
   const handlePlanAction = async (planId: PlanId) => {
@@ -534,11 +534,26 @@ export default function SettingsPage() {
         {/* === TAB: SUSCRIPCIONES === */}
         <TabsContent value="subscriptions">
           <div className="space-y-5">
+            <div className="surface-card p-4 rounded-lg flex items-start gap-3 bg-primary/5 border border-primary/30">
+              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="text-[12.5px]">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-foreground font-semibold">Acceso beta para usuarios fundadores.</span>
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-primary/40 text-primary">Beta · Early Access</Badge>
+                </div>
+                <p className="text-muted-foreground mt-0.5">
+                  Estamos construyendo ScorpionFlow junto a nuestros primeros usuarios. Mientras dure la beta tienes acceso casi completo sin tarjeta.
+                </p>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold text-foreground">Elige el plan que se adapta a tu negocio</h3>
+                <h3 className="text-base font-semibold text-foreground">Founder Access o Business</h3>
                 <p className="text-[13px] text-muted-foreground">
-                  Empieza gratis. Trabaja sin límites. Controla tu negocio cuando estés listo.
+                  Empieza con Founder Access. Cambia a Business cuando necesites visión empresarial completa.
                 </p>
               </div>
 
@@ -565,10 +580,14 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                const isCurrent = realPlan === plan.id;
+                // BETA: cualquier plan no-business cuenta como Founder Access actual
+                const isFounderCard = plan.id === "free";
+                const isCurrent = isFounderCard
+                  ? realPlan !== "business"
+                  : realPlan === "business";
                 const isFree = plan.id === "free";
                 const isUSD = currency === "USD";
                 const isLoadingThis = actionLoading === plan.id;

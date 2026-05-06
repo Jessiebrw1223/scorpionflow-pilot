@@ -48,52 +48,38 @@ const ROTATING_QUESTIONS = [
   "¿Tomas decisiones con datos… o por intuición?",
 ];
 
+// BETA: simplificación temporal a 2 planes (Founder Access + Business).
 const PLANS = [
   {
     id: "free",
-    name: "Free",
+    name: "Founder Access",
+    badge: "Beta · Early Access",
     monthly: 0,
-    emotional: "Empieza sin riesgo",
-    features: ["Hasta 5 usuarios", "Hasta 3 proyectos", "Tareas básicas", "Vista simple"],
-    cta: "Empezar gratis",
-    highlight: false,
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    monthly: 45,
-    emotional: "Vende y organiza mejor",
-    features: ["Hasta 10 usuarios", "Proyectos ilimitados", "Cotizaciones profesionales", "Colaboración ampliada"],
-    cta: "Activar Starter",
-    highlight: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    monthly: 101,
-    emotional: "Control total para crecer",
+    emotional: "Acceso beta para usuarios fundadores",
     features: [
-      "Usuarios ilimitados",
-      "Control financiero completo",
-      "Margen real y ROI",
-      "Costos por tarea",
-      "Alertas inteligentes",
-      "Gestión de recursos",
+      "Cotizaciones y clientes",
+      "Proyectos y tareas",
+      "Recursos, costos y riesgos",
+      "Dashboard e informes",
+      "Colaboración básica",
+      "Learn Center",
     ],
-    cta: "Activar Pro",
+    cta: "Empezar gratis",
     highlight: true,
   },
   {
     id: "business",
     name: "Business",
+    badge: "Empresarial",
     monthly: 225,
-    emotional: "Visión estratégica completa",
+    emotional: "Visión estratégica y control corporativo",
     features: [
-      "Todo lo de Pro",
-      "Centro financiero corporativo",
-      "Riesgos empresariales",
-      "Analítica ejecutiva",
-      "Reportes multi-proyecto",
+      "Visión financiera global",
+      "Dashboards ejecutivos",
+      "Analítica avanzada",
+      "Colaboración empresarial",
+      "Exportaciones completas",
+      "Soporte prioritario",
     ],
     cta: "Hablar con ventas",
     highlight: false,
@@ -102,8 +88,12 @@ const PLANS = [
 
 const FAQS: Array<{ q: string; a: string }> = [
   {
+    q: "¿Qué es Founder Access?",
+    a: "Es nuestro plan beta para los primeros usuarios. Tienes acceso a casi todo lo que ofrece ScorpionFlow mientras construimos el producto junto a ti.",
+  },
+  {
     q: "¿Necesito tarjeta de crédito para empezar?",
-    a: "No. El plan Free es gratis para siempre y no pide tarjeta. Solo te pediremos datos de pago cuando decidas activar Starter, Pro o Business.",
+    a: "No. Founder Access es gratuito durante la beta y no pide tarjeta. Solo te pediremos datos de pago si decides activar Business.",
   },
   {
     q: "¿Sirve para equipos pequeños?",
@@ -114,10 +104,6 @@ const FAQS: Array<{ q: string; a: string }> = [
     a: "Sí. Cancelas con un clic desde Configuración. No hay permanencia, ni penalidades, ni letras chicas.",
   },
   {
-    q: "¿Necesito saber de gestión de proyectos para usarlo?",
-    a: "No. Hablamos como un negocio real, no como un manual técnico. En menos de 30 segundos entiendes cómo cotizar, ejecutar y ver tu margen.",
-  },
-  {
     q: "¿Cuánto demoro en empezar?",
     a: "Menos de 5 minutos. Creas tu cuenta, invitas a tu equipo con un correo y haces tu primera cotización en el mismo día.",
   },
@@ -125,16 +111,17 @@ const FAQS: Array<{ q: string; a: string }> = [
 
 const COMPARE_ROWS: Array<{
   label: string;
-  values: [string | boolean, string | boolean, string | boolean, string | boolean];
+  values: [string | boolean, string | boolean];
 }> = [
-  { label: "Usuarios / Equipo", values: ["5", "10", "Ilimitado", "Ilimitado"] },
-  { label: "Proyectos", values: ["3", "Ilimitado", "Ilimitado", "Ilimitado"] },
-  { label: "Clientes", values: ["limitado", true, true, true] },
-  { label: "Indicadores de rentabilidad", values: [false, false, true, true] },
-  { label: "Margen real", values: [false, false, true, true] },
-  { label: "ROI claro", values: [false, false, true, true] },
-  { label: "Alertas inteligentes", values: [false, false, true, true] },
-  { label: "Gestión de recursos", values: [false, false, true, true] },
+  { label: "Usuarios / Equipo", values: ["Hasta 10", "Ilimitado"] },
+  { label: "Proyectos", values: ["Limitados", "Ilimitado"] },
+  { label: "Clientes y cotizaciones", values: [true, true] },
+  { label: "Recursos y costos", values: [true, true] },
+  { label: "Riesgos e informes", values: [true, true] },
+  { label: "Visión financiera global", values: [false, true] },
+  { label: "Dashboards ejecutivos", values: [false, true] },
+  { label: "Exportaciones completas", values: [false, true] },
+  { label: "Soporte prioritario", values: [false, true] },
 ];
 
 /**
@@ -684,8 +671,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Cards de planes */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+          {/* Cards de planes — beta: 2 planes (Founder Access + Business) */}
+          <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
             {PLANS.map((plan) => {
               const effectivePrice = billing === "annual"
                 ? Math.round(plan.monthly * 0.8)
@@ -704,7 +691,7 @@ export default function LandingPage() {
                 >
                   {isPro && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] uppercase tracking-widest font-bold shadow-lg whitespace-nowrap">
-                      ⭐ Más elegido por empresas en crecimiento
+                      ✦ Beta · Early Access · Founder
                     </span>
                   )}
 
@@ -715,22 +702,33 @@ export default function LandingPage() {
                   </p>
 
                   <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight">
-                      S/ {effectivePrice}
-                    </span>
-                    <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                    {isFree ? (
+                      <>
+                        <span className="text-4xl font-bold tracking-tight">Gratis</span>
+                        <span className="text-sm font-normal text-muted-foreground">durante la beta</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold tracking-tight">S/ {effectivePrice}</span>
+                        <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                      </>
+                    )}
                   </div>
-                  {billing === "annual" && !isFree && (
+                  {!isFree && billing === "annual" && (
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       antes <span className="line-through">S/ {plan.monthly}</span> · facturado anual
                     </p>
                   )}
-                  {billing === "monthly" && !isFree && (
+                  {!isFree && billing === "monthly" && (
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       o S/ {Math.round(plan.monthly * 0.8)}/mes anual
                     </p>
                   )}
-                  {isFree && <p className="mt-1 text-[11px] text-muted-foreground">para siempre</p>}
+                  {isFree && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Estamos construyendo ScorpionFlow junto a nuestros primeros usuarios.
+                    </p>
+                  )}
 
                   <p className={`mt-4 text-sm font-medium ${
                     isPro ? "text-foreground" : "text-muted-foreground"
@@ -749,14 +747,22 @@ export default function LandingPage() {
                     ))}
                   </ul>
 
-                  <Link to="/auth/register" className="mt-6">
-                    <Button
-                      className={`w-full ${isPro ? "fire-button font-semibold" : ""}`}
-                      variant={isPro ? "default" : isFree ? "secondary" : "outline"}
+                  {isFree ? (
+                    <Link to="/auth/register" className="mt-6">
+                      <Button className="w-full fire-button font-semibold" variant="default">
+                        {plan.cta}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <a
+                      href="mailto:ventas@scorpionflow.com?subject=Solicitud%20de%20acceso%20Business"
+                      className="mt-6"
                     >
-                      {plan.cta}
-                    </Button>
-                  </Link>
+                      <Button className="w-full" variant="outline">
+                        {plan.cta}
+                      </Button>
+                    </a>
+                  )}
                 </div>
               );
             })}
@@ -809,7 +815,7 @@ export default function LandingPage() {
                       >
                         <td className="px-5 py-3.5 font-medium text-foreground/90">{row.label}</td>
                         {row.values.map((v, i) => {
-                          const isProCol = i === 2;
+                          const isProCol = i === 0;
                           return (
                             <td
                               key={i}
