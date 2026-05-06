@@ -671,8 +671,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Cards de planes */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+          {/* Cards de planes — beta: 2 planes (Founder Access + Business) */}
+          <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
             {PLANS.map((plan) => {
               const effectivePrice = billing === "annual"
                 ? Math.round(plan.monthly * 0.8)
