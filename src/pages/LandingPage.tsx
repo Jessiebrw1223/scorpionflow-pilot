@@ -702,22 +702,33 @@ export default function LandingPage() {
                   </p>
 
                   <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight">
-                      S/ {effectivePrice}
-                    </span>
-                    <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                    {isFree ? (
+                      <>
+                        <span className="text-4xl font-bold tracking-tight">Gratis</span>
+                        <span className="text-sm font-normal text-muted-foreground">durante la beta</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold tracking-tight">S/ {effectivePrice}</span>
+                        <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                      </>
+                    )}
                   </div>
-                  {billing === "annual" && !isFree && (
+                  {!isFree && billing === "annual" && (
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       antes <span className="line-through">S/ {plan.monthly}</span> · facturado anual
                     </p>
                   )}
-                  {billing === "monthly" && !isFree && (
+                  {!isFree && billing === "monthly" && (
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       o S/ {Math.round(plan.monthly * 0.8)}/mes anual
                     </p>
                   )}
-                  {isFree && <p className="mt-1 text-[11px] text-muted-foreground">para siempre</p>}
+                  {isFree && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Estamos construyendo ScorpionFlow junto a nuestros primeros usuarios.
+                    </p>
+                  )}
 
                   <p className={`mt-4 text-sm font-medium ${
                     isPro ? "text-foreground" : "text-muted-foreground"
