@@ -153,7 +153,8 @@ export default function SettingsPage() {
   const formatDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" }) : "—";
 
-  const planLabel = (id: PlanId) => id.charAt(0).toUpperCase() + id.slice(1);
+  // BETA: free/starter/pro se muestran como "Founder Access". Business sin cambios.
+  const planLabel = (id: PlanId) => (id === "business" ? "Business" : "Founder Access");
 
   // Decide la acción correcta según el estado actual del usuario
   const handlePlanAction = async (planId: PlanId) => {
