@@ -32,10 +32,12 @@ export interface PlanInfo {
   refresh: () => Promise<void>;
 }
 
+// BETA: temporalmente Free/Starter/Pro se presentan como "Founder Access".
+// La lógica de planes en backend sigue intacta.
 export const PLAN_LABELS: Record<PlanId, string> = {
-  free: "Free",
-  starter: "Starter",
-  pro: "Pro",
+  free: "Founder Access",
+  starter: "Founder Access",
+  pro: "Founder Access",
   business: "Business",
 };
 
