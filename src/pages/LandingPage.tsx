@@ -815,7 +815,7 @@ export default function LandingPage() {
                       >
                         <td className="px-5 py-3.5 font-medium text-foreground/90">{row.label}</td>
                         {row.values.map((v, i) => {
-                          const isProCol = i === 2;
+                          const isProCol = i === 0;
                           return (
                             <td
                               key={i}
