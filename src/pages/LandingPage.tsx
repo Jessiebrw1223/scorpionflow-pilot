@@ -969,6 +969,48 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* COMO FUNCIONA — adaptación por área */}
+      <section className="border-t border-border/60">
+        <div className="max-w-6xl mx-auto px-5 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Cómo funciona</span>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
+              Aprende cómo ScorpionFlow
+              <span className="block text-primary">se adapta a tu forma de trabajar.</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Guías simples para vender, ejecutar proyectos, controlar costos y tomar decisiones.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[
+              { icon: Users, title: "Para ventas", body: "Clientes, cotizaciones y cierre." },
+              { icon: Target, title: "Para proyectos", body: "Planificación, tareas y avance." },
+              { icon: Activity, title: "Para operaciones", body: "Recursos, carga y bloqueos." },
+              { icon: BarChart3, title: "Para gerencia", body: "Utilidad, riesgos e informes." },
+            ].map(({ icon: Icon, title, body }, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-colors group">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link to="/como-funciona">
+              <Button size="lg" variant="outline" className="h-12 px-7 gap-2 border-border hover:border-primary/50">
+                <Compass className="w-4 h-4" />
+                Ver guías de uso
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA FINAL */}
       <section className="border-t border-border/60 bg-gradient-to-b from-background to-secondary/30 relative overflow-hidden">
         <div className="absolute inset-0 -z-10 pointer-events-none">
