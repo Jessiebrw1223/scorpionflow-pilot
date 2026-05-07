@@ -40,9 +40,9 @@ const PLAN_BENEFITS: Record<Exclude<PlanId, "free">, string[]> = {
 };
 
 const PLAN_PRICES: Record<Exclude<PlanId, "free">, { monthly: string; annual: string }> = {
-  starter: { monthly: "S/45", annual: "S/432" },
-  pro: { monthly: "S/101", annual: "S/970" },
-  business: { monthly: "S/225", annual: "S/2,160" },
+  starter: { monthly: "S/90", annual: "S/90" },
+  pro: { monthly: "S/90", annual: "S/90" },
+  business: { monthly: "S/90", annual: "S/90" },
 };
 
 const FEATURE_HEADLINES: Record<PremiumFeature, string> = {
@@ -99,29 +99,25 @@ export function UpsellDialog({
   const handleCheckout = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: targetPlan, billing },
+      const { data, error } = await supabase.functions.invoke("create-mercadopago-checkout", {
+        body: {},
       });
       if (error || (data && (data as any).error)) {
-        toast.error("No pudimos abrir el pago", {
-          description: humanizeFunctionError(
-            error,
-            data,
-            "Intenta nuevamente en unos segundos.",
-          ),
+        toast.error("No pudimos conectar con Mercado Pago", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
         });
         return;
       }
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
         onOpenChange(false);
       } else {
-        toast.error("No pudimos abrir el pago", {
+        toast.error("No pudimos conectar con Mercado Pago", {
           description: "Intenta nuevamente en unos segundos.",
         });
       }
     } catch (e) {
-      toast.error("No pudimos abrir el pago", {
+      toast.error("No pudimos conectar con Mercado Pago", {
         description: humanizeError(e, "Intenta nuevamente en unos segundos."),
       });
     } finally {

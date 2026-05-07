@@ -9,12 +9,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   CreditCard, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
-  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink, X,
+  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, X,
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
-import { useStripePrices } from "@/hooks/useStripePrices";
-import { usdToPen, formatPEN, formatUSD, FX_USD_TO_PEN } from "@/lib/fx";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
@@ -24,7 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type PlanId = "free" | "starter" | "pro" | "business";
-type Billing = "monthly" | "annual";
+
+const BUSINESS_PRICE_PEN = 90;
 
 // BETA: catálogo simplificado a Founder Access + Business.
 // La lógica de planes (free/starter/pro/business) sigue intacta en backend.
@@ -78,14 +77,12 @@ const PLANS: Array<{
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
   const {
-    plan: realPlan, status: planStatus, billingCycle: realBilling,
-    cancelAtPeriodEnd, currentPeriodEnd, hasActiveStripeSub,
-    pendingDowngradePlan, refresh: refreshPlan,
+    plan: realPlan, status: planStatus,
+    cancelAtPeriodEnd, currentPeriodEnd,
+    refresh: refreshPlan,
   } = usePlan();
-  const { getPrice, loading: pricesLoading } = useStripePrices();
   const [searchParams, setSearchParams] = useSearchParams();
   const [actionLoading, setActionLoading] = useState<PlanId | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [reactivateLoading, setReactivateLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -115,36 +112,31 @@ export default function SettingsPage() {
     setChannel(settings.channel);
   }, [settings]);
 
-  const [billing, setBilling] = useState<Billing>((realBilling as Billing) ?? "monthly");
+  // Beta: solo facturación mensual con Mercado Pago.
 
   // Default tab desde query (?tab=subscription)
   const initialTab = searchParams.get("tab") === "subscription" ? "subscriptions"
     : searchParams.get("tab") === "alerts" ? "alerts"
     : "work";
 
-  // Detectar checkout success/cancelled desde Stripe
+  // Detectar retorno de Mercado Pago: confirmar estado real vía polling.
   useEffect(() => {
-    const checkout = searchParams.get("checkout");
-    if (checkout === "success") {
-      toast.success("¡Suscripción activada!", {
-        description: "Estamos confirmando tu pago…",
+    const mp = searchParams.get("mp");
+    if (mp === "return") {
+      toast.info("Estamos confirmando tu pago.", {
+        description: "Activaremos Business en cuanto Mercado Pago confirme la suscripción.",
       });
-      // Polling agresivo: el webhook de Stripe puede tardar 1-10s.
       let attempts = 0;
-      const maxAttempts = 12; // 12 * 2s = 24s
+      const maxAttempts = 12;
       const interval = setInterval(async () => {
         attempts++;
         await refreshPlan();
         if (attempts >= maxAttempts) clearInterval(interval);
       }, 2000);
       refreshPlan();
-      searchParams.delete("checkout");
+      searchParams.delete("mp");
       setSearchParams(searchParams, { replace: true });
       return () => clearInterval(interval);
-    } else if (checkout === "cancelled") {
-      toast.info("Pago cancelado", { description: "Puedes intentarlo de nuevo cuando quieras." });
-      searchParams.delete("checkout");
-      setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams, refreshPlan]);
 
@@ -156,116 +148,55 @@ export default function SettingsPage() {
   // BETA: free/starter/pro se muestran como "Founder Access". Business sin cambios.
   const planLabel = (id: PlanId) => (id === "business" ? "Business" : "Founder Access");
 
-  // Decide la acción correcta según el estado actual del usuario
+  // Beta + Mercado Pago: solo dos acciones reales (activar Business o cancelar).
   const handlePlanAction = async (planId: PlanId) => {
-    if (planId === realPlan && billing === realBilling) return;
-
-    // Caso 1: NO tiene sub activa en Stripe → checkout nuevo
-    if (!hasActiveStripeSub) {
-      return openCheckout(planId);
-    }
-
-    // Caso 2: tiene sub pero está cancelando al final del período
-    if (cancelAtPeriodEnd) {
-      setConfirmDialog({
-        title: "Reactivar tu suscripción",
-        description: `Tu plan ${planLabel(realPlan)} está programado para terminar el ${formatDate(currentPeriodEnd)}. Reactivamos tu suscripción y continuarás con tu plan actual sin interrupciones.`,
-        confirmLabel: "Reactivar",
-        onConfirm: handleReactivate,
-      });
-      return;
-    }
-
-    // Caso 3: cambio de plan en sub activa → upgrade o downgrade
-    const isUp = PLAN_RANK_LOCAL[planId] > PLAN_RANK_LOCAL[realPlan];
-    const isDown = PLAN_RANK_LOCAL[planId] < PLAN_RANK_LOCAL[realPlan];
-    const isBillingOnly = planId === realPlan && billing !== realBilling;
-
-    if (isUp || (isBillingOnly && billing === "annual")) {
-      setConfirmDialog({
-        title: `Actualizar a ${planLabel(planId)}`,
-        description: isBillingOnly
-          ? `Cambiarás tu facturación a ${billing === "annual" ? "anual" : "mensual"}. Se aplicará un cobro prorrateado por la diferencia y obtendrás los beneficios de inmediato.`
-          : `Subes de ${planLabel(realPlan)} a ${planLabel(planId)}. Se aplicará inmediatamente con un cobro prorrateado por los días restantes del ciclo.`,
-        confirmLabel: "Confirmar y pagar",
-        onConfirm: () => invokeChangePlan(planId, "upgrade"),
-      });
-      return;
-    }
-
-    if (isDown || (isBillingOnly && billing === "monthly")) {
-      // Downgrade a Free = cancelar suscripción al final del período
-      if (planId === "free") {
+    if (planId === "business") {
+      // Si ya está activo y cancelando → reactivar
+      if (realPlan === "business" && cancelAtPeriodEnd) {
         setConfirmDialog({
-          title: "Volver al plan Free",
-          description: `Tu plan ${planLabel(realPlan)} continuará hasta el ${formatDate(currentPeriodEnd)}. Después pasarás automáticamente a Free y se desactivarán las funciones premium.`,
-          confirmLabel: "Confirmar cambio a Free",
-          onConfirm: handleCancelSubscription,
+          title: "Reactivar tu suscripción Business",
+          description: `Tu plan está programado para terminar el ${formatDate(currentPeriodEnd)}. Si reactivas ahora, continuará renovándose normalmente.`,
+          confirmLabel: "Reactivar",
+          onConfirm: handleReactivate,
         });
         return;
       }
+      // Activar Business → checkout Mercado Pago
+      return openMpCheckout();
+    }
+    // Bajar a Founder Access → cancelar suscripción
+    if (realPlan === "business" && !cancelAtPeriodEnd) {
       setConfirmDialog({
-        title: `Programar cambio a ${planLabel(planId)}`,
-        description: `Tu cambio se aplicará al cierre del período el ${formatDate(currentPeriodEnd)}. Hasta entonces conservas tu plan ${planLabel(realPlan)} sin interrupciones.`,
-        confirmLabel: "Programar cambio",
-        onConfirm: () => invokeChangePlan(planId, "downgrade"),
+        title: "Volver a Founder Access",
+        description: `Tu plan Business continuará hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá automáticamente a Founder Access.`,
+        confirmLabel: "Confirmar cambio",
+        destructive: true,
+        onConfirm: handleCancelSubscription,
       });
-      return;
     }
   };
 
-  const openCheckout = async (planId: PlanId) => {
-    setActionLoading(planId);
+  const openMpCheckout = async () => {
+    setActionLoading("business");
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: planId, billing },
+      const { data, error } = await supabase.functions.invoke("create-mercadopago-checkout", {
+        body: {},
       });
       if (error || (data && (data as any).error)) {
-        toast.error("No pudimos abrir el pago", {
+        toast.error("No pudimos conectar con Mercado Pago", {
           description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
         });
         return;
       }
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       } else {
-        toast.error("No pudimos abrir el pago", { description: "Intenta nuevamente en unos segundos." });
-      }
-    } catch (e: any) {
-      toast.error("No pudimos abrir el pago", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
-      });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const invokeChangePlan = async (planId: PlanId, intent: "upgrade" | "downgrade") => {
-    setActionLoading(planId);
-    try {
-      const { data, error } = await supabase.functions.invoke("change-subscription-plan", {
-        body: { plan: planId, billing },
-      });
-      if (error || (data && (data as any).error)) {
-        const title = intent === "upgrade" ? "No pudimos actualizar tu plan" : "No pudimos programar el cambio";
-        toast.error(title, {
-          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        toast.error("No pudimos conectar con Mercado Pago", {
+          description: "Intenta nuevamente en unos segundos.",
         });
-        return;
       }
-      const message = (data as any)?.message ?? (intent === "upgrade"
-        ? "Plan actualizado."
-        : "Cambio programado al cierre del período.");
-      toast.success(intent === "upgrade" ? "Plan actualizado" : "Cambio programado", { description: message });
-      // Polling para reflejar el cambio (webhook puede tardar segundos)
-      let attempts = 0;
-      const interval = setInterval(async () => {
-        attempts++;
-        await refreshPlan();
-        if (attempts >= 6) clearInterval(interval);
-      }, 1500);
     } catch (e: any) {
-      toast.error("No pudimos completar el cambio", {
+      toast.error("No pudimos conectar con Mercado Pago", {
         description: humanizeError(e, "Intenta nuevamente en unos segundos."),
       });
     } finally {
@@ -276,23 +207,20 @@ export default function SettingsPage() {
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("cancel-subscription", { body: {} });
+      const { data, error } = await supabase.functions.invoke("cancel-mercadopago-subscription", { body: {} });
       if (error || (data && (data as any).error)) {
         toast.error("No pudimos cancelar tu suscripción", {
-          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+          description: humanizeFunctionError(error, data, "Para cambios avanzados, contacta soporte."),
         });
         return;
       }
-      const eff = (data as any)?.effective_at ? formatDate((data as any).effective_at) : null;
-      toast.success("Cancelación programada", {
-        description: eff
-          ? `Conservas tu plan hasta el ${eff}. Después volverás a Free.`
-          : "Conservas tu plan hasta el final del período pagado.",
+      toast.success("Cancelación registrada", {
+        description: "Conservas tu acceso hasta el final del período pagado.",
       });
       await refreshPlan();
     } catch (e: any) {
       toast.error("No pudimos cancelar tu suscripción", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+        description: humanizeError(e, "Para cambios avanzados, contacta soporte."),
       });
     } finally {
       setCancelLoading(false);
@@ -302,54 +230,13 @@ export default function SettingsPage() {
   const handleReactivate = async () => {
     setReactivateLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("reactivate-subscription", { body: {} });
-      if (error || (data && (data as any).error)) {
-        toast.error("No pudimos reactivar tu suscripción", {
-          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
-        });
-        return;
-      }
-      toast.success("Suscripción reactivada", {
-        description: "Tu plan continuará renovándose normalmente.",
-      });
-      await refreshPlan();
-    } catch (e: any) {
-      toast.error("No pudimos reactivar tu suscripción", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
-      });
+      // En Mercado Pago no hay reactivación nativa: relanzamos el checkout.
+      await openMpCheckout();
     } finally {
       setReactivateLoading(false);
     }
   };
 
-  const handleOpenPortal = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal", { body: {} });
-      if (error || (data && (data as any).error)) {
-        const msg = humanizeFunctionError(
-          error,
-          data,
-          "Intenta nuevamente en unos segundos.",
-        );
-        toast.error("No pudimos abrir el portal", { description: msg });
-        return;
-      }
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      } else {
-        toast.error("No pudimos abrir el portal", {
-          description: "Intenta nuevamente en unos segundos.",
-        });
-      }
-    } catch (e: any) {
-      toast.error("No pudimos abrir el portal", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
-      });
-    } finally {
-      setPortalLoading(false);
-    }
-  };
 
   const handleSaveWork = async () => {
     try {
@@ -549,61 +436,22 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">Founder Access o Business</h3>
-                <p className="text-[13px] text-muted-foreground">
-                  Empieza con Founder Access. Cambia a Business cuando necesites visión empresarial completa.
-                </p>
-              </div>
-
-              <div className="inline-flex items-center gap-1 bg-secondary border border-border rounded-lg p-1 self-start sm:self-auto">
-                <button
-                  onClick={() => setBilling("monthly")}
-                  className={cn(
-                    "px-3 h-7 rounded-md text-[12px] font-medium transition-sf",
-                    billing === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Mensual
-                </button>
-                <button
-                  onClick={() => setBilling("annual")}
-                  className={cn(
-                    "px-3 h-7 rounded-md text-[12px] font-medium transition-sf flex items-center gap-1.5",
-                    billing === "annual" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Anual
-                  <span className="text-[10px] font-semibold text-cost-positive bg-cost-positive/10 px-1.5 py-0.5 rounded">-20%</span>
-                </button>
-              </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-base font-semibold text-foreground">Founder Access o Business</h3>
+              <p className="text-[13px] text-muted-foreground">
+                Empieza con Founder Access. Activa Business cuando necesites visión empresarial completa. Pago mensual con Mercado Pago.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                // BETA: cualquier plan no-business cuenta como Founder Access actual
                 const isFounderCard = plan.id === "free";
                 const isCurrent = isFounderCard
                   ? realPlan !== "business"
                   : realPlan === "business";
                 const isFree = plan.id === "free";
-                const isUSD = currency === "USD";
                 const isLoadingThis = actionLoading === plan.id;
-
-                // Resolver precio real desde Stripe (si plan no es free)
-                const stripePrice = !isFree ? getPrice(plan.id, billing) : null;
-                // Mostrar precio "por mes" siempre (anual ÷ 12 para comparar)
-                const usdPerMonth = stripePrice
-                  ? billing === "annual"
-                    ? stripePrice.amountUsd / 12
-                    : stripePrice.amountUsd
-                  : 0;
-                const penPerMonth = usdToPen(usdPerMonth);
-                const totalUsd = stripePrice?.amountUsd ?? 0;
-                const totalPen = usdToPen(totalUsd);
-                const priceUnavailable = !isFree && stripePrice && !stripePrice.available;
 
                 return (
                   <div
@@ -632,35 +480,18 @@ export default function SettingsPage() {
                       {isFree ? (
                         <div>
                           <span className="font-mono-data text-3xl font-bold text-foreground">Gratis</span>
-                          <p className="text-[11px] text-muted-foreground mt-1">Para siempre</p>
-                        </div>
-                      ) : pricesLoading ? (
-                        <div className="h-[58px] flex items-center">
-                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <p className="text-[11px] text-muted-foreground mt-1">Durante la beta</p>
                         </div>
                       ) : (
                         <div>
                           <div className="flex items-baseline gap-1">
                             <span className="font-mono-data text-3xl font-bold text-foreground">
-                              {isUSD ? formatUSD(usdPerMonth) : formatPEN(penPerMonth)}
+                              S/{BUSINESS_PRICE_PEN}
                             </span>
                             <span className="text-[12px] text-muted-foreground">/ mes</span>
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-1">
-                            {isUSD
-                              ? `≈ ${formatPEN(penPerMonth)} PEN`
-                              : `≈ ${formatUSD(usdPerMonth)} USD`}
-                            {billing === "annual" && (
-                              <>
-                                {" · "}
-                                <span title={`Facturado anual: ${formatUSD(totalUsd)} (${formatPEN(totalPen)})`}>
-                                  facturado anual
-                                </span>
-                              </>
-                            )}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                            Conversión referencial · 1 USD ≈ S/ {FX_USD_TO_PEN.toFixed(2)}
+                            Precio beta · Pago mensual con Mercado Pago
                           </p>
                         </div>
                       )}
@@ -688,37 +519,23 @@ export default function SettingsPage() {
                         </Badge>
                         {!isFree && (
                           <div className="space-y-2">
-                            <Button
-                              variant="outline"
-                              className="w-full h-9 text-[12px] gap-1.5"
-                              onClick={handleOpenPortal}
-                              disabled={portalLoading}
-                            >
-                              {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
-                              Gestionar suscripción
-                            </Button>
                             {cancelAtPeriodEnd ? (
                               <Button
                                 variant="outline"
                                 className="w-full h-9 text-[12px] gap-1.5"
-                                onClick={() => setConfirmDialog({
-                                  title: "Reactivar tu suscripción",
-                                  description: `Tu plan está programado para terminar el ${formatDate(currentPeriodEnd)}. Si reactivas ahora, continuará renovándose normalmente.`,
-                                  confirmLabel: "Reactivar",
-                                  onConfirm: handleReactivate,
-                                })}
-                                disabled={reactivateLoading}
+                                onClick={() => handlePlanAction("business")}
+                                disabled={reactivateLoading || actionLoading !== null}
                               >
                                 {reactivateLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                                Reactivar
+                                Reactivar Business
                               </Button>
                             ) : (
                               <Button
                                 variant="ghost"
                                 className="w-full h-9 text-[12px] gap-1.5 text-muted-foreground hover:text-destructive"
                                 onClick={() => setConfirmDialog({
-                                  title: "Cancelar suscripción",
-                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá al plan Free automáticamente.`,
+                                  title: "Cancelar suscripción Business",
+                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá a Founder Access automáticamente.`,
                                   confirmLabel: "Sí, cancelar",
                                   destructive: true,
                                   onConfirm: handleCancelSubscription,
@@ -729,11 +546,9 @@ export default function SettingsPage() {
                                 Cancelar suscripción
                               </Button>
                             )}
-                            {pendingDowngradePlan && (
-                              <p className="text-[10.5px] text-cost-warning text-center pt-1">
-                                Cambio programado a {planLabel(pendingDowngradePlan as PlanId)} el {formatDate(currentPeriodEnd)}
-                              </p>
-                            )}
+                            <p className="text-[10.5px] text-muted-foreground text-center pt-1">
+                              Para cambios avanzados, contacta soporte.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -741,57 +556,45 @@ export default function SettingsPage() {
                       <Badge variant="outline" className="w-full justify-center py-2 text-[12px] text-muted-foreground">
                         Disponible al cancelar
                       </Badge>
-                    ) : priceUnavailable ? (
+                    ) : (
                       <Button
-                        variant="outline"
-                        className="w-full h-9 text-[12px] gap-1.5"
-                        disabled
-                        title="Este plan no está disponible en este momento"
+                        variant={plan.highlight ? "default" : "outline"}
+                        className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
+                        onClick={() => handlePlanAction(plan.id)}
+                        disabled={isLoadingThis}
                       >
-                        Plan no disponible
+                        {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                        Activar Business
                       </Button>
-                    ) : (() => {
-                      const isUp = !isFree && PLAN_RANK_LOCAL[plan.id] > PLAN_RANK_LOCAL[realPlan];
-                      const isDown = !isFree && PLAN_RANK_LOCAL[plan.id] < PLAN_RANK_LOCAL[realPlan];
-                      const ctaLabel = !hasActiveStripeSub
-                        ? plan.cta
-                        : cancelAtPeriodEnd
-                          ? "Reactivar y elegir"
-                          : isUp
-                            ? `Actualizar a ${planLabel(plan.id)}`
-                            : isDown
-                              ? `Bajar a ${planLabel(plan.id)} al cierre`
-                              : plan.cta;
-                      return (
-                        <Button
-                          variant={plan.highlight ? "default" : "outline"}
-                          className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
-                          onClick={() => handlePlanAction(plan.id)}
-                          disabled={isLoadingThis || pricesLoading}
-                        >
-                          {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                          {ctaLabel}
-                        </Button>
-                      );
-                    })()}
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Estado del plan: past_due → mensaje específico */}
-            {planStatus === "past_due" && (
+            {planStatus === "pending" && (
+              <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-cost-warning/5 border border-cost-warning/30">
+                <div className="w-8 h-8 rounded-full bg-cost-warning/10 flex items-center justify-center shrink-0">
+                  <Loader2 className="w-4 h-4 text-cost-warning animate-spin" />
+                </div>
+                <div className="flex-1 text-[12px]">
+                  <span className="text-foreground font-medium">Estamos confirmando tu pago.</span>{" "}
+                  <span className="text-muted-foreground">Recibirás acceso a Business en cuanto Mercado Pago confirme la suscripción.</span>
+                </div>
+              </div>
+            )}
+
+            {(planStatus === "rejected" || planStatus === "expired") && (
               <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-destructive/5 border border-destructive/30">
                 <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-4 h-4 text-destructive" />
                 </div>
                 <div className="flex-1 text-[12px]">
-                  <span className="text-foreground font-medium">Tu pago no se pudo procesar.</span>{" "}
-                  <span className="text-muted-foreground">Actualiza tu método de pago en el portal para mantener tu plan activo.</span>
+                  <span className="text-foreground font-medium">Tu pago no pudo procesarse.</span>{" "}
+                  <span className="text-muted-foreground">Puedes volver a intentarlo cuando quieras.</span>
                 </div>
-                <Button size="sm" variant="outline" className="h-8 text-[12px]" onClick={handleOpenPortal} disabled={portalLoading}>
-                  {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  Actualizar pago
+                <Button size="sm" variant="outline" className="h-8 text-[12px]" onClick={openMpCheckout} disabled={actionLoading !== null}>
+                  Reintentar
                 </Button>
               </div>
             )}

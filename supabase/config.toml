@@ -38,3 +38,15 @@ verify_jwt = false
 
 [functions.get-stripe-prices]
 verify_jwt = false
+
+[functions.create-mercadopago-checkout]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+[functions.cancel-mercadopago-subscription]
+verify_jwt = false
+
+[functions.get-mercadopago-subscription-status]
+verify_jwt = false

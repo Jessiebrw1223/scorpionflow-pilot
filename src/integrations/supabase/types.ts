@@ -23,7 +23,12 @@ export type Database = {
           current_period_end: string | null
           ended_at: string | null
           id: string
+          mp_customer_email: string | null
+          mp_last_payment_id: string | null
+          mp_plan_id: string | null
+          mp_preapproval_id: string | null
           owner_id: string
+          payment_provider: string
           pending_downgrade_billing_cycle: string | null
           pending_downgrade_plan:
             | Database["public"]["Enums"]["subscription_plan"]
@@ -44,7 +49,12 @@ export type Database = {
           current_period_end?: string | null
           ended_at?: string | null
           id?: string
+          mp_customer_email?: string | null
+          mp_last_payment_id?: string | null
+          mp_plan_id?: string | null
+          mp_preapproval_id?: string | null
           owner_id: string
+          payment_provider?: string
           pending_downgrade_billing_cycle?: string | null
           pending_downgrade_plan?:
             | Database["public"]["Enums"]["subscription_plan"]
@@ -65,7 +75,12 @@ export type Database = {
           current_period_end?: string | null
           ended_at?: string | null
           id?: string
+          mp_customer_email?: string | null
+          mp_last_payment_id?: string | null
+          mp_plan_id?: string | null
+          mp_preapproval_id?: string | null
           owner_id?: string
+          payment_provider?: string
           pending_downgrade_billing_cycle?: string | null
           pending_downgrade_plan?:
             | Database["public"]["Enums"]["subscription_plan"]
