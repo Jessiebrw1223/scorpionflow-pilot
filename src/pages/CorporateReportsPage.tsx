@@ -18,15 +18,14 @@ import {
   buildExecutiveConclusion,
   buildExecutiveInsights,
   buildRecommendations,
-  classifyRiskLevel,
   computeClientInsights,
   type BusinessReportData,
   type ExecutiveInsight,
   type InsightProject,
   type InsightQuotation,
   type InsightResource,
-  type InsightRisk,
 } from "@/lib/business-insights";
+import { buildExecutiveRisks } from "@/lib/risk-engine";
 
 const CATEGORY_LABEL: Record<string, string> = {
   financial: "Financiero", operational: "Operativo", technical: "Técnico",
