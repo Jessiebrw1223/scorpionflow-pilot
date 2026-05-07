@@ -50,6 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { UpsellDialog } from "@/components/billing/UpsellDialog";
+import { NewRiskDialog } from "@/components/risks/NewRiskDialog";
 
 /**
  * Centro de Riesgos Empresariales (Plan Business)
@@ -111,10 +112,24 @@ export default function CorporateRisksPage() {
   const { isBusiness, loading: planLoading } = usePlan();
 
   const [upsellOpen, setUpsellOpen] = useState(false);
+  const [newRiskOpen, setNewRiskOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const { data: manualRisks = [] } = useQuery({
+    queryKey: ["manual-risks"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("risks")
+        .select("id, code, title, project_id, category, probability, impact, estimated_cost, owner_name, due_date, status, mitigation_plan, projects(name)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   // === Data fetching (solo si Business) ===
   const { data: projects = [] } = useQuery({
@@ -354,8 +369,36 @@ export default function CorporateRisksPage() {
       });
     }
 
+    // 4) Riesgos manuales persistidos en BD
+    for (const m of manualRisks as any[]) {
+      const score = Math.round((m.probability * m.impact) / 100);
+      const lvl: RiskLevel = score >= 60 ? "critical" : score >= 35 ? "high" : score >= 15 ? "medium" : "low";
+      const catMap: Record<string, Risk["category"]> = {
+        financial: "financial", operational: "operational", technical: "operational",
+        commercial: "client", hr: "operational", legal: "operational",
+      };
+      out.push({
+        id: `manual-${m.id}`,
+        code: m.code,
+        title: m.title,
+        projectId: m.project_id,
+        projectName: m.projects?.name ?? "Sin proyecto",
+        area: m.category,
+        owner: m.owner_name ?? "Sin responsable",
+        probability: m.probability,
+        impact: m.impact,
+        level: lvl,
+        dueDate: m.due_date,
+        status: m.status,
+        response: m.mitigation_plan ?? "Sin plan de mitigación.",
+        estimatedCost: Number(m.estimated_cost) || 0,
+        isOverdue: !!m.due_date && new Date(m.due_date) < today && m.status !== "mitigated" && m.status !== "closed",
+        category: catMap[m.category] ?? "operational",
+      });
+    }
+
     return out;
-  }, [projects, tasks, quotations, settings, isBusiness]);
+  }, [projects, tasks, quotations, settings, isBusiness, manualRisks]);
 
   // === Resumen ===
   const summary = useMemo(() => {
@@ -501,15 +544,12 @@ export default function CorporateRisksPage() {
               </div>
             </div>
             <button
-              onClick={() =>
-                toast.info("Próximamente", {
-                  description: "El registro manual de riesgos llegará pronto. Por ahora se detectan automáticamente.",
-                })
-              }
+              onClick={() => setNewRiskOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-sf"
             >
               <Plus className="w-4 h-4" /> Nuevo riesgo
             </button>
+            <NewRiskDialog open={newRiskOpen} onOpenChange={setNewRiskOpen} />
           </div>
 
           {/* Filtros rápidos por categoría */}
