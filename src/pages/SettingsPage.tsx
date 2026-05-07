@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   CreditCard, Bell, Check, Sparkles, Star, Rocket, TrendingUp,
-  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, ExternalLink, X,
+  Briefcase, AlertTriangle, Zap, DollarSign, Target, Wand2, Loader2, X,
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
@@ -77,7 +77,7 @@ const PLANS: Array<{
 export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
   const {
-    plan: realPlan, status: planStatus, billingCycle: realBilling,
+    plan: realPlan, status: planStatus,
     cancelAtPeriodEnd, currentPeriodEnd,
     refresh: refreshPlan,
   } = usePlan();
