@@ -448,7 +448,7 @@ function SubsTab({ adminId }: { adminId: string }) {
                 <TableHead className="text-zinc-400">Plan</TableHead>
                 <TableHead className="text-zinc-400">Estado</TableHead>
                 <TableHead className="text-zinc-400">Ciclo</TableHead>
-                <TableHead className="text-zinc-400">Stripe Cust</TableHead>
+                <TableHead className="text-zinc-400">Proveedor</TableHead>
                 <TableHead className="text-zinc-400">Renueva</TableHead>
                 <TableHead className="text-zinc-400">Cancela al fin</TableHead>
                 <TableHead className="text-zinc-400 text-right">Acción</TableHead>
