@@ -192,18 +192,18 @@ function OverviewTab() {
     for (const s of list) {
       byPlan[s.plan] = (byPlan[s.plan] || 0) + 1;
       if (s.status === "active") active++;
-      if (s.status === "canceled" || s.cancel_at_period_end) canceled++;
-      // MRR: solo planes pagos activos
-      if (s.plan !== "free" && s.status === "active") {
-        const monthly = PLAN_PRICE_PEN[s.plan];
-        mrr += s.billing_cycle === "annual" ? monthly * 0.9 : monthly;
+      if (s.status === "canceled" || s.status === "cancelled" || s.cancel_at_period_end) canceled++;
+      // BETA: solo Business activo a S/90 cuenta para MRR.
+      if (s.plan === "business" && s.status === "active") {
+        mrr += BUSINESS_PRICE_PEN;
       }
     }
     const totalUsers = profiles.data?.length ?? 0;
-    const paid = (byPlan.starter + byPlan.pro + byPlan.business);
+    const paid = byPlan.business;
+    const founderCount = byPlan.free + byPlan.starter + byPlan.pro;
     const conversion = totalUsers > 0 ? (paid / totalUsers) * 100 : 0;
     const arpu = paid > 0 ? mrr / paid : 0;
-    return { byPlan, active, canceled, mrr, totalUsers, paid, conversion, arpu };
+    return { byPlan, active, canceled, mrr, totalUsers, paid, founderCount, conversion, arpu };
   }, [subs.data, profiles.data]);
 
   if (subs.isLoading || profiles.isLoading) {
