@@ -13,8 +13,6 @@ import {
 } from "lucide-react";
 import { useUserSettings, type Currency, type CostModel, type Channel } from "@/hooks/useUserSettings";
 import { usePlan } from "@/hooks/usePlan";
-import { useStripePrices } from "@/hooks/useStripePrices";
-import { usdToPen, formatPEN, formatUSD, FX_USD_TO_PEN } from "@/lib/fx";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
@@ -24,7 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type PlanId = "free" | "starter" | "pro" | "business";
-type Billing = "monthly" | "annual";
+
+const BUSINESS_PRICE_PEN = 90;
 
 // BETA: catálogo simplificado a Founder Access + Business.
 // La lógica de planes (free/starter/pro/business) sigue intacta en backend.
@@ -79,13 +78,11 @@ export default function SettingsPage() {
   const { settings, save, saving, isLoading } = useUserSettings();
   const {
     plan: realPlan, status: planStatus, billingCycle: realBilling,
-    cancelAtPeriodEnd, currentPeriodEnd, hasActiveStripeSub,
-    pendingDowngradePlan, refresh: refreshPlan,
+    cancelAtPeriodEnd, currentPeriodEnd,
+    refresh: refreshPlan,
   } = usePlan();
-  const { getPrice, loading: pricesLoading } = useStripePrices();
   const [searchParams, setSearchParams] = useSearchParams();
   const [actionLoading, setActionLoading] = useState<PlanId | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [reactivateLoading, setReactivateLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -115,7 +112,7 @@ export default function SettingsPage() {
     setChannel(settings.channel);
   }, [settings]);
 
-  const [billing, setBilling] = useState<Billing>((realBilling as Billing) ?? "monthly");
+  // Beta: solo facturación mensual con Mercado Pago.
 
   // Default tab desde query (?tab=subscription)
   const initialTab = searchParams.get("tab") === "subscription" ? "subscriptions"
