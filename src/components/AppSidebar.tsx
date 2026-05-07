@@ -104,8 +104,8 @@ export function AppSidebar() {
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 pointer-events-none" />
-          <div className="w-8 h-8 rounded-lg scorpion-gradient flex items-center justify-center shrink-0 shadow-lg fire-glow relative z-10">
-            <Flame className="w-4 h-4 text-primary-foreground fire-icon" />
+          <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shrink-0 shadow-lg fire-glow relative z-10 bg-gradient-to-br from-primary/20 to-accent/20">
+            <img src={logoUrl} alt="ScorpionFlow" className="w-full h-full object-cover" />
           </div>
           {!collapsed && (
             <div className="flex flex-col relative z-10">
