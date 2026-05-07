@@ -1,6 +1,9 @@
 // Business Intelligence insights — consolidates clients, quotations, projects,
 // resources, risks and team into executive KPIs and narrative recommendations.
 
+import type { ExecutiveRisk } from "@/lib/risk-engine";
+import { summarizeRisks } from "@/lib/risk-engine";
+
 export interface InsightProject {
   id: string;
   name: string;
@@ -112,7 +115,7 @@ export interface BusinessReportData {
   projects: InsightProject[];
   topClients: ClientInsight[];
   worstClients: ClientInsight[];
-  risks: InsightRisk[];
+  risks: ExecutiveRisk[];
   topResources: InsightResource[];
   teamLoad: InsightTeamLoad[];
   insights: ExecutiveInsight[];
@@ -162,7 +165,7 @@ export function classifyRiskLevel(probability: number, impact: number): InsightR
 export function buildConsolidatedKPIs(args: {
   projects: InsightProject[];
   quotations: InsightQuotation[];
-  risks: InsightRisk[];
+  risks: ExecutiveRisk[];
   clientInsights: ClientInsight[];
   targetMargin: number;
 }): ConsolidatedKPIs {
@@ -182,6 +185,7 @@ export function buildConsolidatedKPIs(args: {
     .reduce((s, q) => s + (Number(q.total) || 0), 0);
 
   const topClient = [...clientInsights].sort((a, b) => b.total_billed - a.total_billed)[0];
+  const riskSummary = summarizeRisks(risks);
 
   return {
     projects: {
@@ -204,10 +208,10 @@ export function buildConsolidatedKPIs(args: {
       pipeline_value: pipelineValue,
     },
     risks: {
-      total: risks.length,
-      critical: risks.filter((r) => r.level === "Crítico").length,
-      open: risks.filter((r) => r.status === "open" || r.status === "in_treatment").length,
-      financial_impact: risks.reduce((s, r) => s + r.estimated_cost, 0),
+      total: riskSummary.total,
+      critical: riskSummary.critical,
+      open: riskSummary.open,
+      financial_impact: riskSummary.financialImpact,
     },
     clients: {
       total: clientInsights.length,
@@ -220,7 +224,7 @@ export function buildExecutiveInsights(data: {
   kpis: ConsolidatedKPIs;
   projects: InsightProject[];
   clients: ClientInsight[];
-  risks: InsightRisk[];
+  risks: ExecutiveRisk[];
 }): ExecutiveInsight[] {
   const out: ExecutiveInsight[] = [];
   const { kpis, projects, clients, risks } = data;

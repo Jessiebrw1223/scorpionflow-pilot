@@ -18,15 +18,14 @@ import {
   buildExecutiveConclusion,
   buildExecutiveInsights,
   buildRecommendations,
-  classifyRiskLevel,
   computeClientInsights,
   type BusinessReportData,
   type ExecutiveInsight,
   type InsightProject,
   type InsightQuotation,
   type InsightResource,
-  type InsightRisk,
 } from "@/lib/business-insights";
+import { buildExecutiveRisks } from "@/lib/risk-engine";
 
 const CATEGORY_LABEL: Record<string, string> = {
   financial: "Financiero", operational: "Operativo", technical: "Técnico",
@@ -67,16 +66,40 @@ export default function CorporateReportsPage() {
     },
   });
 
-  const { data: risksRaw = [] } = useQuery({
+  const { data: manualRisksRaw = [] } = useQuery({
     queryKey: ["corp-reports-risks"],
     enabled: !!user && isBusiness,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("risks")
-        .select("id, code, title, project_id, category, probability, impact, estimated_cost, owner_name, status, projects(name)")
+        .select("id, code, title, project_id, category, probability, impact, estimated_cost, owner_name, due_date, status, mitigation_plan, projects(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const { data: tasksRaw = [] } = useQuery({
+    queryKey: ["corp-reports-tasks"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, status, due_date, project_id, assignee_name, blocks_project, blocked_reason, blocked_since, estimated_cost, actual_cost, node_type");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: quotationsFullRaw = [] } = useQuery({
+    queryKey: ["corp-reports-quotations-full"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quotations")
+        .select("id, title, status, total, close_probability, status_changed_at, client_id, clients(name)");
+      if (error) throw error;
+      return (data ?? []) as any[];
     },
   });
 
@@ -125,18 +148,17 @@ export default function CorporateReportsPage() {
     [quotationsRaw],
   );
 
-  const risks: InsightRisk[] = useMemo(
-    () => (risksRaw as any[]).map((r) => ({
-      id: r.id, code: r.code, title: r.title,
-      category: CATEGORY_LABEL[r.category] ?? r.category,
-      probability: Number(r.probability) || 0,
-      impact: Number(r.impact) || 0,
-      estimated_cost: Number(r.estimated_cost) || 0,
-      status: STATUS_LABEL[r.status] ?? r.status,
-      project_name: r.projects?.name ?? "—",
-      level: classifyRiskLevel(Number(r.probability) || 0, Number(r.impact) || 0),
-    })),
-    [risksRaw],
+  // Riesgos unificados — misma fuente que UI Riesgos
+  const risks = useMemo(
+    () =>
+      buildExecutiveRisks({
+        projects: filteredProjects,
+        tasks: tasksRaw,
+        quotations: quotationsFullRaw,
+        manualRisks: manualRisksRaw as any[],
+        settings,
+      }),
+    [filteredProjects, tasksRaw, quotationsFullRaw, manualRisksRaw, settings],
   );
 
   const topResources: InsightResource[] = useMemo(

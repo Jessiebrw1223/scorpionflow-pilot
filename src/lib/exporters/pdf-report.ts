@@ -183,12 +183,15 @@ export async function generatePdfReport(p: BusinessReportData) {
   });
 
   // Bars: distribución riesgos por nivel
-  const levels = ["Crítico", "Alto", "Medio", "Bajo"] as const;
+  const levels: Array<{ key: "critical" | "high" | "medium" | "low"; label: string }> = [
+    { key: "critical", label: "Crítico" }, { key: "high", label: "Alto" },
+    { key: "medium", label: "Medio" }, { key: "low", label: "Bajo" },
+  ];
   const levelColors: Record<string, [number, number, number]> = { "Crítico": RED, "Alto": AMBER, "Medio": [202, 138, 4], "Bajo": GREEN };
   const riskBars = levels.map((lv) => ({
-    label: lv,
-    value: p.risks.filter((r) => r.level === lv).length,
-    color: levelColors[lv],
+    label: lv.label,
+    value: p.risks.filter((r) => r.level === lv.key).length,
+    color: levelColors[lv.label],
   }));
   drawBars(doc, {
     x: M, y: 490, w: pageW - M * 2, h: 160,
@@ -267,29 +270,35 @@ export async function generatePdfReport(p: BusinessReportData) {
     });
   }
 
-  // ===================== PÁGINA: RIESGOS =====================
+  // ===================== PÁGINA: RIESGOS EMPRESARIALES =====================
   doc.addPage();
-  drawHeader(doc, p, "Riesgos Identificados");
+  drawHeader(doc, p, "Riesgos Empresariales");
+
+  // Totales
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...DARK);
+  doc.text(`Riesgos críticos: ${p.kpis.risks.critical}`, M, 110);
+  doc.text(`Impacto financiero total: ${PEN(p.kpis.risks.financial_impact)}`, M, 126);
+  doc.text(`Total de riesgos: ${p.kpis.risks.total}  ·  Abiertos: ${p.kpis.risks.open}`, M, 142);
 
   if (p.risks.length === 0) {
-    doc.setFontSize(11);
-    doc.setTextColor(...MUTED);
-    doc.text("No se han identificado riesgos relevantes en este período.", M, 130);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(...MUTED);
+    doc.text("No se han identificado riesgos relevantes en este período.", M, 170);
     drawFooter(doc);
   } else {
     autoTable(doc, {
-      startY: 110,
-      head: [["Código", "Riesgo", "Proyecto", "Nivel", "Prob.", "Impacto", "Costo S/", "Estado"]],
+      startY: 160,
+      head: [["Código", "Riesgo", "Proyecto", "Tipo", "Nivel", "Prob.", "Impacto", "Impacto S/", "Estado", "Responsable"]],
       body: p.risks.map((r) => [
-        r.code, r.title, r.project_name, r.level, `${r.probability}%`, `${r.impact}%`, PEN(r.estimated_cost), r.status,
+        r.code, r.title, r.projectName, r.categoryLabel, r.levelLabel,
+        `${r.probability}%`, `${r.impact}%`, PEN(r.financialImpact), r.statusLabel, r.owner,
       ]),
       theme: "grid",
-      styles: { fontSize: 7.5, cellPadding: 4, textColor: TEXT, lineColor: BORDER },
-      headStyles: { fillColor: DARK, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+      styles: { fontSize: 7, cellPadding: 3.5, textColor: TEXT, lineColor: BORDER },
+      headStyles: { fillColor: DARK, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } },
+      columnStyles: { 5: { halign: "right" }, 6: { halign: "right" }, 7: { halign: "right" } },
       didParseCell: (data) => {
-        if (data.section === "body" && data.column.index === 3) {
+        if (data.section === "body" && data.column.index === 4) {
           const lvl = data.cell.text[0];
           const color = lvl === "Crítico" ? RED : lvl === "Alto" ? AMBER : lvl === "Medio" ? [202, 138, 4] as [number, number, number] : GREEN;
           data.cell.styles.textColor = color;
