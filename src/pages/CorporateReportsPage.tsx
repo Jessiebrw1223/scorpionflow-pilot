@@ -148,18 +148,17 @@ export default function CorporateReportsPage() {
     [quotationsRaw],
   );
 
-  const risks: InsightRisk[] = useMemo(
-    () => (risksRaw as any[]).map((r) => ({
-      id: r.id, code: r.code, title: r.title,
-      category: CATEGORY_LABEL[r.category] ?? r.category,
-      probability: Number(r.probability) || 0,
-      impact: Number(r.impact) || 0,
-      estimated_cost: Number(r.estimated_cost) || 0,
-      status: STATUS_LABEL[r.status] ?? r.status,
-      project_name: r.projects?.name ?? "—",
-      level: classifyRiskLevel(Number(r.probability) || 0, Number(r.impact) || 0),
-    })),
-    [risksRaw],
+  // Riesgos unificados — misma fuente que UI Riesgos
+  const risks = useMemo(
+    () =>
+      buildExecutiveRisks({
+        projects: filteredProjects,
+        tasks: tasksRaw,
+        quotations: quotationsFullRaw,
+        manualRisks: manualRisksRaw as any[],
+        settings,
+      }),
+    [filteredProjects, tasksRaw, quotationsFullRaw, manualRisksRaw, settings],
   );
 
   const topResources: InsightResource[] = useMemo(
