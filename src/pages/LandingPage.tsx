@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import logoUrl from "@/assets/scorpionflow-logo.jpg";
 import {
   Flame,
   ArrowRight,
@@ -150,8 +151,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center fire-glow">
-              <Flame className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-lg overflow-hidden fire-glow shrink-0">
+              <img src={logoUrl} alt="ScorpionFlow" className="w-full h-full object-cover" />
             </div>
             <span className="font-semibold tracking-tight">
               Scorpion<span className="text-primary">Flow</span>
@@ -1050,7 +1051,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/60">
         <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col md:flex-row items-center justify-between gap-3 text-[12px] text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Flame className="w-3.5 h-3.5 text-primary" />
+            <img src={logoUrl} alt="ScorpionFlow" className="w-5 h-5 rounded object-cover" />
             <span>© {new Date().getFullYear()} ScorpionFlow — Gestiona y entiende tu negocio.</span>
           </div>
           <div className="flex items-center gap-5">
