@@ -115,7 +115,7 @@ export interface BusinessReportData {
   projects: InsightProject[];
   topClients: ClientInsight[];
   worstClients: ClientInsight[];
-  risks: InsightRisk[];
+  risks: ExecutiveRisk[];
   topResources: InsightResource[];
   teamLoad: InsightTeamLoad[];
   insights: ExecutiveInsight[];
