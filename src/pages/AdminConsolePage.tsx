@@ -26,18 +26,20 @@ import { formatPEN } from "@/lib/fx";
 
 type Plan = "free" | "starter" | "pro" | "business";
 
-// Precios estimados PEN/mes para MRR
+// BETA pricing — Founder Access gratis, Business S/90 mensual.
+const BUSINESS_PRICE_PEN = 90;
 const PLAN_PRICE_PEN: Record<Plan, number> = {
   free: 0,
-  starter: 45,
-  pro: 101,
-  business: 225,
+  starter: 0,
+  pro: 0,
+  business: BUSINESS_PRICE_PEN,
 };
 
+// BETA: free/starter/pro se presentan como "Founder Access".
 const PLAN_LABEL: Record<Plan, string> = {
-  free: "Free",
-  starter: "Starter",
-  pro: "Pro",
+  free: "Founder Access",
+  starter: "Founder Access",
+  pro: "Founder Access",
   business: "Business",
 };
 
