@@ -168,7 +168,7 @@ export default function SettingsPage() {
     if (realPlan === "business" && !cancelAtPeriodEnd) {
       setConfirmDialog({
         title: "Volver a Founder Access",
-        description: `Tu plan Business continuará hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá automáticamente a Founder Access.`,
+        description: "Tu suscripción Business se cancelará en Mercado Pago y tu cuenta volverá a Founder Access cuando se confirme.",
         confirmLabel: "Confirmar cambio",
         destructive: true,
         onConfirm: handleCancelSubscription,
