@@ -71,7 +71,7 @@ const PLANS = [
     id: "business",
     name: "Business",
     badge: "Empresarial",
-    monthly: 225,
+    monthly: 90,
     emotional: "Visión estratégica y control corporativo",
     features: [
       "Visión financiera global",
