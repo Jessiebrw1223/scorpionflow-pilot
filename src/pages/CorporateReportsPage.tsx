@@ -230,12 +230,6 @@ export default function CorporateReportsPage() {
     );
   }
 
-  const clientsList = useMemo(() => {
-    const m = new Map<string, string>();
-    projectsRaw.forEach((p) => p.client_id && p.clients?.name && m.set(p.client_id, p.clients.name));
-    return Array.from(m.entries()).map(([id, name]) => ({ id, name }));
-  }, [projectsRaw]);
-
   return (
     <div className="space-y-5">
       {/* Header */}
