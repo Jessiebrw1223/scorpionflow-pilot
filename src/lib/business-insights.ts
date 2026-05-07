@@ -1,6 +1,9 @@
 // Business Intelligence insights — consolidates clients, quotations, projects,
 // resources, risks and team into executive KPIs and narrative recommendations.
 
+import type { ExecutiveRisk } from "@/lib/risk-engine";
+import { summarizeRisks } from "@/lib/risk-engine";
+
 export interface InsightProject {
   id: string;
   name: string;
