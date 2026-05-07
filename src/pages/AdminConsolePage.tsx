@@ -468,7 +468,7 @@ function SubsTab({ adminId }: { adminId: string }) {
                     <TableCell><Badge variant="outline" className={PLAN_BADGE[s.plan]}>{PLAN_LABEL[s.plan]}</Badge></TableCell>
                     <TableCell className="text-xs text-zinc-300">{s.status}</TableCell>
                     <TableCell className="text-xs text-zinc-400">{s.billing_cycle}</TableCell>
-                    <TableCell className="text-[11px] text-zinc-500 font-mono">{s.stripe_customer_id?.slice(0, 14) ?? "—"}</TableCell>
+                    <TableCell className="text-[11px] text-zinc-500 font-mono">{s.payment_provider ?? "—"}</TableCell>
                     <TableCell className="text-xs text-zinc-400">
                       {s.current_period_end ? new Date(s.current_period_end).toLocaleDateString() : "—"}
                     </TableCell>
