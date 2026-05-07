@@ -66,16 +66,40 @@ export default function CorporateReportsPage() {
     },
   });
 
-  const { data: risksRaw = [] } = useQuery({
+  const { data: manualRisksRaw = [] } = useQuery({
     queryKey: ["corp-reports-risks"],
     enabled: !!user && isBusiness,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("risks")
-        .select("id, code, title, project_id, category, probability, impact, estimated_cost, owner_name, status, projects(name)")
+        .select("id, code, title, project_id, category, probability, impact, estimated_cost, owner_name, due_date, status, mitigation_plan, projects(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const { data: tasksRaw = [] } = useQuery({
+    queryKey: ["corp-reports-tasks"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, status, due_date, project_id, assignee_name, blocks_project, blocked_reason, blocked_since, estimated_cost, actual_cost, node_type");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: quotationsFullRaw = [] } = useQuery({
+    queryKey: ["corp-reports-quotations-full"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quotations")
+        .select("id, title, status, total, close_probability, status_changed_at, client_id, clients(name)");
+      if (error) throw error;
+      return (data ?? []) as any[];
     },
   });
 
