@@ -98,38 +98,67 @@ export default function CorporateReportsPage() {
     return { billed, cost, profit: billed - cost, margin: billed > 0 ? ((billed - cost) / billed) * 100 : 0 };
   }, [rows]);
 
-  function exportCsv() {
-    const header = ["Proyecto", "Cliente", "Estado", "Avance %", "Facturado", "Costado", "Ganancia", "Margen %", "Salud"];
-    const lines = [
-      header.join(","),
-      ...rows.map((r) => [
-        `"${r.name.replace(/"/g, '""')}"`,
-        `"${r.client.replace(/"/g, '""')}"`,
-        r.status,
-        r.progress,
-        r.billed.toFixed(2),
-        r.cost.toFixed(2),
-        r.profit.toFixed(2),
-        r.margin.toFixed(2),
-        r.health.label,
-      ].join(",")),
-      "",
-      `Totales,,,,${totals.billed.toFixed(2)},${totals.cost.toFixed(2)},${totals.profit.toFixed(2)},${totals.margin.toFixed(2)},`,
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `informe-ejecutivo-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Excel exportado");
+  const { data: manualRisks = [] } = useQuery({
+    queryKey: ["report-risks"],
+    enabled: !!user && isBusiness,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("risks")
+        .select("id, code, title, project_id, category, probability, impact, estimated_cost, owner_name, status, projects(name)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  function buildPayload() {
+    const reportRows = rows.map((r) => ({
+      name: r.name, client: r.client, status: r.status, progress: r.progress,
+      billed: r.billed, cost: r.cost, profit: r.profit, margin: r.margin,
+      health: r.health.label,
+    }));
+    const reportRisks = manualRisks.map((r: any) => {
+      const score = Math.round((r.probability * r.impact) / 100);
+      const level = score >= 76 ? "Crítico" : score >= 51 ? "Alto" : score >= 21 ? "Medio" : "Bajo";
+      const statusLabel = r.status === "open" ? "Abierto" : r.status === "in_treatment" ? "En mitigación" : r.status === "mitigated" ? "Mitigado" : "Cerrado";
+      const catLabel = ({ financial: "Financiero", operational: "Operativo", technical: "Técnico", commercial: "Comercial", hr: "RRHH", legal: "Legal" } as any)[r.category] ?? r.category;
+      return {
+        code: r.code, title: r.title, project: r.projects?.name ?? "—",
+        category: catLabel, level, probability: r.probability, impact: r.impact,
+        estimatedCost: Number(r.estimated_cost) || 0,
+        owner: r.owner_name ?? "—", status: statusLabel,
+      };
+    });
+    const conclusion = buildConclusion(totals, reportRisks);
+    return {
+      companyName: user?.email?.split("@")[0] ?? "Mi empresa",
+      generatedAt: new Date(),
+      rows: reportRows,
+      risks: reportRisks,
+      totals,
+      conclusion,
+      currency: "PEN",
+    };
   }
 
-  function exportPdf() {
-    // Solución sin librerías: usar la impresión nativa, optimizada para PDF.
-    window.print();
-    toast.info("Usa 'Guardar como PDF' en el diálogo de impresión");
+  async function exportCsv() {
+    try {
+      const { generateExcelReport } = await import("@/lib/exporters/excel-report");
+      await generateExcelReport(buildPayload());
+      toast.success("Informe Excel descargado");
+    } catch (e: any) {
+      toast.error("Error al generar Excel: " + (e?.message ?? ""));
+    }
+  }
+
+  async function exportPdf() {
+    try {
+      const { generatePdfReport } = await import("@/lib/exporters/pdf-report");
+      await generatePdfReport(buildPayload());
+      toast.success("Informe PDF descargado");
+    } catch (e: any) {
+      toast.error("Error al generar PDF: " + (e?.message ?? ""));
+    }
   }
 
   if (!planLoading && !isBusiness) {
@@ -273,4 +302,34 @@ function KpiBlock({ label, value, tone = "neutral" }: { label: string; value: st
       <div className={cn("text-base font-bold font-mono-data", toneClass)}>{value}</div>
     </div>
   );
+}
+
+function buildConclusion(
+  totals: { billed: number; cost: number; profit: number; margin: number },
+  risks: { level: string; estimatedCost: number }[],
+): string {
+  const critical = risks.filter((r) => r.level === "Crítico").length;
+  const totalImpact = risks.reduce((s, r) => s + r.estimatedCost, 0);
+  const parts: string[] = [];
+  if (totals.profit < 0) {
+    parts.push(`La cartera presenta pérdida neta de ${fmtPEN(Math.abs(totals.profit))}. Se requiere intervención inmediata: revisar costos no esenciales y renegociar alcance con clientes.`);
+  } else if (totals.margin < 10) {
+    parts.push(`El negocio mantiene rentabilidad pero con margen ajustado (${totals.margin.toFixed(1)}%). Se recomienda optimizar costos operativos.`);
+  } else if (totals.margin >= 20) {
+    parts.push(`El negocio muestra un margen saludable de ${totals.margin.toFixed(1)}% sobre ${fmtPEN(totals.billed)} facturados.`);
+  } else {
+    parts.push(`Margen consolidado dentro del rango aceptable (${totals.margin.toFixed(1)}%). Hay espacio para mejorar la rentabilidad.`);
+  }
+  if (critical > 0) {
+    parts.push(`Se identificaron ${critical} riesgo${critical > 1 ? "s" : ""} crítico${critical > 1 ? "s" : ""} con impacto económico potencial de ${fmtPEN(totalImpact)} que requieren atención prioritaria.`);
+  } else if (risks.length > 0) {
+    parts.push(`Los riesgos identificados son manejables. Mantener monitoreo regular.`);
+  } else {
+    parts.push(`No se reportan riesgos significativos en el período evaluado.`);
+  }
+  return parts.join(" ");
+}
+
+function fmtPEN(n: number) {
+  return new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", minimumFractionDigits: 0 }).format(n || 0);
 }

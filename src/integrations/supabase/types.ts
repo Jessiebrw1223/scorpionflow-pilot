@@ -676,6 +676,74 @@ export type Database = {
           },
         ]
       }
+      risks: {
+        Row: {
+          category: Database["public"]["Enums"]["risk_category"]
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          estimated_cost: number
+          id: string
+          impact: number
+          mitigation_plan: string | null
+          owner_id: string
+          owner_name: string | null
+          probability: number
+          project_id: string | null
+          status: Database["public"]["Enums"]["risk_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["risk_category"]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_cost?: number
+          id?: string
+          impact?: number
+          mitigation_plan?: string | null
+          owner_id: string
+          owner_name?: string | null
+          probability?: number
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["risk_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["risk_category"]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_cost?: number
+          id?: string
+          impact?: number
+          mitigation_plan?: string | null
+          owner_id?: string
+          owner_name?: string | null
+          probability?: number
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["risk_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_events: {
         Row: {
           billing_cycle: string | null
@@ -1108,6 +1176,14 @@ export type Database = {
       quotation_status: "pending" | "in_contact" | "quoted" | "won" | "lost"
       resource_kind: "human" | "tech" | "asset"
       resource_unit: "hour" | "month" | "use" | "fixed"
+      risk_category:
+        | "financial"
+        | "operational"
+        | "technical"
+        | "commercial"
+        | "hr"
+        | "legal"
+      risk_status: "open" | "in_treatment" | "mitigated" | "closed"
       subscription_plan: "free" | "starter" | "pro" | "business"
       task_impact: "time" | "cost" | "delivery"
       task_node_type:
@@ -1307,6 +1383,15 @@ export const Constants = {
       quotation_status: ["pending", "in_contact", "quoted", "won", "lost"],
       resource_kind: ["human", "tech", "asset"],
       resource_unit: ["hour", "month", "use", "fixed"],
+      risk_category: [
+        "financial",
+        "operational",
+        "technical",
+        "commercial",
+        "hr",
+        "legal",
+      ],
+      risk_status: ["open", "in_treatment", "mitigated", "closed"],
       subscription_plan: ["free", "starter", "pro", "business"],
       task_impact: ["time", "cost", "delivery"],
       task_node_type: [
