@@ -303,3 +303,33 @@ function KpiBlock({ label, value, tone = "neutral" }: { label: string; value: st
     </div>
   );
 }
+
+function buildConclusion(
+  totals: { billed: number; cost: number; profit: number; margin: number },
+  risks: { level: string; estimatedCost: number }[],
+): string {
+  const critical = risks.filter((r) => r.level === "Crítico").length;
+  const totalImpact = risks.reduce((s, r) => s + r.estimatedCost, 0);
+  const parts: string[] = [];
+  if (totals.profit < 0) {
+    parts.push(`La cartera presenta pérdida neta de ${fmtPEN(Math.abs(totals.profit))}. Se requiere intervención inmediata: revisar costos no esenciales y renegociar alcance con clientes.`);
+  } else if (totals.margin < 10) {
+    parts.push(`El negocio mantiene rentabilidad pero con margen ajustado (${totals.margin.toFixed(1)}%). Se recomienda optimizar costos operativos.`);
+  } else if (totals.margin >= 20) {
+    parts.push(`El negocio muestra un margen saludable de ${totals.margin.toFixed(1)}% sobre ${fmtPEN(totals.billed)} facturados.`);
+  } else {
+    parts.push(`Margen consolidado dentro del rango aceptable (${totals.margin.toFixed(1)}%). Hay espacio para mejorar la rentabilidad.`);
+  }
+  if (critical > 0) {
+    parts.push(`Se identificaron ${critical} riesgo${critical > 1 ? "s" : ""} crítico${critical > 1 ? "s" : ""} con impacto económico potencial de ${fmtPEN(totalImpact)} que requieren atención prioritaria.`);
+  } else if (risks.length > 0) {
+    parts.push(`Los riesgos identificados son manejables. Mantener monitoreo regular.`);
+  } else {
+    parts.push(`No se reportan riesgos significativos en el período evaluado.`);
+  }
+  return parts.join(" ");
+}
+
+function fmtPEN(n: number) {
+  return new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", minimumFractionDigits: 0 }).format(n || 0);
+}
