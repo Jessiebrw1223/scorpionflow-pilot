@@ -160,6 +160,7 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted-foreground">
             <a href="#problema" className="hover:text-foreground transition-colors">Problema</a>
             <a href="#solucion" className="hover:text-foreground transition-colors">Solución</a>
+            <Link to="/como-funciona" className="hover:text-foreground transition-colors">Cómo funciona</Link>
             <a href="#nosotros" className="hover:text-foreground transition-colors">Nosotros</a>
             <a href="#precios" className="hover:text-foreground transition-colors">Precios</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
@@ -854,52 +855,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PRUEBA SOCIAL */}
+      {/* BETA HONESTO — sin métricas inventadas */}
       <section id="prueba-social" className="border-t border-border/60 bg-secondary/20">
         <div className="max-w-6xl mx-auto px-5 py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Confianza</span>
+            <span className="text-[11px] uppercase tracking-widest text-primary font-semibold">Beta abierta</span>
             <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight">
-              Equipos que necesitaban claridad
-              <span className="block text-primary">eligieron ScorpionFlow.</span>
+              Construido para negocios que quieren
+              <span className="block text-primary">claridad desde el primer proyecto.</span>
             </h2>
+            <p className="mt-4 text-muted-foreground">
+              ScorpionFlow está en beta. Estamos validando el producto con usuarios reales y mejorándolo con feedback directo.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
             {[
-              { value: "+1,200", label: "proyectos gestionados" },
-              { value: "+3,800", label: "cotizaciones creadas" },
-              { value: "+450", label: "equipos colaborando" },
-            ].map((m, i) => (
+              { icon: FileText, title: "Cotiza más rápido", body: "Propuestas claras en minutos, sin perder seguimiento." },
+              { icon: Wallet, title: "Controla costos", body: "Mira lo que entra y lo que se va, proyecto por proyecto." },
+              { icon: ShieldAlert, title: "Detecta riesgos", body: "Identifica lo que puede fallar antes de que cueste caro." },
+              { icon: Users, title: "Trabaja con tu equipo", body: "Roles, tareas y avance compartido en un solo lugar." },
+            ].map(({ icon: Icon, title, body }, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-border bg-card p-8 text-center hover:border-primary/40 transition-colors"
+                className="rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-colors group"
               >
-                <p className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {m.value}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">{m.label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-            {[
-              {
-                quote: "Por fin sé qué proyectos me dan dinero y cuáles me lo quitan. Cambió cómo decido.",
-                author: "Gerente comercial · Agencia de marketing",
-              },
-              {
-                quote: "Dejamos de cotizar a ciegas. Ahora cerramos más rápido y con margen real.",
-                author: "Director de operaciones · Constructora",
-              },
-            ].map((t, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-6">
-                <Quote className="w-5 h-5 text-primary mb-3" />
-                <p className="text-[15px] text-foreground/90 leading-relaxed">"{t.quote}"</p>
-                <p className="mt-4 text-[12px] uppercase tracking-widest text-muted-foreground">
-                  {t.author}
-                </p>
+                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{body}</p>
               </div>
             ))}
           </div>

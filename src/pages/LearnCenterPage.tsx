@@ -223,8 +223,6 @@ export default function LearnCenterPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <TopBar />
-
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-card/60 p-6 sm:p-8">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 pointer-events-none" />
