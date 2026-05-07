@@ -118,11 +118,14 @@ export async function generateExcelReport(p: BusinessReportData) {
   XLSX.utils.book_append_sheet(wb, ws2, "Proyectos");
 
   // ============ HOJA 3: Riesgos ============
-  const rHeader = ["Código", "Riesgo", "Proyecto", "Categoría", "Nivel", "Prob. %", "Impacto %", "Costo S/", "Estado"];
-  const rRows = p.risks.map((r) => [r.code, r.title, r.project_name, r.category, r.level, r.probability, r.impact, num(r.estimated_cost), r.status]);
+  const rHeader = ["Código", "Riesgo", "Proyecto", "Tipo", "Nivel", "Prob. %", "Impacto %", "Impacto S/", "Estado", "Responsable", "Acción sugerida"];
+  const rRows = p.risks.map((r) => [
+    r.code, r.title, r.projectName, r.categoryLabel, r.levelLabel,
+    r.probability, r.impact, num(r.financialImpact), r.statusLabel, r.owner, r.response,
+  ]);
   const ws3 = XLSX.utils.aoa_to_sheet([rHeader, ...rRows]);
-  ws3["!cols"] = [{ wch: 10 }, { wch: 36 }, { wch: 26 }, { wch: 14 }, { wch: 12 }, { wch: 9 }, { wch: 10 }, { wch: 14 }, { wch: 16 }];
-  tableHeader(ws3, `A1:I1`);
+  ws3["!cols"] = [{ wch: 10 }, { wch: 36 }, { wch: 26 }, { wch: 14 }, { wch: 12 }, { wch: 9 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 22 }, { wch: 50 }];
+  tableHeader(ws3, `A1:K1`);
   for (let i = 0; i < rRows.length; i++) {
     const r = i + 2;
     const c = ws3[`H${r}`]; if (c) c.z = '"S/" #,##0.00';
