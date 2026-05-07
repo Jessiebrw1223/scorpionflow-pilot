@@ -441,61 +441,22 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">Founder Access o Business</h3>
-                <p className="text-[13px] text-muted-foreground">
-                  Empieza con Founder Access. Cambia a Business cuando necesites visión empresarial completa.
-                </p>
-              </div>
-
-              <div className="inline-flex items-center gap-1 bg-secondary border border-border rounded-lg p-1 self-start sm:self-auto">
-                <button
-                  onClick={() => setBilling("monthly")}
-                  className={cn(
-                    "px-3 h-7 rounded-md text-[12px] font-medium transition-sf",
-                    billing === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Mensual
-                </button>
-                <button
-                  onClick={() => setBilling("annual")}
-                  className={cn(
-                    "px-3 h-7 rounded-md text-[12px] font-medium transition-sf flex items-center gap-1.5",
-                    billing === "annual" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Anual
-                  <span className="text-[10px] font-semibold text-cost-positive bg-cost-positive/10 px-1.5 py-0.5 rounded">-20%</span>
-                </button>
-              </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-base font-semibold text-foreground">Founder Access o Business</h3>
+              <p className="text-[13px] text-muted-foreground">
+                Empieza con Founder Access. Activa Business cuando necesites visión empresarial completa. Pago mensual con Mercado Pago.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                // BETA: cualquier plan no-business cuenta como Founder Access actual
                 const isFounderCard = plan.id === "free";
                 const isCurrent = isFounderCard
                   ? realPlan !== "business"
                   : realPlan === "business";
                 const isFree = plan.id === "free";
-                const isUSD = currency === "USD";
                 const isLoadingThis = actionLoading === plan.id;
-
-                // Resolver precio real desde Stripe (si plan no es free)
-                const stripePrice = !isFree ? getPrice(plan.id, billing) : null;
-                // Mostrar precio "por mes" siempre (anual ÷ 12 para comparar)
-                const usdPerMonth = stripePrice
-                  ? billing === "annual"
-                    ? stripePrice.amountUsd / 12
-                    : stripePrice.amountUsd
-                  : 0;
-                const penPerMonth = usdToPen(usdPerMonth);
-                const totalUsd = stripePrice?.amountUsd ?? 0;
-                const totalPen = usdToPen(totalUsd);
-                const priceUnavailable = !isFree && stripePrice && !stripePrice.available;
 
                 return (
                   <div
@@ -524,35 +485,18 @@ export default function SettingsPage() {
                       {isFree ? (
                         <div>
                           <span className="font-mono-data text-3xl font-bold text-foreground">Gratis</span>
-                          <p className="text-[11px] text-muted-foreground mt-1">Para siempre</p>
-                        </div>
-                      ) : pricesLoading ? (
-                        <div className="h-[58px] flex items-center">
-                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <p className="text-[11px] text-muted-foreground mt-1">Durante la beta</p>
                         </div>
                       ) : (
                         <div>
                           <div className="flex items-baseline gap-1">
                             <span className="font-mono-data text-3xl font-bold text-foreground">
-                              {isUSD ? formatUSD(usdPerMonth) : formatPEN(penPerMonth)}
+                              S/{BUSINESS_PRICE_PEN}
                             </span>
                             <span className="text-[12px] text-muted-foreground">/ mes</span>
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-1">
-                            {isUSD
-                              ? `≈ ${formatPEN(penPerMonth)} PEN`
-                              : `≈ ${formatUSD(usdPerMonth)} USD`}
-                            {billing === "annual" && (
-                              <>
-                                {" · "}
-                                <span title={`Facturado anual: ${formatUSD(totalUsd)} (${formatPEN(totalPen)})`}>
-                                  facturado anual
-                                </span>
-                              </>
-                            )}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                            Conversión referencial · 1 USD ≈ S/ {FX_USD_TO_PEN.toFixed(2)}
+                            Precio beta · Pago mensual con Mercado Pago
                           </p>
                         </div>
                       )}
@@ -580,37 +524,23 @@ export default function SettingsPage() {
                         </Badge>
                         {!isFree && (
                           <div className="space-y-2">
-                            <Button
-                              variant="outline"
-                              className="w-full h-9 text-[12px] gap-1.5"
-                              onClick={handleOpenPortal}
-                              disabled={portalLoading}
-                            >
-                              {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
-                              Gestionar suscripción
-                            </Button>
                             {cancelAtPeriodEnd ? (
                               <Button
                                 variant="outline"
                                 className="w-full h-9 text-[12px] gap-1.5"
-                                onClick={() => setConfirmDialog({
-                                  title: "Reactivar tu suscripción",
-                                  description: `Tu plan está programado para terminar el ${formatDate(currentPeriodEnd)}. Si reactivas ahora, continuará renovándose normalmente.`,
-                                  confirmLabel: "Reactivar",
-                                  onConfirm: handleReactivate,
-                                })}
-                                disabled={reactivateLoading}
+                                onClick={() => handlePlanAction("business")}
+                                disabled={reactivateLoading || actionLoading !== null}
                               >
                                 {reactivateLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                                Reactivar
+                                Reactivar Business
                               </Button>
                             ) : (
                               <Button
                                 variant="ghost"
                                 className="w-full h-9 text-[12px] gap-1.5 text-muted-foreground hover:text-destructive"
                                 onClick={() => setConfirmDialog({
-                                  title: "Cancelar suscripción",
-                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá al plan Free automáticamente.`,
+                                  title: "Cancelar suscripción Business",
+                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá a Founder Access automáticamente.`,
                                   confirmLabel: "Sí, cancelar",
                                   destructive: true,
                                   onConfirm: handleCancelSubscription,
@@ -621,11 +551,9 @@ export default function SettingsPage() {
                                 Cancelar suscripción
                               </Button>
                             )}
-                            {pendingDowngradePlan && (
-                              <p className="text-[10.5px] text-cost-warning text-center pt-1">
-                                Cambio programado a {planLabel(pendingDowngradePlan as PlanId)} el {formatDate(currentPeriodEnd)}
-                              </p>
-                            )}
+                            <p className="text-[10.5px] text-muted-foreground text-center pt-1">
+                              Para cambios avanzados, contacta soporte.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -633,57 +561,45 @@ export default function SettingsPage() {
                       <Badge variant="outline" className="w-full justify-center py-2 text-[12px] text-muted-foreground">
                         Disponible al cancelar
                       </Badge>
-                    ) : priceUnavailable ? (
+                    ) : (
                       <Button
-                        variant="outline"
-                        className="w-full h-9 text-[12px] gap-1.5"
-                        disabled
-                        title="Este plan no está disponible en este momento"
+                        variant={plan.highlight ? "default" : "outline"}
+                        className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
+                        onClick={() => handlePlanAction(plan.id)}
+                        disabled={isLoadingThis}
                       >
-                        Plan no disponible
+                        {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                        Activar Business
                       </Button>
-                    ) : (() => {
-                      const isUp = !isFree && PLAN_RANK_LOCAL[plan.id] > PLAN_RANK_LOCAL[realPlan];
-                      const isDown = !isFree && PLAN_RANK_LOCAL[plan.id] < PLAN_RANK_LOCAL[realPlan];
-                      const ctaLabel = !hasActiveStripeSub
-                        ? plan.cta
-                        : cancelAtPeriodEnd
-                          ? "Reactivar y elegir"
-                          : isUp
-                            ? `Actualizar a ${planLabel(plan.id)}`
-                            : isDown
-                              ? `Bajar a ${planLabel(plan.id)} al cierre`
-                              : plan.cta;
-                      return (
-                        <Button
-                          variant={plan.highlight ? "default" : "outline"}
-                          className={cn("w-full h-9 text-[12px] gap-1.5", plan.highlight && "fire-button text-white border-0")}
-                          onClick={() => handlePlanAction(plan.id)}
-                          disabled={isLoadingThis || pricesLoading}
-                        >
-                          {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                          {ctaLabel}
-                        </Button>
-                      );
-                    })()}
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Estado del plan: past_due → mensaje específico */}
-            {planStatus === "past_due" && (
+            {planStatus === "pending" && (
+              <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-cost-warning/5 border border-cost-warning/30">
+                <div className="w-8 h-8 rounded-full bg-cost-warning/10 flex items-center justify-center shrink-0">
+                  <Loader2 className="w-4 h-4 text-cost-warning animate-spin" />
+                </div>
+                <div className="flex-1 text-[12px]">
+                  <span className="text-foreground font-medium">Estamos confirmando tu pago.</span>{" "}
+                  <span className="text-muted-foreground">Recibirás acceso a Business en cuanto Mercado Pago confirme la suscripción.</span>
+                </div>
+              </div>
+            )}
+
+            {(planStatus === "rejected" || planStatus === "expired") && (
               <div className="surface-card p-4 rounded-lg flex items-center gap-3 bg-destructive/5 border border-destructive/30">
                 <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-4 h-4 text-destructive" />
                 </div>
                 <div className="flex-1 text-[12px]">
-                  <span className="text-foreground font-medium">Tu pago no se pudo procesar.</span>{" "}
-                  <span className="text-muted-foreground">Actualiza tu método de pago en el portal para mantener tu plan activo.</span>
+                  <span className="text-foreground font-medium">Tu pago no pudo procesarse.</span>{" "}
+                  <span className="text-muted-foreground">Puedes volver a intentarlo cuando quieras.</span>
                 </div>
-                <Button size="sm" variant="outline" className="h-8 text-[12px]" onClick={handleOpenPortal} disabled={portalLoading}>
-                  {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  Actualizar pago
+                <Button size="sm" variant="outline" className="h-8 text-[12px]" onClick={openMpCheckout} disabled={actionLoading !== null}>
+                  Reintentar
                 </Button>
               </div>
             )}
