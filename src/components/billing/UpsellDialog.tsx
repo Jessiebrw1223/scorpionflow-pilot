@@ -5,53 +5,33 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { usePlan, getRequiredPlan, PLAN_LABELS, type PremiumFeature, type PlanId } from "@/hooks/usePlan";
+import { usePlan, type PremiumFeature, type PlanId } from "@/hooks/usePlan";
 import { humanizeError, humanizeFunctionError } from "@/lib/humanize-error";
 
 interface UpsellDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feature?: PremiumFeature;
-  /** Forzar un plan específico a recomendar (override) */
+  /** Forzar un plan específico a recomendar (override) — ignorado en beta */
   recommendedPlan?: PlanId;
   /** Razón mostrada en el header (ej: "Has alcanzado el límite de usuarios") */
   reason?: string;
 }
 
-const PLAN_BENEFITS: Record<Exclude<PlanId, "free">, string[]> = {
-  starter: [
-    "Acceso completo a Founder Access",
-    "Cotizaciones, clientes y proyectos",
-    "Recursos, costos y riesgos",
-    "Soporte para los primeros usuarios",
-  ],
-  pro: [
-    "Acceso completo a Founder Access",
-    "Inteligencia de costos y márgenes",
-    "Alertas inteligentes de pérdida",
-    "Gestión avanzada de recursos",
-  ],
-  business: [
-    "Visión financiera global multi-proyecto",
-    "Dashboard ejecutivo y proyección financiera",
-    "Reportes ejecutivos descargables",
-    "Soporte prioritario",
-  ],
-};
-
-const PLAN_PRICES: Record<Exclude<PlanId, "free">, { monthly: string; annual: string }> = {
-  starter: { monthly: "S/90", annual: "S/90" },
-  pro: { monthly: "S/90", annual: "S/90" },
-  business: { monthly: "S/90", annual: "S/90" },
-};
+const BUSINESS_BENEFITS = [
+  "Visión financiera global multi-proyecto",
+  "Dashboard ejecutivo y proyección financiera",
+  "Reportes ejecutivos descargables",
+  "Soporte prioritario",
+];
 
 const FEATURE_HEADLINES: Record<PremiumFeature, string> = {
-  advanced_reports: "Los informes avanzados requieren PRO",
-  resources_management: "La gestión de recursos requiere PRO",
-  cost_intelligence: "La inteligencia de costos requiere PRO",
-  smart_alerts: "Las alertas inteligentes requieren PRO",
-  executive_dashboard: "El dashboard ejecutivo requiere BUSINESS",
-  financial_projection: "La proyección financiera requiere BUSINESS",
+  advanced_reports: "Los informes avanzados están en Business",
+  resources_management: "La gestión avanzada de recursos está en Business",
+  cost_intelligence: "La inteligencia de costos está en Business",
+  smart_alerts: "Las alertas inteligentes están en Business",
+  executive_dashboard: "El dashboard ejecutivo está en Business",
+  financial_projection: "La proyección financiera está en Business",
 };
 
 const FEATURE_PITCHES: Record<PremiumFeature, string> = {
@@ -67,31 +47,15 @@ export function UpsellDialog({
   open,
   onOpenChange,
   feature,
-  recommendedPlan,
   reason,
 }: UpsellDialogProps) {
   const navigate = useNavigate();
-  const { plan: currentPlan } = usePlan();
-  const [billing, setBilling] = useState<"monthly" | "annual">("annual");
+  usePlan();
   const [loading, setLoading] = useState(false);
-
-  const targetPlan: Exclude<PlanId, "free"> =
-    recommendedPlan && recommendedPlan !== "free"
-      ? (recommendedPlan as Exclude<PlanId, "free">)
-      : feature
-        ? (getRequiredPlan(feature) as Exclude<PlanId, "free">)
-        : currentPlan === "free"
-          ? "starter"
-          : currentPlan === "starter"
-            ? "pro"
-            : "business";
-
-  const benefits = PLAN_BENEFITS[targetPlan];
-  const price = PLAN_PRICES[targetPlan];
 
   const headline = feature
     ? FEATURE_HEADLINES[feature]
-    : `Desbloquea ScorpionFlow ${PLAN_LABELS[targetPlan]}`;
+    : "Desbloquea ScorpionFlow Business";
   const pitch = feature
     ? FEATURE_PITCHES[feature]
     : "Lleva tu negocio al siguiente nivel con control financiero real.";
@@ -137,7 +101,6 @@ export function UpsellDialog({
             <X className="w-4 h-4" />
           </button>
 
-          {/* Lock + sparkles */}
           <div className="relative w-14 h-14 mb-4">
             <div className="absolute inset-0 rounded-2xl scorpion-gradient flex items-center justify-center fire-glow shadow-lg">
               <Lock className="w-6 h-6 text-primary-foreground" />
@@ -147,7 +110,7 @@ export function UpsellDialog({
 
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-wider mb-2">
             <Sparkles className="w-3 h-3" />
-            Plan {PLAN_LABELS[targetPlan]}
+            Plan Business
           </div>
 
           {reason && (
@@ -163,41 +126,14 @@ export function UpsellDialog({
             {pitch}
           </p>
 
-          {/* Toggle mensual / anual */}
-          <div className="inline-flex items-center gap-1 bg-secondary border border-border rounded-lg p-1 mb-5">
-            <button
-              onClick={() => setBilling("monthly")}
-              className={`px-3 h-7 rounded-md text-[11px] font-medium transition-sf ${
-                billing === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Mensual
-            </button>
-            <button
-              onClick={() => setBilling("annual")}
-              className={`px-3 h-7 rounded-md text-[11px] font-medium transition-sf flex items-center gap-1.5 ${
-                billing === "annual" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Anual
-              <span className="text-[9px] font-bold text-cost-positive bg-cost-positive/10 px-1.5 py-0.5 rounded">
-                -20%
-              </span>
-            </button>
-          </div>
-
           <div className="rounded-xl border border-primary/30 bg-card/60 p-4 mb-5">
             <div className="flex items-baseline gap-1 mb-3">
-              <span className="font-mono-data text-3xl font-bold text-foreground">
-                {billing === "monthly" ? price.monthly : price.annual}
-              </span>
-              <span className="text-[12px] text-muted-foreground">
-                {billing === "monthly" ? "/ mes" : "/ año"}
-              </span>
+              <span className="font-mono-data text-3xl font-bold text-foreground">S/90</span>
+              <span className="text-[12px] text-muted-foreground">/ mes</span>
             </div>
 
             <ul className="space-y-1.5">
-              {benefits.map((b) => (
+              {BUSINESS_BENEFITS.map((b) => (
                 <li key={b} className="flex items-start gap-2 text-[12.5px] text-foreground/90">
                   <Check className="w-3.5 h-3.5 text-cost-positive shrink-0 mt-0.5" />
                   <span>{b}</span>
@@ -225,13 +161,13 @@ export function UpsellDialog({
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Actualizar ahora"
+                "Activar Business"
               )}
             </Button>
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center mt-3">
-            Pago seguro con Stripe · Cancela cuando quieras
+            Pago seguro con Mercado Pago · Cancela cuando quieras
           </p>
         </div>
       </DialogContent>
