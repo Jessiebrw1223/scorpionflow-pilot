@@ -99,29 +99,25 @@ export function UpsellDialog({
   const handleCheckout = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: targetPlan, billing },
+      const { data, error } = await supabase.functions.invoke("create-mercadopago-checkout", {
+        body: {},
       });
       if (error || (data && (data as any).error)) {
-        toast.error("No pudimos abrir el pago", {
-          description: humanizeFunctionError(
-            error,
-            data,
-            "Intenta nuevamente en unos segundos.",
-          ),
+        toast.error("No pudimos conectar con Mercado Pago", {
+          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
         });
         return;
       }
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
         onOpenChange(false);
       } else {
-        toast.error("No pudimos abrir el pago", {
+        toast.error("No pudimos conectar con Mercado Pago", {
           description: "Intenta nuevamente en unos segundos.",
         });
       }
     } catch (e) {
-      toast.error("No pudimos abrir el pago", {
+      toast.error("No pudimos conectar con Mercado Pago", {
         description: humanizeError(e, "Intenta nuevamente en unos segundos."),
       });
     } finally {
