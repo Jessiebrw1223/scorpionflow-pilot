@@ -222,17 +222,20 @@ function OverviewTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-zinc-900/60 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-base text-zinc-100">Distribución por plan</CardTitle>
+            <CardTitle className="text-base text-zinc-100">Distribución (Beta)</CardTitle>
+            <CardDescription>Founder Access agrupa free/starter/pro</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(["free", "starter", "pro", "business"] as Plan[]).map((p) => {
-              const count = stats.byPlan[p];
-              const pct = stats.totalUsers > 0 ? (count / stats.totalUsers) * 100 : 0;
+            {([
+              { key: "founder", label: "Founder Access", count: stats.founderCount },
+              { key: "business", label: "Business", count: stats.byPlan.business },
+            ]).map((row) => {
+              const pct = stats.totalUsers > 0 ? (row.count / stats.totalUsers) * 100 : 0;
               return (
-                <div key={p}>
+                <div key={row.key}>
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-300">{PLAN_LABEL[p]}</span>
-                    <span className="text-zinc-400">{count} ({pct.toFixed(0)}%)</span>
+                    <span className="text-zinc-300">{row.label}</span>
+                    <span className="text-zinc-400">{row.count} ({pct.toFixed(0)}%)</span>
                   </div>
                   <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mt-1">
                     <div className="h-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${pct}%` }} />
@@ -245,13 +248,14 @@ function OverviewTab() {
 
         <Card className="bg-zinc-900/60 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-base text-zinc-100">Métricas SaaS</CardTitle>
+            <CardTitle className="text-base text-zinc-100">Métricas SaaS (Beta)</CardTitle>
+            <CardDescription>MRR calculado solo con Business S/90</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <Row label="ARPU (ingreso medio por usuario pago)" value={formatPEN(stats.arpu)} />
-            <Row label="Tasa de conversión a pago" value={`${stats.conversion.toFixed(1)}%`} />
-            <Row label="Usuarios free activos" value={String(stats.byPlan.free)} />
-            <Row label="Usuarios pagos" value={String(stats.paid)} />
+            <Row label="ARPU (Business activos)" value={formatPEN(stats.arpu)} />
+            <Row label="Conversión a Business" value={`${stats.conversion.toFixed(1)}%`} />
+            <Row label="Founder Access" value={String(stats.founderCount)} />
+            <Row label="Business activos" value={String(stats.paid)} />
           </CardContent>
         </Card>
       </div>
