@@ -28,6 +28,7 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import LandingPage from "./pages/LandingPage";
 import InviteAcceptPage from "./pages/InviteAcceptPage";
 import UnsubscribePage from "./pages/UnsubscribePage";
+import ComoFuncionaPage from "./pages/ComoFuncionaPage";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -64,6 +65,7 @@ function AppShell() {
       {/* Rutas públicas accesibles con o sin sesión */}
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
+      <Route path="/como-funciona" element={<ComoFuncionaPage />} />
 
       <Route path="/" element={<ErrorBoundary resetKey={location.pathname}><RootGate /></ErrorBoundary>} />
 
