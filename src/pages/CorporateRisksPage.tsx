@@ -21,10 +21,7 @@ import { usePlan } from "@/hooks/usePlan";
 import { useMoney } from "@/lib/format-money";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { cn } from "@/lib/utils";
-import {
-  getExecutionStatus,
-  getFinancialHealth,
-} from "@/lib/business-intelligence";
+import { buildExecutiveRisks } from "@/lib/risk-engine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -172,232 +169,32 @@ export default function CorporateRisksPage() {
     },
   });
 
-  // === Derivar riesgos desde la realidad operativa ===
+  // === Riesgos UNIFICADOS — misma fuente que Informes / PDF / Excel ===
   const risks: Risk[] = useMemo(() => {
     if (!isBusiness) return [];
-    const targetMargin = settings?.target_margin ?? 20;
-    const out: Risk[] = [];
-    let n = 1;
-    const code = () => `R-${String(n++).padStart(3, "0")}`;
-    const today = new Date();
-
-    // 1) Riesgos por proyecto: presupuesto, margen, cronograma
-    for (const p of projects) {
-      const projectTasks = tasks.filter((t) => t.project_id === p.id);
-      const taskDates = projectTasks.map((t) => t.due_date);
-      const overdueTasks = projectTasks.filter(
-        (t) => t.due_date && new Date(t.due_date) < today && t.status !== "done" && t.status !== "cancelled"
-      );
-
-      const exec = getExecutionStatus({
-        status: p.status,
-        startDate: p.start_date,
-        endDate: p.end_date,
-        progress: p.progress ?? 0,
-        hasOverdueTasks: overdueTasks.length > 0,
-        taskDates,
-        inferSchedule: settings?.auto_behavior?.inferSchedule !== false,
-      });
-
-      const fin = getFinancialHealth({
-        budget: Number(p.budget ?? 0),
-        actualCost: Number(p.actual_cost ?? 0),
-        targetMargin,
-      });
-
-      const clientName = p.clients?.name ?? "Cliente";
-      const budget = Number(p.budget ?? 0);
-      const actual = Number(p.actual_cost ?? 0);
-      const overrun = Math.max(0, actual - budget);
-
-      // Sobrecosto detectado
-      if (budget > 0 && actual > budget * 0.85) {
-        const ratio = actual / budget;
-        const probability = Math.min(95, Math.round(ratio * 70));
-        const impact = Math.min(95, Math.round((overrun / Math.max(budget, 1)) * 100) + 30);
-        out.push({
-          id: `over-${p.id}`,
-          code: code(),
-          title: ratio > 1 ? "Proyecto excede el presupuesto" : "Presupuesto a punto de agotarse",
-          projectId: p.id,
-          projectName: p.name,
-          area: "Finanzas",
-          owner: clientName,
-          probability,
-          impact,
-          level: classifyLevel(probability, impact),
-          dueDate: p.end_date,
-          status: ratio > 1 ? "open" : "in_treatment",
-          response: ratio > 1
-            ? "Renegociar alcance o cobrar adicionales al cliente."
-            : "Revisar gastos pendientes y frenar costos no esenciales.",
-          estimatedCost: overrun > 0 ? overrun : Math.round(budget * 0.15),
-          isOverdue: !!p.end_date && new Date(p.end_date) < today && p.status !== "completed",
-          category: "financial",
-        });
-      }
-
-      // Margen negativo / pérdida
-      if (fin.key === "critical" && budget > 0) {
-        const probability = 90;
-        const impact = 85;
-        out.push({
-          id: `loss-${p.id}`,
-          code: code(),
-          title: "Proyecto está generando pérdida",
-          projectId: p.id,
-          projectName: p.name,
-          area: "Rentabilidad",
-          owner: clientName,
-          probability,
-          impact,
-          level: "critical",
-          dueDate: p.end_date,
-          status: "open",
-          response: "Reunión urgente con cliente: ajustar alcance, plazo o precio.",
-          estimatedCost: Math.max(overrun, Math.round(budget * 0.2)),
-          isOverdue: false,
-          category: "financial",
-        });
-      }
-
-      // Atraso en cronograma
-      if (exec.key === "delayed" && p.status !== "completed") {
-        const probability = 80;
-        const impact = 60;
-        out.push({
-          id: `late-${p.id}`,
-          code: code(),
-          title: "Proyecto va atrasado en su entrega",
-          projectId: p.id,
-          projectName: p.name,
-          area: "Operaciones",
-          owner: clientName,
-          probability,
-          impact,
-          level: classifyLevel(probability, impact),
-          dueDate: p.end_date,
-          status: "in_treatment",
-          response: "Reorganizar prioridades y comunicar nueva fecha al cliente.",
-          estimatedCost: Math.round(budget * 0.1),
-          isOverdue: !!p.end_date && new Date(p.end_date) < today,
-          category: "schedule",
-        });
-      } else if (exec.key === "at_risk" && p.status !== "completed") {
-        const probability = 55;
-        const impact = 45;
-        out.push({
-          id: `risk-${p.id}`,
-          code: code(),
-          title: "Proyecto en riesgo de retraso",
-          projectId: p.id,
-          projectName: p.name,
-          area: "Operaciones",
-          owner: clientName,
-          probability,
-          impact,
-          level: classifyLevel(probability, impact),
-          dueDate: p.end_date,
-          status: "open",
-          response: "Revisar tareas pendientes y reasignar recursos.",
-          estimatedCost: Math.round(budget * 0.05),
-          isOverdue: false,
-          category: "schedule",
-        });
-      }
-    }
-
-    // 2) Riesgos por tareas bloqueadas que frenan proyecto
-    const blockingTasks = tasks.filter((t) => t.blocks_project && t.status === "blocked");
-    for (const t of blockingTasks) {
-      const p = projects.find((pp) => pp.id === t.project_id);
-      const projectName = p?.name ?? "Proyecto";
-      const daysBlocked = t.blocked_since
-        ? Math.floor((today.getTime() - new Date(t.blocked_since).getTime()) / (1000 * 60 * 60 * 24))
-        : 0;
-      const probability = Math.min(95, 60 + daysBlocked * 3);
-      const impact = 75;
-      out.push({
-        id: `block-${t.id}`,
-        code: code(),
-        title: `Bloqueo crítico: ${t.title}`,
-        projectId: t.project_id,
-        projectName,
-        area: "Operaciones",
-        owner: t.assignee_name ?? "Sin responsable",
-        probability,
-        impact,
-        level: classifyLevel(probability, impact),
-        dueDate: t.due_date,
-        status: "open",
-        response: t.blocked_reason
-          ? `Resolver: ${t.blocked_reason}`
-          : "Identificar causa del bloqueo y desbloquear hoy.",
-        estimatedCost: Number(t.estimated_cost ?? 0) || (p ? Math.round(Number(p.budget ?? 0) * 0.05) : 0),
-        isOverdue: !!t.due_date && new Date(t.due_date) < today,
-        category: "operational",
-      });
-    }
-
-    // 3) Riesgo comercial: cotizaciones grandes que se enfrían
-    const staleQuotations = quotations.filter((q) => {
-      if (q.status !== "pending") return false;
-      const days = Math.floor((today.getTime() - new Date(q.status_changed_at).getTime()) / (1000 * 60 * 60 * 24));
-      return days > 14 && Number(q.total ?? 0) > 5000;
+    const exec = buildExecutiveRisks({
+      projects, tasks, quotations,
+      manualRisks: manualRisks as any[],
+      settings,
     });
-    for (const q of staleQuotations.slice(0, 5)) {
-      const total = Number(q.total ?? 0);
-      const prob = Math.max(20, 80 - (q.close_probability ?? 50));
-      const impact = Math.min(85, Math.round((total / 50000) * 100));
-      out.push({
-        id: `quot-${q.id}`,
-        code: code(),
-        title: `Cliente puede cancelar: ${q.title}`,
-        projectId: null,
-        projectName: q.clients?.name ?? "Cliente",
-        area: "Comercial",
-        owner: q.clients?.name ?? "Cliente",
-        probability: prob,
-        impact,
-        level: classifyLevel(prob, impact),
-        dueDate: null,
-        status: "open",
-        response: "Llamar al cliente esta semana y cerrar la propuesta.",
-        estimatedCost: total,
-        isOverdue: false,
-        category: "client",
-      });
-    }
-
-    // 4) Riesgos manuales persistidos en BD
-    for (const m of manualRisks as any[]) {
-      const score = Math.round((m.probability * m.impact) / 100);
-      const lvl: RiskLevel = score >= 60 ? "critical" : score >= 35 ? "high" : score >= 15 ? "medium" : "low";
-      const catMap: Record<string, Risk["category"]> = {
-        financial: "financial", operational: "operational", technical: "operational",
-        commercial: "client", hr: "operational", legal: "operational",
-      };
-      out.push({
-        id: `manual-${m.id}`,
-        code: m.code,
-        title: m.title,
-        projectId: m.project_id,
-        projectName: m.projects?.name ?? "Sin proyecto",
-        area: m.category,
-        owner: m.owner_name ?? "Sin responsable",
-        probability: m.probability,
-        impact: m.impact,
-        level: lvl,
-        dueDate: m.due_date,
-        status: m.status,
-        response: m.mitigation_plan ?? "Sin plan de mitigación.",
-        estimatedCost: Number(m.estimated_cost) || 0,
-        isOverdue: !!m.due_date && new Date(m.due_date) < today && m.status !== "mitigated" && m.status !== "closed",
-        category: catMap[m.category] ?? "operational",
-      });
-    }
-
-    return out;
+    return exec.map<Risk>((r) => ({
+      id: r.id,
+      code: r.code,
+      title: r.title,
+      projectId: r.projectId,
+      projectName: r.projectName,
+      area: r.area,
+      owner: r.owner,
+      probability: r.probability,
+      impact: r.impact,
+      level: r.level,
+      dueDate: r.dueDate,
+      status: r.status,
+      response: r.response,
+      estimatedCost: r.financialImpact,
+      isOverdue: r.isOverdue,
+      category: r.category,
+    }));
   }, [projects, tasks, quotations, settings, isBusiness, manualRisks]);
 
   // === Resumen ===
