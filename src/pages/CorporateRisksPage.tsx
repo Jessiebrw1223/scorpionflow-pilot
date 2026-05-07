@@ -21,10 +21,7 @@ import { usePlan } from "@/hooks/usePlan";
 import { useMoney } from "@/lib/format-money";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { cn } from "@/lib/utils";
-import {
-  getExecutionStatus,
-  getFinancialHealth,
-} from "@/lib/business-intelligence";
+import { buildExecutiveRisks } from "@/lib/risk-engine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
