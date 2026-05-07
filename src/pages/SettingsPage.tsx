@@ -215,7 +215,7 @@ export default function SettingsPage() {
         return;
       }
       toast.success("Cancelación registrada", {
-        description: "Conservas tu acceso hasta el final del período pagado.",
+        description: "Mercado Pago dejará de cobrarte. Tu cuenta volverá a Founder Access.",
       });
       await refreshPlan();
     } catch (e: any) {
