@@ -183,12 +183,15 @@ export async function generatePdfReport(p: BusinessReportData) {
   });
 
   // Bars: distribución riesgos por nivel
-  const levels = ["Crítico", "Alto", "Medio", "Bajo"] as const;
+  const levels: Array<{ key: "critical" | "high" | "medium" | "low"; label: string }> = [
+    { key: "critical", label: "Crítico" }, { key: "high", label: "Alto" },
+    { key: "medium", label: "Medio" }, { key: "low", label: "Bajo" },
+  ];
   const levelColors: Record<string, [number, number, number]> = { "Crítico": RED, "Alto": AMBER, "Medio": [202, 138, 4], "Bajo": GREEN };
   const riskBars = levels.map((lv) => ({
-    label: lv,
-    value: p.risks.filter((r) => r.level === lv).length,
-    color: levelColors[lv],
+    label: lv.label,
+    value: p.risks.filter((r) => r.level === lv.key).length,
+    color: levelColors[lv.label],
   }));
   drawBars(doc, {
     x: M, y: 490, w: pageW - M * 2, h: 160,
