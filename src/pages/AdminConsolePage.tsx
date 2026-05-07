@@ -56,8 +56,10 @@ interface SubscriptionRow {
   plan: Plan;
   status: string;
   billing_cycle: string;
+  payment_provider: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  mp_preapproval_id: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   started_at: string | null;
