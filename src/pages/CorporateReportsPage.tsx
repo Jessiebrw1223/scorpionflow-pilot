@@ -169,6 +169,12 @@ export default function CorporateReportsPage() {
   const recommendations = useMemo(() => buildRecommendations(insights, kpis), [insights, kpis]);
   const conclusion = useMemo(() => buildExecutiveConclusion(kpis), [kpis]);
 
+  const clientsList = useMemo(() => {
+    const m = new Map<string, string>();
+    projectsRaw.forEach((p) => p.client_id && p.clients?.name && m.set(p.client_id, p.clients.name));
+    return Array.from(m.entries()).map(([id, name]) => ({ id, name }));
+  }, [projectsRaw]);
+
   function buildPayload(): BusinessReportData {
     return {
       companyName: user?.email?.split("@")[0] ?? "Mi empresa",
