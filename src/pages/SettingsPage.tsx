@@ -153,116 +153,55 @@ export default function SettingsPage() {
   // BETA: free/starter/pro se muestran como "Founder Access". Business sin cambios.
   const planLabel = (id: PlanId) => (id === "business" ? "Business" : "Founder Access");
 
-  // Decide la acción correcta según el estado actual del usuario
+  // Beta + Mercado Pago: solo dos acciones reales (activar Business o cancelar).
   const handlePlanAction = async (planId: PlanId) => {
-    if (planId === realPlan && billing === realBilling) return;
-
-    // Caso 1: NO tiene sub activa en Stripe → checkout nuevo
-    if (!hasActiveStripeSub) {
-      return openCheckout(planId);
-    }
-
-    // Caso 2: tiene sub pero está cancelando al final del período
-    if (cancelAtPeriodEnd) {
-      setConfirmDialog({
-        title: "Reactivar tu suscripción",
-        description: `Tu plan ${planLabel(realPlan)} está programado para terminar el ${formatDate(currentPeriodEnd)}. Reactivamos tu suscripción y continuarás con tu plan actual sin interrupciones.`,
-        confirmLabel: "Reactivar",
-        onConfirm: handleReactivate,
-      });
-      return;
-    }
-
-    // Caso 3: cambio de plan en sub activa → upgrade o downgrade
-    const isUp = PLAN_RANK_LOCAL[planId] > PLAN_RANK_LOCAL[realPlan];
-    const isDown = PLAN_RANK_LOCAL[planId] < PLAN_RANK_LOCAL[realPlan];
-    const isBillingOnly = planId === realPlan && billing !== realBilling;
-
-    if (isUp || (isBillingOnly && billing === "annual")) {
-      setConfirmDialog({
-        title: `Actualizar a ${planLabel(planId)}`,
-        description: isBillingOnly
-          ? `Cambiarás tu facturación a ${billing === "annual" ? "anual" : "mensual"}. Se aplicará un cobro prorrateado por la diferencia y obtendrás los beneficios de inmediato.`
-          : `Subes de ${planLabel(realPlan)} a ${planLabel(planId)}. Se aplicará inmediatamente con un cobro prorrateado por los días restantes del ciclo.`,
-        confirmLabel: "Confirmar y pagar",
-        onConfirm: () => invokeChangePlan(planId, "upgrade"),
-      });
-      return;
-    }
-
-    if (isDown || (isBillingOnly && billing === "monthly")) {
-      // Downgrade a Free = cancelar suscripción al final del período
-      if (planId === "free") {
+    if (planId === "business") {
+      // Si ya está activo y cancelando → reactivar
+      if (realPlan === "business" && cancelAtPeriodEnd) {
         setConfirmDialog({
-          title: "Volver al plan Free",
-          description: `Tu plan ${planLabel(realPlan)} continuará hasta el ${formatDate(currentPeriodEnd)}. Después pasarás automáticamente a Free y se desactivarán las funciones premium.`,
-          confirmLabel: "Confirmar cambio a Free",
-          onConfirm: handleCancelSubscription,
+          title: "Reactivar tu suscripción Business",
+          description: `Tu plan está programado para terminar el ${formatDate(currentPeriodEnd)}. Si reactivas ahora, continuará renovándose normalmente.`,
+          confirmLabel: "Reactivar",
+          onConfirm: handleReactivate,
         });
         return;
       }
+      // Activar Business → checkout Mercado Pago
+      return openMpCheckout();
+    }
+    // Bajar a Founder Access → cancelar suscripción
+    if (realPlan === "business" && !cancelAtPeriodEnd) {
       setConfirmDialog({
-        title: `Programar cambio a ${planLabel(planId)}`,
-        description: `Tu cambio se aplicará al cierre del período el ${formatDate(currentPeriodEnd)}. Hasta entonces conservas tu plan ${planLabel(realPlan)} sin interrupciones.`,
-        confirmLabel: "Programar cambio",
-        onConfirm: () => invokeChangePlan(planId, "downgrade"),
+        title: "Volver a Founder Access",
+        description: `Tu plan Business continuará hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá automáticamente a Founder Access.`,
+        confirmLabel: "Confirmar cambio",
+        destructive: true,
+        onConfirm: handleCancelSubscription,
       });
-      return;
     }
   };
 
-  const openCheckout = async (planId: PlanId) => {
-    setActionLoading(planId);
+  const openMpCheckout = async () => {
+    setActionLoading("business");
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: planId, billing },
+      const { data, error } = await supabase.functions.invoke("create-mercadopago-checkout", {
+        body: {},
       });
       if (error || (data && (data as any).error)) {
-        toast.error("No pudimos abrir el pago", {
+        toast.error("No pudimos conectar con Mercado Pago", {
           description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
         });
         return;
       }
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       } else {
-        toast.error("No pudimos abrir el pago", { description: "Intenta nuevamente en unos segundos." });
-      }
-    } catch (e: any) {
-      toast.error("No pudimos abrir el pago", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
-      });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const invokeChangePlan = async (planId: PlanId, intent: "upgrade" | "downgrade") => {
-    setActionLoading(planId);
-    try {
-      const { data, error } = await supabase.functions.invoke("change-subscription-plan", {
-        body: { plan: planId, billing },
-      });
-      if (error || (data && (data as any).error)) {
-        const title = intent === "upgrade" ? "No pudimos actualizar tu plan" : "No pudimos programar el cambio";
-        toast.error(title, {
-          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+        toast.error("No pudimos conectar con Mercado Pago", {
+          description: "Intenta nuevamente en unos segundos.",
         });
-        return;
       }
-      const message = (data as any)?.message ?? (intent === "upgrade"
-        ? "Plan actualizado."
-        : "Cambio programado al cierre del período.");
-      toast.success(intent === "upgrade" ? "Plan actualizado" : "Cambio programado", { description: message });
-      // Polling para reflejar el cambio (webhook puede tardar segundos)
-      let attempts = 0;
-      const interval = setInterval(async () => {
-        attempts++;
-        await refreshPlan();
-        if (attempts >= 6) clearInterval(interval);
-      }, 1500);
     } catch (e: any) {
-      toast.error("No pudimos completar el cambio", {
+      toast.error("No pudimos conectar con Mercado Pago", {
         description: humanizeError(e, "Intenta nuevamente en unos segundos."),
       });
     } finally {
@@ -273,23 +212,20 @@ export default function SettingsPage() {
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("cancel-subscription", { body: {} });
+      const { data, error } = await supabase.functions.invoke("cancel-mercadopago-subscription", { body: {} });
       if (error || (data && (data as any).error)) {
         toast.error("No pudimos cancelar tu suscripción", {
-          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
+          description: humanizeFunctionError(error, data, "Para cambios avanzados, contacta soporte."),
         });
         return;
       }
-      const eff = (data as any)?.effective_at ? formatDate((data as any).effective_at) : null;
-      toast.success("Cancelación programada", {
-        description: eff
-          ? `Conservas tu plan hasta el ${eff}. Después volverás a Free.`
-          : "Conservas tu plan hasta el final del período pagado.",
+      toast.success("Cancelación registrada", {
+        description: "Conservas tu acceso hasta el final del período pagado.",
       });
       await refreshPlan();
     } catch (e: any) {
       toast.error("No pudimos cancelar tu suscripción", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
+        description: humanizeError(e, "Para cambios avanzados, contacta soporte."),
       });
     } finally {
       setCancelLoading(false);
@@ -299,54 +235,13 @@ export default function SettingsPage() {
   const handleReactivate = async () => {
     setReactivateLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("reactivate-subscription", { body: {} });
-      if (error || (data && (data as any).error)) {
-        toast.error("No pudimos reactivar tu suscripción", {
-          description: humanizeFunctionError(error, data, "Intenta nuevamente en unos segundos."),
-        });
-        return;
-      }
-      toast.success("Suscripción reactivada", {
-        description: "Tu plan continuará renovándose normalmente.",
-      });
-      await refreshPlan();
-    } catch (e: any) {
-      toast.error("No pudimos reactivar tu suscripción", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
-      });
+      // En Mercado Pago no hay reactivación nativa: relanzamos el checkout.
+      await openMpCheckout();
     } finally {
       setReactivateLoading(false);
     }
   };
 
-  const handleOpenPortal = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal", { body: {} });
-      if (error || (data && (data as any).error)) {
-        const msg = humanizeFunctionError(
-          error,
-          data,
-          "Intenta nuevamente en unos segundos.",
-        );
-        toast.error("No pudimos abrir el portal", { description: msg });
-        return;
-      }
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      } else {
-        toast.error("No pudimos abrir el portal", {
-          description: "Intenta nuevamente en unos segundos.",
-        });
-      }
-    } catch (e: any) {
-      toast.error("No pudimos abrir el portal", {
-        description: humanizeError(e, "Intenta nuevamente en unos segundos."),
-      });
-    } finally {
-      setPortalLoading(false);
-    }
-  };
 
   const handleSaveWork = async () => {
     try {
