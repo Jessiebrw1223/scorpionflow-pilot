@@ -26,18 +26,20 @@ import { formatPEN } from "@/lib/fx";
 
 type Plan = "free" | "starter" | "pro" | "business";
 
-// Precios estimados PEN/mes para MRR
+// BETA pricing — Founder Access gratis, Business S/90 mensual.
+const BUSINESS_PRICE_PEN = 90;
 const PLAN_PRICE_PEN: Record<Plan, number> = {
   free: 0,
-  starter: 45,
-  pro: 101,
-  business: 225,
+  starter: 0,
+  pro: 0,
+  business: BUSINESS_PRICE_PEN,
 };
 
+// BETA: free/starter/pro se presentan como "Founder Access".
 const PLAN_LABEL: Record<Plan, string> = {
-  free: "Free",
-  starter: "Starter",
-  pro: "Pro",
+  free: "Founder Access",
+  starter: "Founder Access",
+  pro: "Founder Access",
   business: "Business",
 };
 
@@ -54,8 +56,10 @@ interface SubscriptionRow {
   plan: Plan;
   status: string;
   billing_cycle: string;
+  payment_provider: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  mp_preapproval_id: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   started_at: string | null;
@@ -190,18 +194,18 @@ function OverviewTab() {
     for (const s of list) {
       byPlan[s.plan] = (byPlan[s.plan] || 0) + 1;
       if (s.status === "active") active++;
-      if (s.status === "canceled" || s.cancel_at_period_end) canceled++;
-      // MRR: solo planes pagos activos
-      if (s.plan !== "free" && s.status === "active") {
-        const monthly = PLAN_PRICE_PEN[s.plan];
-        mrr += s.billing_cycle === "annual" ? monthly * 0.9 : monthly;
+      if (s.status === "canceled" || s.status === "cancelled" || s.cancel_at_period_end) canceled++;
+      // BETA: solo Business activo a S/90 cuenta para MRR.
+      if (s.plan === "business" && s.status === "active") {
+        mrr += BUSINESS_PRICE_PEN;
       }
     }
     const totalUsers = profiles.data?.length ?? 0;
-    const paid = (byPlan.starter + byPlan.pro + byPlan.business);
+    const paid = byPlan.business;
+    const founderCount = byPlan.free + byPlan.starter + byPlan.pro;
     const conversion = totalUsers > 0 ? (paid / totalUsers) * 100 : 0;
     const arpu = paid > 0 ? mrr / paid : 0;
-    return { byPlan, active, canceled, mrr, totalUsers, paid, conversion, arpu };
+    return { byPlan, active, canceled, mrr, totalUsers, paid, founderCount, conversion, arpu };
   }, [subs.data, profiles.data]);
 
   if (subs.isLoading || profiles.isLoading) {
@@ -220,17 +224,20 @@ function OverviewTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-zinc-900/60 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-base text-zinc-100">Distribución por plan</CardTitle>
+            <CardTitle className="text-base text-zinc-100">Distribución (Beta)</CardTitle>
+            <CardDescription>Founder Access agrupa free/starter/pro</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(["free", "starter", "pro", "business"] as Plan[]).map((p) => {
-              const count = stats.byPlan[p];
-              const pct = stats.totalUsers > 0 ? (count / stats.totalUsers) * 100 : 0;
+            {([
+              { key: "founder", label: "Founder Access", count: stats.founderCount },
+              { key: "business", label: "Business", count: stats.byPlan.business },
+            ]).map((row) => {
+              const pct = stats.totalUsers > 0 ? (row.count / stats.totalUsers) * 100 : 0;
               return (
-                <div key={p}>
+                <div key={row.key}>
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-300">{PLAN_LABEL[p]}</span>
-                    <span className="text-zinc-400">{count} ({pct.toFixed(0)}%)</span>
+                    <span className="text-zinc-300">{row.label}</span>
+                    <span className="text-zinc-400">{row.count} ({pct.toFixed(0)}%)</span>
                   </div>
                   <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mt-1">
                     <div className="h-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${pct}%` }} />
@@ -243,13 +250,14 @@ function OverviewTab() {
 
         <Card className="bg-zinc-900/60 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-base text-zinc-100">Métricas SaaS</CardTitle>
+            <CardTitle className="text-base text-zinc-100">Métricas SaaS (Beta)</CardTitle>
+            <CardDescription>MRR calculado solo con Business S/90</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <Row label="ARPU (ingreso medio por usuario pago)" value={formatPEN(stats.arpu)} />
-            <Row label="Tasa de conversión a pago" value={`${stats.conversion.toFixed(1)}%`} />
-            <Row label="Usuarios free activos" value={String(stats.byPlan.free)} />
-            <Row label="Usuarios pagos" value={String(stats.paid)} />
+            <Row label="ARPU (Business activos)" value={formatPEN(stats.arpu)} />
+            <Row label="Conversión a Business" value={`${stats.conversion.toFixed(1)}%`} />
+            <Row label="Founder Access" value={String(stats.founderCount)} />
+            <Row label="Business activos" value={String(stats.paid)} />
           </CardContent>
         </Card>
       </div>
@@ -442,7 +450,7 @@ function SubsTab({ adminId }: { adminId: string }) {
                 <TableHead className="text-zinc-400">Plan</TableHead>
                 <TableHead className="text-zinc-400">Estado</TableHead>
                 <TableHead className="text-zinc-400">Ciclo</TableHead>
-                <TableHead className="text-zinc-400">Stripe Cust</TableHead>
+                <TableHead className="text-zinc-400">Proveedor</TableHead>
                 <TableHead className="text-zinc-400">Renueva</TableHead>
                 <TableHead className="text-zinc-400">Cancela al fin</TableHead>
                 <TableHead className="text-zinc-400 text-right">Acción</TableHead>
@@ -460,7 +468,7 @@ function SubsTab({ adminId }: { adminId: string }) {
                     <TableCell><Badge variant="outline" className={PLAN_BADGE[s.plan]}>{PLAN_LABEL[s.plan]}</Badge></TableCell>
                     <TableCell className="text-xs text-zinc-300">{s.status}</TableCell>
                     <TableCell className="text-xs text-zinc-400">{s.billing_cycle}</TableCell>
-                    <TableCell className="text-[11px] text-zinc-500 font-mono">{s.stripe_customer_id?.slice(0, 14) ?? "—"}</TableCell>
+                    <TableCell className="text-[11px] text-zinc-500 font-mono">{s.payment_provider ?? "—"}</TableCell>
                     <TableCell className="text-xs text-zinc-400">
                       {s.current_period_end ? new Date(s.current_period_end).toLocaleDateString() : "—"}
                     </TableCell>
@@ -496,7 +504,7 @@ function SubsTab({ adminId }: { adminId: string }) {
           <DialogHeader>
             <DialogTitle>Cambio manual de plan</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Esta acción modifica el plan local del usuario. <strong>No</strong> sincroniza con Stripe automáticamente.
+              Esta acción modifica el plan local del usuario. <strong>No</strong> sincroniza con Mercado Pago automáticamente.
               Quedará registrada en auditoría.
             </DialogDescription>
           </DialogHeader>

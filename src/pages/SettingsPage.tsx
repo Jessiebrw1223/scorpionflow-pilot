@@ -168,7 +168,7 @@ export default function SettingsPage() {
     if (realPlan === "business" && !cancelAtPeriodEnd) {
       setConfirmDialog({
         title: "Volver a Founder Access",
-        description: `Tu plan Business continuará hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá automáticamente a Founder Access.`,
+        description: "Tu suscripción Business se cancelará en Mercado Pago y tu cuenta volverá a Founder Access cuando se confirme.",
         confirmLabel: "Confirmar cambio",
         destructive: true,
         onConfirm: handleCancelSubscription,
@@ -215,7 +215,7 @@ export default function SettingsPage() {
         return;
       }
       toast.success("Cancelación registrada", {
-        description: "Conservas tu acceso hasta el final del período pagado.",
+        description: "Mercado Pago dejará de cobrarte. Tu cuenta volverá a Founder Access.",
       });
       await refreshPlan();
     } catch (e: any) {
@@ -535,7 +535,7 @@ export default function SettingsPage() {
                                 className="w-full h-9 text-[12px] gap-1.5 text-muted-foreground hover:text-destructive"
                                 onClick={() => setConfirmDialog({
                                   title: "Cancelar suscripción Business",
-                                  description: `Conservas todas las funciones hasta el ${formatDate(currentPeriodEnd)}. Después tu cuenta volverá a Founder Access automáticamente.`,
+                                  description: "Mercado Pago dejará de cobrarte. Tu cuenta volverá a Founder Access cuando se confirme la cancelación.",
                                   confirmLabel: "Sí, cancelar",
                                   destructive: true,
                                   onConfirm: handleCancelSubscription,

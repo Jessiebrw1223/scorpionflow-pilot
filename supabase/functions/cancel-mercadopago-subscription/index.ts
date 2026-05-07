@@ -35,8 +35,9 @@ serve(async (req) => {
       body: JSON.stringify({ status: "cancelled" }),
     });
 
+    // Marcar como cancelación programada — conserva acceso hasta current_period_end.
+    // El webhook de MP confirmará el estado final cuando se procese.
     await admin.from("account_subscriptions").update({
-      status: "cancelled",
       cancel_at_period_end: true,
       updated_at: new Date().toISOString(),
     }).eq("owner_id", userId);
