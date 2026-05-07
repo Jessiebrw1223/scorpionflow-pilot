@@ -504,7 +504,7 @@ function SubsTab({ adminId }: { adminId: string }) {
           <DialogHeader>
             <DialogTitle>Cambio manual de plan</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Esta acción modifica el plan local del usuario. <strong>No</strong> sincroniza con Stripe automáticamente.
+              Esta acción modifica el plan local del usuario. <strong>No</strong> sincroniza con Mercado Pago automáticamente.
               Quedará registrada en auditoría.
             </DialogDescription>
           </DialogHeader>
