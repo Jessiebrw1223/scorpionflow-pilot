@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import logoUrl from "@/assets/scorpionflow-logo.jpg";
 import {
   LayoutDashboard,
   FolderKanban,
