@@ -119,29 +119,24 @@ export default function SettingsPage() {
     : searchParams.get("tab") === "alerts" ? "alerts"
     : "work";
 
-  // Detectar checkout success/cancelled desde Stripe
+  // Detectar retorno de Mercado Pago: confirmar estado real vía polling.
   useEffect(() => {
-    const checkout = searchParams.get("checkout");
-    if (checkout === "success") {
-      toast.success("¡Suscripción activada!", {
-        description: "Estamos confirmando tu pago…",
+    const mp = searchParams.get("mp");
+    if (mp === "return") {
+      toast.info("Estamos confirmando tu pago.", {
+        description: "Activaremos Business en cuanto Mercado Pago confirme la suscripción.",
       });
-      // Polling agresivo: el webhook de Stripe puede tardar 1-10s.
       let attempts = 0;
-      const maxAttempts = 12; // 12 * 2s = 24s
+      const maxAttempts = 12;
       const interval = setInterval(async () => {
         attempts++;
         await refreshPlan();
         if (attempts >= maxAttempts) clearInterval(interval);
       }, 2000);
       refreshPlan();
-      searchParams.delete("checkout");
+      searchParams.delete("mp");
       setSearchParams(searchParams, { replace: true });
       return () => clearInterval(interval);
-    } else if (checkout === "cancelled") {
-      toast.info("Pago cancelado", { description: "Puedes intentarlo de nuevo cuando quieras." });
-      searchParams.delete("checkout");
-      setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams, refreshPlan]);
 
