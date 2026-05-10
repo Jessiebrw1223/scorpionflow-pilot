@@ -1,21 +1,13 @@
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, Home, Users, Eye, Shield, Crown, HelpCircle } from "lucide-react";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { Link as RouterLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, WORKSPACE_ROLE_LABEL } from "@/hooks/useWorkspace";
 import { Badge } from "@/components/ui/badge";
-
-const ROUTE_TITLES: Record<string, string> = {
-  "/": "Centro de Control",
-  "/clientes": "Clientes",
-  "/cotizaciones": "Cotizaciones",
-  "/projects": "Proyectos",
-  "/team": "Equipo",
-  "/settings": "Configuración",
-  "/learn": "Centro de Ayuda",
-};
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Crumb {
   label: string;
