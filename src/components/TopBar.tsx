@@ -120,8 +120,8 @@ export function TopBar() {
         )}
         <RouterLink
           to="/learn"
-          title="Centro de Ayuda"
-          aria-label="Centro de Ayuda"
+          title={t("topbar.help")}
+          aria-label={t("topbar.helpAria")}
           className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/50 transition-sf"
         >
           <HelpCircle className="w-4 h-4" />
