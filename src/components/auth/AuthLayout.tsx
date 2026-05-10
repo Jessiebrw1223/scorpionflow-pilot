@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { Flame } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { FireBackground } from "@/components/FireBackground";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface AuthLayoutProps {
   title: string;
@@ -10,11 +12,11 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background relative flex items-center justify-center p-4 overflow-hidden">
       <FireBackground emberCount={40} />
 
-      {/* Diagonal scanlines */}
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
@@ -23,19 +25,21 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
         }}
       />
 
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageSwitcher variant="pill" />
+      </div>
+
       <div className="relative z-10 w-full max-w-md ignite-in">
-        {/* Brand header */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-xl scorpion-gradient flex items-center justify-center fire-glow shadow-2xl mb-3">
             <Flame className="w-7 h-7 text-primary-foreground fire-icon" />
           </div>
           <h1 className="text-2xl font-bold fire-text tracking-tight">ScorpionFlow</h1>
           <p className="text-[11px] text-muted-foreground tracking-[0.25em] uppercase mt-1">
-            Project Control
+            {t("auth.layout.tagline")}
           </p>
         </div>
 
-        {/* Card */}
         <div className="surface-card fire-border p-6 space-y-5 backdrop-blur-sm">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-foreground">{title}</h2>
@@ -48,7 +52,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
         {footer && <div className="mt-5 text-center text-[13px] text-muted-foreground">{footer}</div>}
 
         <p className="mt-8 text-center text-[10px] text-muted-foreground/60 tracking-widest uppercase">
-          🦂 Sistema de control empresarial
+          {t("auth.layout.footer")}
         </p>
       </div>
     </div>
