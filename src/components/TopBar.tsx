@@ -68,6 +68,7 @@ function useBreadcrumbs(): Crumb[] {
 
 export function TopBar() {
   const crumbs = useBreadcrumbs();
+  const { t } = useTranslation();
   const { isGuest, role, ownerName } = useWorkspace();
 
   const RoleIcon =
