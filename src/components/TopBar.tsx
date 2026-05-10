@@ -21,9 +21,9 @@ interface Crumb {
  */
 function useBreadcrumbs(): Crumb[] {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
   const segments = location.pathname.split("/").filter(Boolean);
 
-  // Detecta /projects/:id para resolver el nombre del proyecto
   const isProjectWorkspace = segments[0] === "projects" && segments.length >= 2;
   const projectId = isProjectWorkspace ? segments[1] : null;
 
@@ -40,25 +40,35 @@ function useBreadcrumbs(): Crumb[] {
     },
   });
 
+  const getRouteTitle = (path: string): string => {
+    const key = `routes.${path}`;
+    const translated = t(key);
+    if (translated !== key) return translated;
+    // Fallback: capitalize segment
+    const seg = path.replace(/^\//, "");
+    return seg ? seg.charAt(0).toUpperCase() + seg.slice(1) : t("routes./");
+  };
+
   if (location.pathname === "/") {
-    return [{ label: ROUTE_TITLES["/"] }];
+    return [{ label: getRouteTitle("/") }];
   }
 
-  const crumbs: Crumb[] = [{ label: "Inicio", to: "/" }];
+  const crumbs: Crumb[] = [{ label: t("topbar.home"), to: "/" }];
 
   if (isProjectWorkspace) {
-    crumbs.push({ label: "Proyectos", to: "/projects" });
-    crumbs.push({ label: project?.name || "Proyecto" });
+    crumbs.push({ label: getRouteTitle("/projects"), to: "/projects" });
+    crumbs.push({ label: project?.name || t("topbar.project") });
     return crumbs;
   }
 
   const root = `/${segments[0]}`;
-  crumbs.push({ label: ROUTE_TITLES[root] || segments[0] });
+  crumbs.push({ label: getRouteTitle(root) });
   return crumbs;
 }
 
 export function TopBar() {
   const crumbs = useBreadcrumbs();
+  const { t } = useTranslation();
   const { isGuest, role, ownerName } = useWorkspace();
 
   const RoleIcon =
@@ -110,8 +120,8 @@ export function TopBar() {
         )}
         <RouterLink
           to="/learn"
-          title="Centro de Ayuda"
-          aria-label="Centro de Ayuda"
+          title={t("topbar.help")}
+          aria-label={t("topbar.helpAria")}
           className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/50 transition-sf"
         >
           <HelpCircle className="w-4 h-4" />
