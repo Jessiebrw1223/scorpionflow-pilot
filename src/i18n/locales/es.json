@@ -1,0 +1,750 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "yes": "Sí",
+    "no": "No",
+    "all": "Todos",
+    "language": "Idioma",
+    "spanish": "Español",
+    "english": "Inglés",
+    "or": "o",
+    "system": "Sistema",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "actions": "Acciones",
+    "status": "Estado",
+    "total": "Total",
+    "retry": "Reintentar",
+    "viewAll": "Ver todos",
+    "free": "Gratis",
+    "perMonth": "/mes",
+    "month": "Mensual",
+    "annual": "Anual",
+    "currentPlan": "Plan actual",
+    "available": "Disponible",
+    "unavailable": "No disponible",
+    "comingSoon": "próximamente"
+  },
+  "languageSwitcher": {
+    "label": "Cambiar idioma",
+    "es": "ES",
+    "en": "EN"
+  },
+  "auth": {
+    "login": {
+      "title": "Inicia sesión",
+      "subtitle": "Accede al centro de control de tus proyectos",
+      "noAccount": "¿No tienes cuenta?",
+      "register": "Regístrate",
+      "googleCta": "Continuar con Google",
+      "emailDivider": "O con correo",
+      "emailLabel": "Correo electrónico",
+      "passwordLabel": "Contraseña",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "remember": "Recordar mi sesión",
+      "submit": "Acceder al sistema",
+      "errors": {
+        "invalidEmail": "Correo inválido",
+        "minPassword": "Mínimo 6 caracteres",
+        "invalidCredentials": "Credenciales incorrectas",
+        "checkLogin": "Verifica tu correo o contraseña.",
+        "googleError": "Error con Google"
+      },
+      "success": {
+        "welcome": "¡Bienvenido de vuelta!",
+        "authorized": "Acceso autorizado al sistema."
+      }
+    },
+    "register": {
+      "title": "Crea tu cuenta",
+      "subtitle": "Únete al sistema de control empresarial",
+      "haveAccount": "¿Ya tienes cuenta?",
+      "login": "Inicia sesión",
+      "fullName": "Nombre completo",
+      "fullNamePlaceholder": "Juan Pérez",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Crear cuenta",
+      "strength": {
+        "minChars": "8+ caracteres",
+        "uppercase": "Mayúscula",
+        "number": "Número",
+        "symbol": "Símbolo"
+      },
+      "errors": {
+        "minName": "Mínimo 2 caracteres",
+        "minPassword": "Mínimo 8 caracteres",
+        "needsUpper": "Debe incluir mayúscula",
+        "needsNumber": "Debe incluir número",
+        "needsSymbol": "Debe incluir símbolo",
+        "noMatch": "Las contraseñas no coinciden",
+        "alreadyExists": "Correo ya registrado",
+        "loginInstead": "Inicia sesión en su lugar.",
+        "couldNotCreate": "No se pudo crear la cuenta"
+      },
+      "success": {
+        "created": "¡Cuenta creada!",
+        "ready": "Ya puedes acceder al sistema."
+      }
+    },
+    "forgot": {
+      "title": "Recupera tu acceso",
+      "subtitle": "Te enviaremos un enlace seguro para restablecer tu contraseña",
+      "sentTitle": "Revisa tu correo",
+      "sentSubtitle": "Si el correo existe, te hemos enviado un enlace seguro válido por 30 minutos.",
+      "back": "Volver al inicio de sesión",
+      "submit": "Enviar enlace de recuperación",
+      "sentBody": "Por seguridad no revelamos si el correo existe. Verifica tu bandeja de entrada y spam.",
+      "linkSent": "Enlace enviado",
+      "linkSentDesc": "Revisa tu correo si la cuenta existe."
+    },
+    "reset": {
+      "title": "Nueva contraseña",
+      "subtitle": "Crea una contraseña fuerte para proteger tu cuenta",
+      "newPassword": "Nueva contraseña",
+      "confirm": "Confirmar",
+      "submit": "Actualizar contraseña",
+      "couldNotUpdate": "No se pudo actualizar",
+      "updated": "Contraseña actualizada",
+      "updatedDesc": "Ya puedes acceder con tu nueva contraseña."
+    },
+    "layout": {
+      "tagline": "Project Control",
+      "footer": "🦂 Sistema de control empresarial"
+    }
+  },
+  "landing": {
+    "nav": {
+      "problem": "Problema",
+      "solution": "Solución",
+      "howItWorks": "Cómo funciona",
+      "about": "Nosotros",
+      "pricing": "Precios",
+      "faq": "FAQ",
+      "login": "Ingresar",
+      "startFree": "Empezar gratis"
+    },
+    "hero": {
+      "badge": "Gestión clara para proyectos y negocio",
+      "questions": [
+        "¿Tu proyecto realmente está funcionando como esperas?",
+        "¿Trabajas mucho… pero sabes si estás ganando dinero?",
+        "¿Tus proyectos avanzan o solo consumen recursos?",
+        "¿Tomas decisiones con datos… o por intuición?"
+      ],
+      "subtitle": "Controla ventas, proyectos, costos y utilidad en un solo lugar.",
+      "tagline": "Más claridad. Mejores decisiones.",
+      "ctaPrimary": "Empezar gratis",
+      "ctaSecondary": "Ver ejemplo real",
+      "noCard": "Sin tarjeta de crédito",
+      "fastStart": "Empiezas en minutos",
+      "noCommit": "Sin compromiso"
+    },
+    "problem": {
+      "tag": "El problema real",
+      "title1": "Tener todo organizado…",
+      "title2": "no siempre significa tener claridad.",
+      "items": [
+        { "title": "Avanzas, pero no ves el impacto", "body": "Tus proyectos progresan, pero no siempre sabes cómo afectan al negocio." },
+        { "title": "Decides con información parcial", "body": "Tienes datos en muchos lados, pero no una imagen completa para decidir bien." },
+        { "title": "Varias herramientas, ninguna te orienta", "body": "Cada app resuelve un pedazo. Falta una visión integrada del negocio." }
+      ],
+      "footer1": "No es falta de trabajo.",
+      "footer2": "Es falta de visibilidad."
+    },
+    "demo": {
+      "tag": "Ejemplo real",
+      "title1": "Con la información correcta,",
+      "title2": "puedes actuar antes.",
+      "body": "Así se ven los indicadores clave de un proyecto cuando cada número está donde debe estar: presupuesto, gasto y resultado, juntos.",
+      "cta": "Ver cómo funciona",
+      "project": "Proyecto",
+      "projectName": "Hotel Costa Sur — Renovación",
+      "needsAttention": "Requiere atención",
+      "budget": "Presupuesto",
+      "spent": "Gastado",
+      "result": "Resultado",
+      "deviation": "Desviación de costos del 6.7% sobre lo presupuestado.",
+      "marginDrop": "El margen pasó del 22% al −6%.",
+      "risksDetected": "2 riesgos detectados antes del cierre.",
+      "footer": "Con esta vista, sabes dónde corregir antes de que sea tarde."
+    },
+    "transformation": {
+      "tag": "Transformación",
+      "title1": "Cuando entiendes los números,",
+      "title2": "trabajas diferente.",
+      "before": "Antes",
+      "after": "Después",
+      "beforeItems": ["Tomas decisiones con dudas", "Detectas problemas tarde", "Ajustas sobre la marcha"],
+      "afterItems": ["Ves lo importante", "Tomas decisiones con confianza", "Actúas a tiempo"]
+    },
+    "solution": {
+      "tag": "La solución",
+      "title1": "Una herramienta para gestionar…",
+      "title2": "y entender.",
+      "items": [
+        { "title": "Todo en un solo lugar", "body": "Proyectos, clientes y números, sin saltar entre apps." },
+        { "title": "Datos claros en tiempo real", "body": "Costos, márgenes y avance se calculan solos." },
+        { "title": "Alertas que ayudan", "body": "Te avisamos antes, para que puedas reaccionar a tiempo." },
+        { "title": "Visión completa", "body": "Sin depender de Excel ni hojas externas." }
+      ]
+    },
+    "collaboration": {
+      "tag": "Trabaja en equipo",
+      "title1": "No trabajas solo.",
+      "title2": "Tus proyectos tampoco deberían.",
+      "subtitle": "Invita a tu equipo, comparte la información correcta y toma decisiones alineadas.",
+      "items": [
+        { "title": "Invita en segundos", "body": "Suma colaboradores con un correo y empiezan a trabajar juntos." },
+        { "title": "Misma información", "body": "Todos ven los mismos datos, en tiempo real, sin versiones." },
+        { "title": "Menos errores", "body": "Evitas decisiones desalineadas y duplicación de trabajo." },
+        { "title": "Control compartido", "body": "Visibilidad conjunta sin perder claridad ni gobernanza." }
+      ],
+      "footer1": "La claridad no sirve si no es compartida.",
+      "footer2": "No solo entiendes tu negocio. Tu equipo también."
+    },
+    "difference": {
+      "tag": "La diferencia",
+      "title1": "No solo organizas tu trabajo.",
+      "title2": "También entiendes tu negocio.",
+      "others": "Otras herramientas",
+      "ours": "ScorpionFlow",
+      "othersItems": ["Organización", "Seguimiento de tareas", "Estructura de equipo"],
+      "oursItems": ["Visibilidad financiera", "Indicadores claros", "Apoyo para tomar decisiones"]
+    },
+    "about": {
+      "tag": "Nosotros",
+      "title1": "No creamos otra herramienta.",
+      "title2": "Creamos claridad para tomar mejores decisiones.",
+      "intro": "ScorpionFlow nace de una necesidad real: entender qué está pasando en un proyecto, más allá de tareas y estados.",
+      "tagline": "Construido desde la experiencia real.",
+      "timeline": [
+        { "tag": "El contexto", "title": "Usábamos herramientas que organizaban bien el trabajo.", "body": "Tareas, cronogramas, seguimiento. Pero algo no estaba claro: el impacto real de cada proyecto en el negocio. Teníamos información, no una visión completa." },
+        { "tag": "La brecha", "title": "Gestionar no es lo mismo que entender.", "body": "Tener datos no significa tener claridad. Y muchas decisiones se toman sin ver el panorama completo. Esa falta de visibilidad genera errores, retrasos y pérdidas que podrían evitarse." },
+        { "tag": "Nuestra respuesta", "title": "Decidimos construir algo diferente.", "body": "No una herramienta más para gestionar tareas. Una plataforma que permita entender lo que está pasando, identificar riesgos a tiempo y tomar decisiones con información clara." },
+        { "tag": "Lo que es hoy", "title": "Trabajo, proyectos y negocio en un solo lugar.", "body": "Hoy ScorpionFlow conecta tareas, proyectos e información clave del negocio, con un objetivo claro: dar contexto a cada decisión." },
+        { "tag": "Propósito", "title": "Que cada equipo entienda la realidad de sus proyectos.", "body": "Ayudar a personas y equipos a tomar decisiones con claridad, basadas en información que sí refleja lo que está pasando." },
+        { "tag": "Visión", "title": "Redefinir cómo se gestionan los proyectos.", "body": "Integrar trabajo y negocio en un sistema donde cada decisión tenga sentido, sustentada por datos claros y a tiempo." }
+      ],
+      "philosophyTag": "Filosofía de trabajo",
+      "philosophyTitle": "En lo que creemos.",
+      "philosophy": [
+        { "title": "La claridad reduce la incertidumbre", "body": "Cuando ves los números, decides distinto." },
+        { "title": "Mejor información, mejores decisiones", "body": "No es cuánto sabes, es cómo lo entiendes." },
+        { "title": "Las herramientas deben simplificar", "body": "Si te complican, no están haciendo su trabajo." }
+      ],
+      "closing1": "No se trata de hacer más.",
+      "closing2": "Se trata de entender mejor.",
+      "team": "— El equipo de ScorpionFlow"
+    },
+    "pricing": {
+      "tag": "Precios",
+      "title1": "Empiezas gratis.",
+      "title2": "Escala cuando lo necesites.",
+      "subtitle": "A medida que creces, necesitas más claridad. Cada plan está pensado para acompañarte en esa evolución.",
+      "monthly": "Mensual",
+      "annual": "Anual",
+      "save": "−20%",
+      "betaBadge": "✦ Beta · Early Access · Founder",
+      "freeBeta": "durante la beta",
+      "wasPrice": "antes",
+      "billedAnnual": "facturado anual",
+      "annualEquivalent": "o S/ {{price}}/mes anual",
+      "buildingTogether": "Estamos construyendo ScorpionFlow junto a nuestros primeros usuarios.",
+      "compareTag": "Comparativa",
+      "compareTitle": "Lo que puedes ver en cada plan",
+      "compareSubtitle": "No se trata solo de gestionar tareas. Se trata de entender el impacto.",
+      "feature": "Función clave",
+      "recommended": "Recomendado",
+      "compareFooter1": "Cada nivel suma claridad.",
+      "compareFooter2": "Tú eliges hasta dónde quieres ver.",
+      "rows": [
+        { "label": "Usuarios / Equipo", "free": "Hasta 10", "business": "Ilimitado" },
+        { "label": "Proyectos", "free": "Limitados", "business": "Ilimitado" },
+        { "label": "Clientes y cotizaciones" },
+        { "label": "Recursos y costos" },
+        { "label": "Riesgos e informes" },
+        { "label": "Visión financiera global" },
+        { "label": "Dashboards ejecutivos" },
+        { "label": "Exportaciones completas" },
+        { "label": "Soporte prioritario" }
+      ],
+      "plans": {
+        "free": {
+          "name": "Founder Access",
+          "badge": "Beta · Early Access",
+          "emotional": "Acceso beta para usuarios fundadores",
+          "cta": "Empezar gratis",
+          "features": [
+            "Cotizaciones y clientes",
+            "Proyectos y tareas",
+            "Recursos, costos y riesgos",
+            "Dashboard e informes",
+            "Colaboración básica",
+            "Learn Center"
+          ]
+        },
+        "business": {
+          "name": "Business",
+          "badge": "Empresarial",
+          "emotional": "Visión estratégica y control corporativo",
+          "cta": "Hablar con ventas",
+          "features": [
+            "Visión financiera global",
+            "Dashboards ejecutivos",
+            "Analítica avanzada",
+            "Colaboración empresarial",
+            "Exportaciones completas",
+            "Soporte prioritario"
+          ]
+        }
+      }
+    },
+    "social": {
+      "tag": "Beta abierta",
+      "title1": "Construido para negocios que quieren",
+      "title2": "claridad desde el primer proyecto.",
+      "subtitle": "ScorpionFlow está en beta. Estamos validando el producto con usuarios reales y mejorándolo con feedback directo.",
+      "items": [
+        { "title": "Cotiza más rápido", "body": "Propuestas claras en minutos, sin perder seguimiento." },
+        { "title": "Controla costos", "body": "Mira lo que entra y lo que se va, proyecto por proyecto." },
+        { "title": "Detecta riesgos", "body": "Identifica lo que puede fallar antes de que cueste caro." },
+        { "title": "Trabaja con tu equipo", "body": "Roles, tareas y avance compartido en un solo lugar." }
+      ]
+    },
+    "education": {
+      "tag": "Aprende en minutos",
+      "title1": "Aprende a usarlo",
+      "title2": "en minutos.",
+      "subtitle": "Sin capacitaciones largas. Sin manuales. Solo abre y empieza.",
+      "items": [
+        { "title": "Cómo cotizar rápido", "body": "Crea propuestas profesionales en menos de 2 minutos." },
+        { "title": "Cómo controlar costos", "body": "Ve qué consume tu margen antes de que sea tarde." },
+        { "title": "Cómo detectar pérdidas", "body": "Identifica proyectos que no son rentables a tiempo." },
+        { "title": "Cómo revisar riesgos", "body": "Visibilidad total de lo que puede salir mal." }
+      ],
+      "exploreCta": "Explorar Learn Center"
+    },
+    "faq": {
+      "tag": "Preguntas frecuentes",
+      "title1": "Resolvemos tus dudas",
+      "title2": "antes de empezar.",
+      "items": [
+        { "q": "¿Qué es Founder Access?", "a": "Es nuestro plan beta para los primeros usuarios. Tienes acceso a casi todo lo que ofrece ScorpionFlow mientras construimos el producto junto a ti." },
+        { "q": "¿Necesito tarjeta de crédito para empezar?", "a": "No. Founder Access es gratuito durante la beta y no pide tarjeta. Solo te pediremos datos de pago si decides activar Business." },
+        { "q": "¿Sirve para equipos pequeños?", "a": "Sí. ScorpionFlow está diseñado para equipos desde 1 persona hasta 50+. La mayoría de nuestros usuarios son agencias y PYMEs B2B con 3 a 20 colaboradores." },
+        { "q": "¿Puedo cancelar cuando quiera?", "a": "Sí. Cancelas con un clic desde Configuración. No hay permanencia, ni penalidades, ni letras chicas." },
+        { "q": "¿Cuánto demoro en empezar?", "a": "Menos de 5 minutos. Creas tu cuenta, invitas a tu equipo con un correo y haces tu primera cotización en el mismo día." }
+      ]
+    },
+    "areas": {
+      "tag": "Cómo funciona",
+      "title1": "Aprende cómo ScorpionFlow",
+      "title2": "se adapta a tu forma de trabajar.",
+      "subtitle": "Guías simples para vender, ejecutar proyectos, controlar costos y tomar decisiones.",
+      "items": [
+        { "title": "Para ventas", "body": "Clientes, cotizaciones y cierre." },
+        { "title": "Para proyectos", "body": "Planificación, tareas y avance." },
+        { "title": "Para operaciones", "body": "Recursos, carga y bloqueos." },
+        { "title": "Para gerencia", "body": "Utilidad, riesgos e informes." }
+      ],
+      "guidesCta": "Ver guías de uso"
+    },
+    "finalCta": {
+      "title1": "Tu negocio no necesita",
+      "title2": "más herramientas sueltas.",
+      "title3": "Necesita claridad.",
+      "subtitle": "Empieza gratis hoy y entiende lo que pasa detrás de tus proyectos.",
+      "primary": "Empezar gratis ahora",
+      "secondary": "Solicitar demo",
+      "footer": "Sin tarjeta de crédito · Empiezas en minutos · Sin compromiso"
+    },
+    "footer": {
+      "copyright": "© {{year}} ScorpionFlow — Gestiona y entiende tu negocio.",
+      "login": "Ingresar",
+      "register": "Crear cuenta"
+    }
+  },
+  "sidebar": {
+    "groups": {
+      "vision": "Visión",
+      "commercial": "Comercial",
+      "execution": "Ejecución",
+      "businessFinance": "Finanzas empresariales",
+      "general": "General"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "clients": "Clientes",
+      "quotations": "Cotizaciones",
+      "projects": "Proyectos",
+      "team": "Equipo",
+      "executiveOverview": "Resumen Ejecutivo",
+      "resources": "Recursos",
+      "reports": "Informes",
+      "risks": "Riesgos"
+    },
+    "footer": {
+      "admin": "Admin Console",
+      "settings": "Configuración",
+      "help": "Centro de Ayuda",
+      "logout": "Cerrar sesión",
+      "collapse": "Contraer"
+    },
+    "premiumLocked": "Requiere plan superior",
+    "logoutSuccess": "Sesión cerrada"
+  },
+  "topbar": {
+    "home": "Inicio",
+    "control": "Centro de Control",
+    "clients": "Clientes",
+    "quotations": "Cotizaciones",
+    "projects": "Proyectos",
+    "project": "Proyecto",
+    "team": "Equipo",
+    "settings": "Configuración",
+    "help": "Centro de Ayuda",
+    "helpAria": "Centro de Ayuda"
+  },
+  "dashboard": {
+    "title": "Centro de Control",
+    "stats": "{{clients}} clientes · {{quotations}} cotizaciones · {{projects}} proyectos · {{won}} ganados",
+    "estimatedProfit": "Ganancia estimada",
+    "controlMoney": "Controla dinero real con PRO",
+    "noData": "Sin información suficiente aún.",
+    "noDataHint": "Crea proyectos con presupuesto y costos para verla aquí.",
+    "operational": "Sistema operativo",
+    "projectsQuestion": "¿Cómo van mis proyectos?",
+    "noProjects": "Aún no tienes proyectos. Convierte una cotización ganada en proyecto desde",
+    "noClient": "Sin cliente",
+    "completed": "{{progress}}% completado",
+    "recentActivity": "Actividad reciente"
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Define cómo funciona tu negocio en ScorpionFlow",
+    "tabs": {
+      "work": "Trabajo",
+      "alerts": "Alertas inteligentes",
+      "subscriptions": "Suscripciones"
+    },
+    "infoBanner": {
+      "strong": "Cada opción aquí cambia cómo se calculan tus costos, márgenes y alertas.",
+      "rest": "No es decorativo: impacta directamente en tu negocio."
+    },
+    "currency": {
+      "title": "Moneda principal",
+      "hint": "Afecta cotizaciones, costos y reportes",
+      "pen": "S/ Soles peruanos",
+      "penDesc": "Mostrar todos los montos en PEN",
+      "usd": "$ Dólares",
+      "usdDesc": "Mostrar todos los montos en USD"
+    },
+    "costModel": {
+      "title": "Modelo de costos",
+      "hint": "Define cómo calcula el sistema tus recursos y proyectos",
+      "hourly": "Por horas",
+      "hourlyDesc": "Tarifa por hora trabajada",
+      "monthly": "Por meses",
+      "monthlyDesc": "Pago mensual fijo",
+      "fixed": "Costos fijos",
+      "fixedDesc": "Monto único por entregable",
+      "mixed": "Mixto",
+      "mixedDesc": "Combina horas, meses y fijos"
+    },
+    "margin": {
+      "title": "Margen objetivo mínimo",
+      "hint": "Si tus proyectos bajan de este margen, el sistema te alerta",
+      "healthy": "Saludable",
+      "acceptable": "Aceptable",
+      "risky": "Riesgoso"
+    },
+    "autoAlerts": {
+      "title": "Alertas automáticas",
+      "hint": "El sistema te avisa cuando algo pone en riesgo tu rentabilidad",
+      "budget80": "Costos superan el 80% del presupuesto",
+      "budget80Desc": "Aviso temprano antes de excederte",
+      "marginBelow": "Margen baja del {{value}}%",
+      "marginBelowDesc": "Detecta proyectos poco rentables",
+      "loss": "Proyecto entra en pérdida",
+      "lossDesc": "Notifica cuando el costo supera el ingreso"
+    },
+    "automation": {
+      "title": "Automatización",
+      "hint": "Reduce el trabajo manual: deja que el sistema calcule por ti",
+      "autoCost": "Calcular costos desde los recursos",
+      "autoCostDesc": "El costo del proyecto se actualiza automáticamente",
+      "autoProgress": "Actualizar progreso por tareas completadas",
+      "autoProgressDesc": "El % de avance se calcula solo",
+      "inferSchedule": "Inferir cronograma si no existe",
+      "inferScheduleDesc": "Usa las fechas de tus tareas para estimar inicio y fin"
+    },
+    "saveWork": "Guardar configuración",
+    "savedWork": "Configuración guardada",
+    "saveError": "No se pudo guardar",
+    "alertsBanner": {
+      "strong": "Solo alertas que importan.",
+      "rest": "Te avisamos cuando hay algo que decidir, no por cada acción."
+    },
+    "alertsList": {
+      "title": "Recibir alertas cuando…",
+      "hint": "Cada alerta requiere una decisión tuya",
+      "losing": "El proyecto está perdiendo dinero",
+      "losingDesc": "Costos > ingresos esperados",
+      "delays": "Hay retrasos críticos",
+      "delaysDesc": "Tareas vencidas o atraso > 15% del cronograma",
+      "exceeded": "Se supera el presupuesto",
+      "exceededDesc": "Total gastado mayor al presupuesto del proyecto",
+      "blocking": "Una tarea bloquea el avance",
+      "blockingDesc": "Tarea bloqueada por más de 24 horas"
+    },
+    "channel": {
+      "title": "Canal de alertas",
+      "hint": "Dónde quieres recibirlas",
+      "system": "Sistema",
+      "systemDesc": "Campana de notificaciones en la app",
+      "email": "Correo electrónico",
+      "emailDesc": "Recibe un email por cada alerta crítica"
+    },
+    "saveAlerts": "Guardar alertas",
+    "savedAlerts": "Alertas actualizadas",
+    "language": {
+      "title": "Idioma de la plataforma",
+      "hint": "Cambia el idioma de toda la interfaz",
+      "es": "Español",
+      "esDesc": "Mostrar la plataforma en español",
+      "en": "Inglés",
+      "enDesc": "Mostrar la plataforma en inglés"
+    },
+    "subscriptions": {
+      "betaTitle": "Acceso beta para usuarios fundadores.",
+      "betaBadge": "Beta · Early Access",
+      "betaBody": "Estamos construyendo ScorpionFlow junto a nuestros primeros usuarios. Mientras dure la beta tienes acceso casi completo sin tarjeta.",
+      "header": "Founder Access o Business",
+      "headerDesc": "Empieza con Founder Access. Activa Business cuando necesites visión empresarial completa. Pago mensual con Mercado Pago.",
+      "popular": "Más popular",
+      "duringBeta": "Durante la beta",
+      "betaPrice": "Precio beta · Pago mensual con Mercado Pago",
+      "cancelingEnd": "Cancelando al final del período",
+      "endsOn": "Termina el ",
+      "renewsOn": "Renueva el ",
+      "reactivate": "Reactivar Business",
+      "cancelSub": "Cancelar suscripción",
+      "supportNote": "Para cambios avanzados, contacta soporte.",
+      "availableOnCancel": "Disponible al cancelar",
+      "activate": "Activar Business",
+      "pendingTitle": "Estamos confirmando tu pago.",
+      "pendingBody": "Recibirás acceso a Business en cuanto Mercado Pago confirme la suscripción.",
+      "rejectedTitle": "Tu pago no pudo procesarse.",
+      "rejectedBody": "Puedes volver a intentarlo cuando quieras.",
+      "anytimeStrong": "Cancela cuando quieras.",
+      "anytimeBody": "Puedes cambiar o cancelar tu plan en cualquier momento. Sin permanencia ni costos ocultos.",
+      "confirmCancelTitle": "Cancelar suscripción Business",
+      "confirmCancelBody": "Mercado Pago dejará de cobrarte. Tu cuenta volverá a Founder Access cuando se confirme la cancelación.",
+      "confirmCancelCta": "Sí, cancelar",
+      "confirmDowngradeTitle": "Volver a Founder Access",
+      "confirmDowngradeBody": "Tu suscripción Business se cancelará en Mercado Pago y tu cuenta volverá a Founder Access cuando se confirme.",
+      "confirmDowngradeCta": "Confirmar cambio",
+      "confirmReactivateTitle": "Reactivar tu suscripción Business",
+      "confirmReactivateBody": "Tu plan está programado para terminar el {{date}}. Si reactivas ahora, continuará renovándose normalmente.",
+      "confirmReactivateCta": "Reactivar",
+      "mpReturnTitle": "Estamos confirmando tu pago.",
+      "mpReturnBody": "Activaremos Business en cuanto Mercado Pago confirme la suscripción.",
+      "mpError": "No pudimos conectar con Mercado Pago",
+      "mpErrorRetry": "Intenta nuevamente en unos segundos.",
+      "cancelError": "No pudimos cancelar tu suscripción",
+      "cancelErrorBody": "Para cambios avanzados, contacta soporte.",
+      "cancelOk": "Cancelación registrada",
+      "cancelOkBody": "Mercado Pago dejará de cobrarte. Tu cuenta volverá a Founder Access."
+    },
+    "plans": {
+      "free": {
+        "name": "Founder Access",
+        "tagline": "Acceso beta para usuarios fundadores",
+        "cta": "Empezar gratis",
+        "features": [
+          "Cotizaciones, clientes y proyectos",
+          "Recursos, costos y riesgos",
+          "Dashboard, informes y Learn Center",
+          "Colaboración básica",
+          "Branding ScorpionFlow visible",
+          "Construido junto a nuestros primeros usuarios"
+        ]
+      },
+      "business": {
+        "name": "Business",
+        "tagline": "Visión estratégica y control corporativo",
+        "cta": "Solicitar acceso Business",
+        "features": [
+          "Visión financiera global",
+          "Dashboards ejecutivos",
+          "Analítica avanzada",
+          "Colaboración empresarial",
+          "Exportaciones completas",
+          "Soporte prioritario"
+        ]
+      }
+    }
+  },
+  "help": {
+    "badge": "Learn Center",
+    "title1": "Centro de Ayuda",
+    "subtitle": "Aprende a vender, organizar y controlar tu negocio paso a paso.",
+    "yourPlan": "Tu plan:",
+    "searchPlaceholder": "¿Qué deseas aprender? Ej: cotizar, costos, riesgos…",
+    "suggestions": ["cotizar", "crear proyecto", "costos", "riesgos", "clientes", "dashboard"],
+    "quickStartTitle": "Inicio rápido",
+    "quickStartHint": "Empieza por aquí",
+    "quickStart": [
+      { "title": "Empezar en 5 minutos", "desc": "Tour rápido de la plataforma.", "cta": "Iniciar tour" },
+      { "title": "Crear primera cotización", "desc": "Convierte una idea en venta.", "cta": "Ir a cotizaciones" },
+      { "title": "Crear primer proyecto", "desc": "Organiza la ejecución.", "cta": "Ir a proyectos" },
+      { "title": "Entender tus números", "desc": "Lee tu dashboard como un dueño.", "cta": "Ver dashboard" },
+      { "title": "Gestionar riesgos", "desc": "Detecta lo que puede salir mal.", "cta": "Ver riesgos" },
+      { "title": "Mejorar rentabilidad", "desc": "Cierra más, gasta mejor.", "cta": "Ver finanzas" }
+    ],
+    "tabs": {
+      "guides": "Guías paso a paso",
+      "videos": "Videos cortos",
+      "tour": "Tour de 5 pasos",
+      "plan": "Para tu plan"
+    },
+    "noResults": "No encontramos resultados para",
+    "tryWith": "Prueba con: cotizar, costos, riesgos.",
+    "guides": [
+      {
+        "title": "Cómo vender con ScorpionFlow",
+        "subtitle": "De primer contacto a venta cerrada.",
+        "steps": [
+          { "title": "Crea el cliente", "desc": "Registra los datos clave: nombre, contacto y notas." },
+          { "title": "Crea la cotización", "desc": "Agrega ítems, precios y condiciones en minutos." },
+          { "title": "Envíala por WhatsApp", "desc": "Comparte un enlace claro y profesional." },
+          { "title": "Márcala como ganada", "desc": "Cuando el cliente acepta, cambia el estado." },
+          { "title": "Conviértela en proyecto", "desc": "Se crea automáticamente para empezar a ejecutar." }
+        ]
+      },
+      {
+        "title": "Cómo crear un proyecto",
+        "subtitle": "Estructura el trabajo desde el día uno.",
+        "steps": [
+          { "title": "Desde cero o desde cotización", "desc": "Empieza limpio o reutiliza una venta ganada." },
+          { "title": "Asigna responsables", "desc": "Cada tarea con un dueño claro." },
+          { "title": "Define fechas y prioridades", "desc": "Plazos realistas evitan retrasos costosos." },
+          { "title": "Sigue el avance", "desc": "Revisa el tablero al menos una vez por semana." }
+        ]
+      },
+      {
+        "title": "Cómo controlar costos",
+        "subtitle": "Margen sano = negocio sano.",
+        "steps": [
+          { "title": "Registra tus recursos", "desc": "Personas, equipos y proveedores." },
+          { "title": "Registra los costos reales", "desc": "Lo que pagas, no solo lo que estimas." },
+          { "title": "Detecta sobrecostos", "desc": "El sistema te avisa cuando un proyecto se sale." },
+          { "title": "Mejora el margen", "desc": "Ajusta precios o reduce gasto donde duele." }
+        ]
+      },
+      {
+        "title": "Cómo usar Riesgos",
+        "subtitle": "Lo que no se mide, no se controla.",
+        "steps": [
+          { "title": "Identifica el riesgo", "desc": "¿Qué puede salir mal y cuánto cuesta?" },
+          { "title": "Mide impacto y probabilidad", "desc": "Prioriza lo que más duele." },
+          { "title": "Asigna un responsable", "desc": "Sin dueño, no se resuelve." },
+          { "title": "Mitiga a tiempo", "desc": "Acciones hoy = ahorro mañana." }
+        ]
+      },
+      {
+        "title": "Cómo leer tu Dashboard",
+        "subtitle": "Tu negocio en una pantalla.",
+        "steps": [
+          { "title": "Ganancia y margen", "desc": "Cuánto entra, cuánto queda." },
+          { "title": "Riesgos activos", "desc": "Lo urgente que necesita atención." },
+          { "title": "Saturación de recursos", "desc": "Quién está sobrecargado y quién libre." },
+          { "title": "Flujo esperado", "desc": "Cobros y pagos de los próximos 30 días." },
+          { "title": "Alertas inteligentes", "desc": "El sistema te dice qué hacer hoy." }
+        ]
+      }
+    ],
+    "videos": [
+      { "title": "Crear cotización en 1 minuto", "duration": "1:12", "topic": "Comercial" },
+      { "title": "Entender rentabilidad", "duration": "2:45", "topic": "Finanzas" },
+      { "title": "Revisar proyectos en riesgo", "duration": "1:58", "topic": "Riesgos" }
+    ],
+    "tips": [
+      "Si cotizas rápido, cierras más.",
+      "Revisa costos semanalmente.",
+      "Todo proyecto sin seguimiento pierde margen.",
+      "Los riesgos no atendidos cuestan dinero.",
+      "Un cliente bien tratado vuelve y trae a otros.",
+      "Mide hoy, decide mañana."
+    ],
+    "playbooks": {
+      "free": {
+        "title": "Guías básicas",
+        "items": [
+          "Crea tu primer cliente y cotización.",
+          "Convierte una venta ganada en proyecto.",
+          "Aprende a leer las 3 KPIs del dashboard."
+        ]
+      },
+      "starter": {
+        "title": "Plantillas de cotización",
+        "items": [
+          "Reutiliza cotizaciones ganadas como plantillas.",
+          "Estandariza precios y condiciones.",
+          "Acorta tu tiempo de respuesta a clientes."
+        ]
+      },
+      "pro": {
+        "title": "Buenas prácticas operativas",
+        "items": [
+          "Revisa costos por proyecto cada semana.",
+          "Asigna responsables únicos por tarea.",
+          "Cierra riesgos abiertos antes de avanzar fases.",
+          "Usa el informe de proyecto en cada reunión."
+        ]
+      },
+      "business": {
+        "title": "Playbooks gerenciales · KPIs · Estrategia",
+        "items": [
+          "Reunión semanal de 30 min con el Resumen Ejecutivo.",
+          "Define umbrales de margen mínimo por tipo de proyecto.",
+          "Audita el Centro de Riesgos cada lunes.",
+          "Forecast mensual de caja con el Centro Financiero.",
+          "Top 5 clientes por utilidad: enfócate ahí."
+        ]
+      }
+    },
+    "tour": [
+      { "title": "Crea un cliente", "desc": "Empieza por registrar a quién le vendes." },
+      { "title": "Haz una cotización", "desc": "Arma tu propuesta con ítems claros." },
+      { "title": "Gana la venta", "desc": "Marca la cotización como ganada." },
+      { "title": "Ejecuta el proyecto", "desc": "Asigna tareas y avanza con tu equipo." },
+      { "title": "Controla la utilidad", "desc": "Revisa costos y margen cada semana." }
+    ],
+    "tourTitle": "Tour de activación",
+    "tourSubtitle": "5 pasos para empezar a vender hoy mismo.",
+    "tourCtaPrimary": "Empezar ahora",
+    "tourCtaSecondary": "Ir a cotizaciones",
+    "planRecommendations": "Recomendaciones específicas para tu plan",
+    "unlockMore": "Desbloquea más playbooks",
+    "unlockMoreBody": "Sube de plan para acceder a guías comerciales avanzadas, KPIs ejecutivos y estrategia.",
+    "viewPlans": "Ver planes",
+    "tipsTitle": "Consejos de negocio",
+    "ctaTitle": "¿Listo para vender más y mejor?",
+    "ctaBody": "Empieza con un cliente, cierra una cotización y deja que ScorpionFlow haga el resto.",
+    "ctaPrimary": "Crear cliente",
+    "ctaSecondary": "Nueva cotización"
+  }
+}

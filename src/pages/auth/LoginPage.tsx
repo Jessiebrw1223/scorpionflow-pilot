@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Eye, EyeOff, LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
 
-const schema = z.object({
-  email: z.string().trim().email("Correo inválido").max(255),
-  password: z.string().min(6, "Mínimo 6 caracteres").max(72),
-});
-
 export default function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
@@ -29,12 +26,15 @@ export default function LoginPage() {
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
+  const schema = z.object({
+    email: z.string().trim().email(t("auth.login.errors.invalidEmail")).max(255),
+    password: z.string().min(6, t("auth.login.errors.minPassword")).max(72),
+  });
+
   const from = (location.state as { from?: Location })?.from?.pathname || "/";
 
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate(pendingRedirect ?? from, { replace: true });
-    }
+    if (!authLoading && user) navigate(pendingRedirect ?? from, { replace: true });
   }, [authLoading, user, pendingRedirect, from, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,40 +46,35 @@ export default function LoginPage() {
       setErrors({ email: fld.email?.[0], password: fld.password?.[0] });
       return;
     }
-
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-
     if (error) {
-      toast.error("Credenciales incorrectas", { description: "Verifica tu correo o contraseña." });
+      toast.error(t("auth.login.errors.invalidCredentials"), { description: t("auth.login.errors.checkLogin") });
       return;
     }
-
     setPendingRedirect(from);
-    toast.success("¡Bienvenido de vuelta!", { description: "Acceso autorizado al sistema." });
+    toast.success(t("auth.login.success.welcome"), { description: t("auth.login.success.authorized") });
   };
 
   const handleGoogle = async () => {
     setLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
+    const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (error) {
       setLoading(false);
-      toast.error("Error con Google", { description: error.message });
+      toast.error(t("auth.login.errors.googleError"), { description: error.message });
     }
   };
 
   return (
     <AuthLayout
-      title="Inicia sesión"
-      subtitle="Accede al centro de control de tus proyectos"
+      title={t("auth.login.title")}
+      subtitle={t("auth.login.subtitle")}
       footer={
         <>
-          ¿No tienes cuenta?{" "}
+          {t("auth.login.noAccount")}{" "}
           <Link to="/auth/register" className="fire-link text-primary font-medium">
-            Regístrate
+            {t("auth.login.register")}
           </Link>
         </>
       }
@@ -97,34 +92,26 @@ export default function LoginPage() {
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
         </svg>
-        Continuar con Google
+        {t("auth.login.googleCta")}
       </Button>
 
       <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
+        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
         <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-          <span className="bg-card px-2 text-muted-foreground">O con correo</span>
+          <span className="bg-card px-2 text-muted-foreground">{t("auth.login.emailDivider")}</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground">
-            Correo electrónico
+            {t("auth.login.emailLabel")}
           </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              placeholder="tu@empresa.com"
-              value={email}
+            <Input id="email" type="email" placeholder="tu@empresa.com" value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-9 h-11 bg-secondary/50 border-border focus:border-primary"
-              autoComplete="email"
-            />
+              className="pl-9 h-11 bg-secondary/50 border-border focus:border-primary" autoComplete="email" />
           </div>
           {errors.email && <p className="text-[12px] text-destructive">{errors.email}</p>}
         </div>
@@ -132,29 +119,21 @@ export default function LoginPage() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Contraseña
+              {t("auth.login.passwordLabel")}
             </Label>
             <Link to="/auth/forgot-password" className="text-[11px] fire-link text-primary">
-              ¿Olvidaste tu contraseña?
+              {t("auth.login.forgot")}
             </Link>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="password"
-              type={showPwd ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
+            <Input id="password" type={showPwd ? "text" : "password"} placeholder="••••••••" value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-9 pr-10 h-11 bg-secondary/50 border-border focus:border-primary"
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPwd(!showPwd)}
+              autoComplete="current-password" />
+            <button type="button" onClick={() => setShowPwd(!showPwd)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-sf"
-              tabIndex={-1}
-            >
+              tabIndex={-1}>
               {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
@@ -164,18 +143,13 @@ export default function LoginPage() {
         <div className="flex items-center gap-2">
           <Checkbox id="remember" checked={remember} onCheckedChange={(v) => setRemember(!!v)} />
           <Label htmlFor="remember" className="text-[13px] text-muted-foreground cursor-pointer">
-            Recordar mi sesión
+            {t("auth.login.remember")}
           </Label>
         </div>
 
         <Button type="submit" disabled={loading} className="w-full h-11 fire-button font-semibold">
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <LogIn className="w-4 h-4" />
-              Acceder al sistema
-            </>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+            <><LogIn className="w-4 h-4" />{t("auth.login.submit")}</>
           )}
         </Button>
       </form>
